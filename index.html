@@ -258,7 +258,20 @@ function App() {
 
   const FilterPanel=()=>(
     <div style={card}>
-      <p style={{margin:"0 0 8px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.mealFilter}</p>
+      {/* LUOGO */}
+      <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📍 {lang==="it"?"Dove vuoi andare?":"Where do you want to go?"}</p>
+      <div style={{display:"flex",gap:8,marginBottom:14}}>
+        <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()}
+          placeholder={lang==="it"?"Città, zona o nome locale...":"City, area or place name..."}
+          style={{...inpStyle,flex:1,padding:"10px 14px",fontSize:13}}/>
+        <button onClick={()=>isGuest?showPopup(t.popGuestLimit,t.popGuestLimitSub,"register"):!premium?showPopup(t.popGPS,t.popGPSSub,"upgrade"):null}
+          style={{background:premium?"#1a5c3a":"#f3f4f6",color:premium?"white":"#9ca3af",border:"none",padding:"10px 14px",borderRadius:10,cursor:"pointer",fontSize:13,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>
+          📍 {lang==="it"?"Vicino a me":"Near me"}{!premium&&" ⭐"}
+        </button>
+      </div>
+
+      {/* TIPO PASTO */}
+      <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.mealFilter}</p>
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
         <button onClick={()=>setMealFilter(null)} style={{background:!mealFilter?"#1f2937":"#f3f4f6",color:!mealFilter?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:!mealFilter?700:400}}>🍽️ {t.allMeals}</button>
         {Object.entries(MEALS).map(([k,m])=>(
@@ -268,8 +281,10 @@ function App() {
           </button>
         ))}
       </div>
-      <p style={{margin:"0 0 8px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.filters}</p>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
+
+      {/* CARATTERISTICHE */}
+      <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.filters}</p>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
         {Object.entries(TAGS).filter(([,tg])=>!["#065f46","#d97706","#dc2626"].includes(tg.color)).map(([k,tg])=>(
           <button key={k} onClick={()=>isGuest?showPopup(t.popGuestLimit,t.popGuestLimitSub,"register"):toggleTag(k)}
             style={{background:tagFilters.includes(k)?tg.color:"#f3f4f6",color:tagFilters.includes(k)?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:tagFilters.includes(k)?700:400}}>
@@ -277,7 +292,12 @@ function App() {
           </button>
         ))}
       </div>
-      <p style={{margin:"0 0 8px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.crossSection}</p>
+
+      {/* CONTAMINAZIONE */}
+      <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>
+        {lang==="it"?"🔬 Sicurezza in cucina":"🔬 Kitchen Safety"}
+      </p>
+      <p style={{margin:"0 0 8px",fontSize:11,color:"#9ca3af"}}>{lang==="it"?"Il locale garantisce assenza di contaminazione crociata?":"Does the venue guarantee no cross-contamination?"}</p>
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:4}}>
         {Object.entries(TAGS).filter(([,tg])=>["#065f46","#d97706","#dc2626"].includes(tg.color)).map(([k,tg])=>(
           <button key={k} onClick={()=>isGuest?showPopup(t.popGuestLimit,t.popGuestLimitSub,"register"):toggleTag(k)}
@@ -286,12 +306,15 @@ function App() {
           </button>
         ))}
       </div>
-      <p style={{margin:"4px 0 0",fontSize:10,color:"#9ca3af"}}>{t.crossLegend}</p>
-      {(tagFilters.length>0||mealFilter)&&(
-        <button onClick={doSearch} style={{width:"100%",background:GREEN,color:"white",border:"none",padding:"11px",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:14}}>
-          🔍 {t.searchBtn} {tagFilters.length>0||mealFilter?`(${[...tagFilters,mealFilter].filter(Boolean).length} ${lang==="it"?"filtri attivi":"active filters"})`:""} 
-        </button>
-      )}
+      <p style={{margin:"6px 0 14px",fontSize:10,color:"#9ca3af"}}>✅ {lang==="it"?"cucina separata":"separate kitchen"} · ⚠️ {lang==="it"?"non garantisce":"not guaranteed"} · ❌ {lang==="it"?"cucina condivisa":"shared kitchen"}</p>
+
+      {/* BOTTONE CERCA GRANDE */}
+      <button onClick={doSearch} style={{width:"100%",background:GREEN,color:"white",border:"none",padding:"14px",borderRadius:12,fontWeight:700,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
+        🔍 {t.searchBtn}
+        {(tagFilters.length>0||mealFilter||q)&&<span style={{background:"rgba(255,255,255,0.25)",fontSize:12,padding:"2px 8px",borderRadius:10}}>
+          {[q&&"1",...tagFilters,mealFilter].filter(Boolean).length} {lang==="it"?"filtri":"filters"}
+        </span>}
+      </button>
     </div>
   );
 
@@ -454,8 +477,8 @@ function App() {
   // HOME
   if(screen==="home")return(
     <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80,fontFamily:"inherit"}}>
-      <div style={{background:GREEN,padding:"24px 20px 80px",color:"white"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:16}}>
+      <div style={{background:GREEN,padding:"20px 20px 24px",color:"white"}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
           <div>
             <p style={{margin:0,fontSize:13,opacity:.85}}>{isGuest?(lang==="it"?"Ospite 👀":"Guest 👀"):`${t.hi}, ${user?.name?.split(" ")[0]} 👋`}</p>
             <div style={{display:"flex",alignItems:"center",gap:8,marginTop:2}}>
@@ -470,14 +493,8 @@ function App() {
             {!isGuest&&premium&&<span style={{...ghost,fontWeight:700}}>⭐</span>}
           </div>
         </div>
-        <div style={{background:"white",borderRadius:14,padding:"4px 8px 4px 14px",display:"flex",alignItems:"center",gap:8,boxShadow:"0 4px 15px rgba(0,0,0,.15)"}}>
-          <span style={{fontSize:18}}>🔍</span>
-          <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={t.search}
-            style={{flex:1,border:"none",outline:"none",fontSize:14,color:"#1f2937",background:"transparent",padding:"10px 0"}}/>
-          <button onClick={doSearch} style={{background:"#1a5c3a",color:"white",border:"none",padding:"8px 13px",borderRadius:10,cursor:"pointer",fontWeight:600,fontSize:14}}>{t.searchBtn}</button>
-        </div>
       </div>
-      <div style={{marginTop:-52,padding:"0 16px 8px"}}><FilterPanel/></div>
+      <div style={{marginTop:8,padding:"0 16px 8px"}}><FilterPanel/></div>
       {isGuest&&<div style={{margin:"0 16px 10px",background:"#fef3c7",borderRadius:12,padding:"9px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontSize:12,color:"#92400e"}}>👀 {t.guestBanner}</span>
         <span onClick={()=>{setAuthMode("register");go("auth");}} style={{fontSize:12,color:"#d97706",cursor:"pointer",fontWeight:700}}>{t.registerFree} →</span>
