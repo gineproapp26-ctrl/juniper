@@ -274,6 +274,76 @@ function BusinessScreen({lang,go}){
   );
 }
 
+function PolicyScreen({lang,go}){
+  const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
+  const card2={background:"white",borderRadius:14,padding:20,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:12};
+  const GREEN2="linear-gradient(135deg,#1a5c3a,#0f3d26)";
+  const tx={
+    it:{
+      title:"Policy & Termini",
+      back:"Indietro",
+      s1title:"⚖️ Responsabilità dei contenuti",
+      s1:"Ogni locale registrato su Juniper è responsabile in prima persona delle informazioni inserite nella propria scheda, incluse le caratteristiche alimentari dichiarate (gluten free, vegano, senza lattosio, ecc.). Juniper non verifica in modo autonomo e continuativo le informazioni pubblicate dai locali.",
+      s2title:"🌿 Ruolo di Juniper",
+      s2:"Juniper è una piattaforma di ricerca e scoperta. Mettiamo in contatto utenti con esigenze alimentari specifiche e locali che dichiarano di soddisfarle. Non siamo responsabili di eventuali errori, omissioni o cambiamenti nelle informazioni fornite dai locali.",
+      s3title:"⚠️ Avviso per gli utenti",
+      s3:"Ti consigliamo sempre di confermare direttamente con il locale prima di consumare, soprattutto in caso di allergie o intolleranze gravi. Le informazioni presenti su Juniper sono fornite a titolo indicativo e non costituiscono garanzia medica o legale.",
+      s4title:"🏅 Badge Verificato",
+      s4:"Il badge 'Verificato da Juniper' indica che il locale ha fornito documentazione a supporto delle proprie dichiarazioni ed ha sottoscritto la nostra dichiarazione di responsabilità. Tuttavia, anche i locali verificati rimangono gli unici responsabili della veridicità delle informazioni.",
+      s5title:"📋 Registrazione dei locali",
+      s5:"I locali che si registrano su Juniper accettano esplicitamente di fornire informazioni veritiere e aggiornate. La pubblicazione di informazioni false o fuorvianti comporta la rimozione immediata dalla piattaforma.",
+      s6title:"📬 Contatti",
+      s6:"Per segnalazioni, richieste di verifica o rimozione di contenuti: juniper.app26@gmail.com",
+      updated:"Ultimo aggiornamento: aprile 2026",
+    },
+    en:{
+      title:"Policy & Terms",
+      back:"Back",
+      s1title:"⚖️ Content Responsibility",
+      s1:"Each venue registered on Juniper is solely responsible for the information in their profile, including declared dietary features (gluten free, vegan, lactose free, etc.). Juniper does not independently and continuously verify the information published by venues.",
+      s2title:"🌿 Juniper's Role",
+      s2:"Juniper is a search and discovery platform. We connect users with specific dietary needs to venues that declare they can meet them. We are not responsible for errors, omissions or changes in information provided by venues.",
+      s3title:"⚠️ User Warning",
+      s3:"We always recommend confirming directly with the venue before consuming, especially in cases of severe allergies or intolerances. Information on Juniper is provided for guidance only and does not constitute medical or legal guarantee.",
+      s4title:"🏅 Verified Badge",
+      s4:"The 'Verified by Juniper' badge indicates the venue has provided supporting documentation and signed our liability declaration. However, verified venues remain solely responsible for the accuracy of their information.",
+      s5title:"📋 Venue Registration",
+      s5:"Venues registering on Juniper explicitly agree to provide truthful and up-to-date information. Publishing false or misleading information results in immediate removal from the platform.",
+      s6title:"📬 Contact",
+      s6:"For reports, verification requests or content removal: juniper.app26@gmail.com",
+      updated:"Last updated: April 2026",
+    }
+  };
+  const t=tx[lang]||tx.it;
+  const sections=[
+    {title:t.s1title,text:t.s1},
+    {title:t.s2title,text:t.s2},
+    {title:t.s3title,text:t.s3},
+    {title:t.s4title,text:t.s4},
+    {title:t.s5title,text:t.s5},
+    {title:t.s6title,text:t.s6},
+  ];
+  return(
+    <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
+      <div style={{background:GREEN2,padding:"20px",color:"white"}}>
+        <button onClick={()=>go("welcome")} style={{...ghost2,marginBottom:10,display:"block"}}>← {t.back}</button>
+        <Logo size={22}/>
+        <h2 style={{margin:"8px 0 2px",fontSize:17,fontWeight:700}}>⚖️ {t.title}</h2>
+        <p style={{margin:0,fontSize:12,opacity:.8}}>Juniper — juniperapp.eu</p>
+      </div>
+      <div style={{padding:16}}>
+        {sections.map((s,i)=>(
+          <div key={i} style={card2}>
+            <p style={{margin:"0 0 8px",fontSize:13,fontWeight:700,color:"#1a5c3a"}}>{s.title}</p>
+            <p style={{margin:0,fontSize:13,color:"#374151",lineHeight:1.7}}>{s.text}</p>
+          </div>
+        ))}
+        <p style={{textAlign:"center",fontSize:11,color:"#9ca3af",marginTop:8}}>{t.updated}</p>
+      </div>
+    </div>
+  );
+}
+
 function App(){
   const [lang,setLang]=React.useState("it");
   const [screen,setScreen]=React.useState("welcome");
@@ -621,11 +691,13 @@ function App(){
       <div style={{marginTop:20,width:"100%",maxWidth:300,borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:14,textAlign:"center"}}>
         <p style={{margin:"0 0 8px",fontSize:13,opacity:.8}}>{lang==="it"?"Sei un'azienda?":"Are you a business?"}</p>
         <button onClick={()=>go("business")} style={{background:"rgba(255,255,255,.15)",color:"white",border:"1px solid rgba(255,255,255,.4)",padding:"9px 20px",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer"}}>🏢 {t.bizBtn}</button>
+        <p onClick={()=>go("policy")} style={{margin:"12px 0 0",fontSize:12,opacity:.6,cursor:"pointer",textDecoration:"underline"}}>{lang==="it"?"Policy & Termini":"Policy & Terms"}</p>
       </div>
     </div>
   );
 
   if(screen==="business")return <BusinessScreen lang={lang} go={go}/>;
+  if(screen==="policy")return <PolicyScreen lang={lang} go={go}/>;
 
   if(screen==="auth")return(
     <div style={{minHeight:"100vh",background:"#f9fafb"}}>
@@ -797,6 +869,7 @@ function App(){
         </div>
         <div style={card}>
           <button onClick={tl} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>🌐 {lang==="it"?"Switch to English":"Passa all'italiano"}</button>
+          <button onClick={()=>go("policy")} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>⚖️ {lang==="it"?"Policy & Termini":"Policy & Terms"}</button>
           <button onClick={async()=>{await sb.auth.signOut();setUser(null);setScreen("welcome");setPremium(false);setCnt(0);setTab("home");}} style={{width:"100%",background:"#fef2f2",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#ef4444",textAlign:"left"}}>🚪 {t.logout}</button>
         </div>
       </div>
