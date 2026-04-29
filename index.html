@@ -14,7 +14,8 @@
 body{font-family:system-ui,-apple-system,sans-serif;background:#f9fafb}
 #root{max-width:480px;margin:0 auto;min-height:100vh}
 </style>
-
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 <div id="root"></div>
@@ -102,7 +103,7 @@ function BusinessScreen({lang,go}){
         headers:{
           "Content-Type":"application/json",
           "X-Goog-Api-Key":GKEY,
-          "X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryType,places.shortFormattedAddress"
+          "X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryType,places.shortFormattedAddress,places.location"
         },
         body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:15})
       });
@@ -120,11 +121,14 @@ function BusinessScreen({lang,go}){
         const addr=p.shortFormattedAddress||p.formattedAddress||"";
         const parts=(p.formattedAddress||"").split(",");
         const city=parts.length>2?parts[parts.length-3]?.trim()||"Italia":"Italia";
+        const lat=p.location?.latitude||null;
+        const lng=p.location?.longitude||null;
         return{
           id:"g_"+(p.id||Math.random().toString(36)),
           name,type,city,country:"Italia",address:addr,phone:"",
           description:type+" · "+city,emoji,
           tags:[], // nessun tag automatico — vengono dalle recensioni
+          lat,lng,
           meals:type==="bar"?["breakfast","aperitivo"]:["lunch","dinner"],
           source:"google",certified:false,sponsored:false,
           rating:p.rating||null,reviewCount:p.userRatingCount||0,
@@ -674,7 +678,7 @@ function App(){
         headers:{
           "Content-Type":"application/json",
           "X-Goog-Api-Key":GKEY,
-          "X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryType,places.shortFormattedAddress"
+          "X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryType,places.shortFormattedAddress,places.location"
         },
         body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:15})
       });
@@ -692,11 +696,14 @@ function App(){
         const addr=p.shortFormattedAddress||p.formattedAddress||"";
         const parts=(p.formattedAddress||"").split(",");
         const city=parts.length>2?parts[parts.length-3]?.trim()||"Italia":"Italia";
+        const lat=p.location?.latitude||null;
+        const lng=p.location?.longitude||null;
         return{
           id:"g_"+(p.id||Math.random().toString(36)),
           name,type,city,country:"Italia",address:addr,phone:"",
           description:type+" · "+city,emoji,
           tags:[], // nessun tag automatico — vengono dalle recensioni
+          lat,lng,
           meals:type==="bar"?["breakfast","aperitivo"]:["lunch","dinner"],
           source:"google",certified:false,sponsored:false,
           rating:p.rating||null,reviewCount:p.userRatingCount||0,
@@ -959,7 +966,7 @@ function App(){
                 setQ(lang==="it"?`Vicino a me (${lat}, ${lon})`:`Near me (${lat}, ${lon})`);
                 // Cerca locali vicino alle coordinate
                 searchGooglePlaces(`ristorante vicino ${lat},${lon}`,[]).then(res=>{
-                  if(res&&res.length>0){setResults(res);setTab("explore");go("results","home");}
+                  if(res&&res.length>0){setResults(res);setMapView(true);setTab("explore");go("results","home");}
                 });
               },()=>{alert(lang==="it"?"Impossibile ottenere la posizione. Controlla i permessi GPS.":"Could not get location. Check GPS permissions.");});
             }} style={{background:"#1a5c3a",color:"white",border:"none",padding:"10px 12px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>📍</button>
@@ -984,17 +991,50 @@ function App(){
     </div>
   );
 
+  const MapView=({results,onSelect})=>{
+    const mapRef=React.useRef(null);
+    const mapInstanceRef=React.useRef(null);
+    React.useEffect(()=>{
+      if(!mapRef.current||mapInstanceRef.current)return;
+      // Default center Italy
+      const validResults=results.filter(r=>r.lat&&r.lng);
+      const center=validResults.length>0?[validResults[0].lat,validResults[0].lng]:[42.5,12.5];
+      const map=window.L.map(mapRef.current,{zoomControl:true}).setView(center,validResults.length>0?13:6);
+      window.L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",{attribution:"© OpenStreetMap"}).addTo(map);
+      validResults.forEach(r=>{
+        const marker=window.L.marker([r.lat,r.lng]).addTo(map);
+        marker.bindPopup(`<b>${r.name}</b><br>${r.city||""}`);
+        marker.on("click",()=>onSelect(r));
+      });
+      mapInstanceRef.current=map;
+      return()=>{if(mapInstanceRef.current){mapInstanceRef.current.remove();mapInstanceRef.current=null;}};
+    },[]);
+    return <div ref={mapRef} style={{width:"100%",height:"calc(100vh - 180px)"}}/>;
+  };
+
+  const [mapView,setMapView]=React.useState(false);
+
   if(screen==="results")return(
     <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}>
       <div style={{background:GREEN,padding:"20px",color:"white"}}>
         <button onClick={()=>{go("home");setTab("home");}} style={{...ghost,marginBottom:10,display:"block"}}>← {t.back}</button>
-        <h2 style={{margin:"0 0 4px",fontSize:17,fontWeight:800}}>🔍 {t.results}</h2>
-        <p style={{margin:0,fontSize:13,opacity:.85}}>
-          {results.length>0?`${results.length} ${t.found}`:(lang==="it"?"Mostriamo i locali disponibili":"Showing available venues")}
-          {loadingMore&&<span style={{marginLeft:8,fontSize:12,opacity:.8}}>🌿 {lang==="it"?"Cerco altri...":"Finding more..."}</span>}
-        </p>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+          <div>
+            <h2 style={{margin:"0 0 4px",fontSize:17,fontWeight:800}}>🔍 {t.results}</h2>
+            <p style={{margin:0,fontSize:13,opacity:.85}}>
+              {results.length>0?`${results.length} ${t.found}`:(lang==="it"?"Mostriamo i locali disponibili":"Showing available venues")}
+              {loadingMore&&<span style={{marginLeft:8,fontSize:12,opacity:.8}}>🌿</span>}
+            </p>
+          </div>
+          <div style={{display:"flex",gap:6}}>
+            <button onClick={()=>setMapView(false)} style={{background:!mapView?"white":"rgba(255,255,255,.2)",color:!mapView?"#1a5c3a":"white",border:"none",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:12,fontWeight:700}}>☰ Lista</button>
+            <button onClick={()=>setMapView(true)} style={{background:mapView?"white":"rgba(255,255,255,.2)",color:mapView?"#1a5c3a":"white",border:"none",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:12,fontWeight:700}}>🗺️ Mappa</button>
+          </div>
+        </div>
       </div>
-      <div style={{padding:16}}>
+      {mapView
+        ?<MapView results={results} onSelect={s=>{setSel(s);go("detail","results");}}/>
+        :<div style={{padding:16}}>
         {results.length===0
         ?<>
           <div style={{textAlign:"center",padding:"30px 20px 16px"}}>
@@ -1009,6 +1049,7 @@ function App(){
 
         </>}
       </div>
+      </div>}
       <BottomNav/>{showUp&&<UpgradeModal/>}<Popup/>
     </div>
   );
