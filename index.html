@@ -508,14 +508,6 @@ function App() {
         </div>
       </div>
       <div style={{padding:"0 0 8px"}}><FilterPanel/></div>
-      {isGuest&&<div style={{margin:"0 16px 10px",background:"#fef3c7",borderRadius:12,padding:"9px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <span style={{fontSize:12,color:"#92400e"}}>👀 {t.guestBanner}</span>
-        <span onClick={()=>{setAuthMode("register");go("auth");}} style={{fontSize:12,color:"#d97706",cursor:"pointer",fontWeight:700}}>{t.registerFree} →</span>
-      </div>}
-      {!isGuest&&!premium&&<div style={{margin:"0 16px 10px",background:"#fef3c7",borderRadius:12,padding:"9px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-        <span style={{fontSize:12,color:"#92400e"}}>🔍 {t.freeBanner} ({cnt}/{FREE_LIMIT})</span>
-        <span onClick={()=>setShowUp(true)} style={{fontSize:12,color:"#d97706",cursor:"pointer",fontWeight:700}}>{t.upgrade} →</span>
-      </div>}
       <div style={{padding:"0 16px"}}>
         <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"4px 0 12px"}}>📢 {t.featured}</h3>
         {sortedStructures.filter(s=>s.sponsored).map((s,i)=><StructCard key={s.id} s={s} index={i} guestMode={isGuest}/>)}
