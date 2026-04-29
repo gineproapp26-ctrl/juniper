@@ -46,9 +46,9 @@ const MEALS = {
   dinner:   {it:"Cena",     en:"Dinner",   icon:"🌙"},
 };
 const SOURCES = {
-  registered:{it:"Registrata",en:"Registered",icon:"🏢",color:"#1a5c3a",bg:"#e8f5ee"},
-  verified:  {it:"Verificata",en:"Verified",  icon:"🌿",color:"#2563eb",bg:"#dbeafe"},
-  google:    {it:"Da Google", en:"From Google",icon:"📍",color:"#6b7280",bg:"#f3f4f6"},
+  registered:  {it:"Registrata",   en:"Registered",    icon:"🏢",color:"#1a5c3a",bg:"#e8f5ee"},
+  verified:    {it:"Verificata",   en:"Verified",      icon:"🌿",color:"#2563eb",bg:"#dbeafe"},
+  google:      {it:"Non Verificato",en:"Not Verified", icon:"⚠️",color:"#b45309",bg:"#fef3c7"},
 };
 const DIET_TAGS  = ["gluten_free","lactose_free","combo_free","vegan","vegetarian","pet_friendly"];
 const CROSS_TAGS = ["no_cross","low_cross","high_cross"];
@@ -127,10 +127,12 @@ function BusinessScreen({lang,go}){
         return{
           id:"g_"+(p.id||Math.random().toString(36)),
           name,type,city,country:"Italia",address:addr,phone:"",
-          description:type+" · "+city,emoji,tags:ptags,
+          description:type+" · "+city,emoji,
+          tags:ptags, // solo tag dichiarati esplicitamente nel nome
           meals:type==="bar"?["breakfast","aperitivo"]:["lunch","dinner"],
           source:"google",certified:false,sponsored:false,
           rating:p.rating||null,reviewCount:p.userRatingCount||0,
+          unverified:true,
         };
       });
     }catch(e){return[];}
@@ -419,9 +421,32 @@ function App(){
 
   React.useEffect(()=>{
     if(!sel)return;
+    // Recensioni Supabase
     sb.from("reviews").select("*").eq("structure_id",sel.id).order("created_at",{ascending:false}).then(({data})=>{
       if(data) setRevs(r=>({...r,[sel.id]:data.map(r=>({id:r.id,user:r.user_name,rating:r.rating,text:r.text,date:r.created_at?.split("T")[0]}))}));
     });
+    // Recensioni Google Places per locali non verificati
+    if(sel.source==="google"&&sel.id.startsWith("g_")){
+      const placeId=sel.id.replace("g_","");
+      fetch(`https://places.googleapis.com/v1/places/${placeId}?fields=reviews,editorialSummary`,{
+        headers:{
+          "X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck",
+          "X-Goog-FieldMask":"reviews,editorialSummary"
+        }
+      }).then(r=>r.json()).then(data=>{
+        const gRevs=(data.reviews||[]).map((r,i)=>({
+          id:"gr_"+i,
+          user:r.authorAttribution?.displayName||"Utente Google",
+          rating:r.rating||5,
+          text:r.text?.text||r.originalText?.text||"",
+          date:r.publishTime?.split("T")[0]||"",
+          source:"google"
+        })).filter(r=>r.text);
+        if(gRevs.length>0){
+          setRevs(r=>({...r,[sel.id]:[...(r[sel.id]||[]),...gRevs]}));
+        }
+      }).catch(()=>{});
+    }
   },[sel]);
 
   const T={
@@ -502,10 +527,12 @@ function App(){
         return{
           id:"g_"+(p.id||Math.random().toString(36)),
           name,type,city,country:"Italia",address:addr,phone:"",
-          description:type+" · "+city,emoji,tags:ptags,
+          description:type+" · "+city,emoji,
+          tags:ptags, // solo tag dichiarati esplicitamente nel nome
           meals:type==="bar"?["breakfast","aperitivo"]:["lunch","dinner"],
           source:"google",certified:false,sponsored:false,
           rating:p.rating||null,reviewCount:p.userRatingCount||0,
+          unverified:true,
         };
       });
     }catch(e){return[];}
@@ -537,6 +564,8 @@ function App(){
       ]);
       if(gRes&&gRes.length>0){
         const existing=new Set(res.map(s=>(s.name||"").toLowerCase()));
+        // Mostra sempre tutti i locali Google — non filtrare per tag
+        // L'utente vede il badge ⚠️ e controlla le recensioni
         const newG=gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase()));
         res=[...res,...newG];
       }
@@ -574,6 +603,10 @@ function App(){
         style={{...card,border:s.sponsored?"2px solid #f59e0b":"2px solid transparent",cursor:"pointer",position:"relative",filter:locked?"blur(3px)":"none"}}>
         {locked&&<div style={{position:"absolute",inset:0,background:"rgba(255,255,255,0.6)",borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",zIndex:2,flexDirection:"column",gap:5}}>
           <span style={{fontSize:26}}>🔒</span><span style={{fontSize:11,color:"#1a5c3a",fontWeight:700,background:"#d1fae5",padding:"3px 10px",borderRadius:10}}>{t.regFree}</span>
+        </div>}
+        {s.unverified&&<div style={{background:"#fef9ec",borderRadius:10,padding:"6px 10px",marginBottom:8,display:"flex",alignItems:"center",gap:6,border:"1px solid #fcd34d"}}>
+          <span style={{fontSize:12}}>⚠️</span>
+          <span style={{fontSize:11,color:"#92400e",fontWeight:600}}>{lang==="it"?"Locale non verificato — conferma prima di andare":"Unverified venue — confirm before visiting"}</span>
         </div>}
         <div style={{display:"flex",gap:12}}>
           <div style={{fontSize:30,background:"#f0fdf4",borderRadius:12,width:54,height:54,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{s.emoji}</div>
@@ -832,7 +865,13 @@ function App(){
             {sRevs.length===0?<p style={{color:"#9ca3af",fontSize:14,textAlign:"center",padding:"8px 0"}}>{t.noRev}</p>
             :sRevs.map((r,i)=>(
               <div key={r.id} style={{borderBottom:i<sRevs.length-1?"1px solid #f3f4f6":"none",paddingBottom:10,marginBottom:10}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}><span style={{fontWeight:600,fontSize:13}}>{r.user}</span><span style={{fontSize:11,color:"#9ca3af"}}>{r.date}</span></div>
+                <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
+                  <div style={{display:"flex",alignItems:"center",gap:5}}>
+                    <span style={{fontWeight:600,fontSize:13}}>{r.user}</span>
+                    {r.source==="google"&&<span style={{fontSize:10,background:"#f3f4f6",color:"#6b7280",padding:"1px 5px",borderRadius:6}}>Google</span>}
+                  </div>
+                  <span style={{fontSize:11,color:"#9ca3af"}}>{r.date}</span>
+                </div>
                 <div style={{marginBottom:3,fontSize:13}}>{"⭐".repeat(r.rating)}</div>
                 <p style={{margin:0,fontSize:13,color:"#374151"}}>{r.text}</p>
               </div>
