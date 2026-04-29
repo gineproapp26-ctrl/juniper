@@ -55,7 +55,6 @@ const CROSS_DESC = {
   en:{no_cross:"Dedicated separate kitchen, zero cross-contamination",low_cross:"We take care but cannot guarantee 100%",high_cross:"Shared kitchen, cross-contamination possible"},
 };
 
-// Dati demo fallback
 const DEMO = [
   {id:"d1",name:"Osteria da Marco",type:"ristorante",city:"Firenze",country:"Italia",address:"Via dei Servi, 12",phone:"+39 055 123456",description:"Cucina toscana con ampie opzioni per ogni esigenza.",emoji:"🍝",tags:["gluten_free","lactose_free","combo_free","vegan","vegetarian","no_cross"],meals:["lunch","dinner"],source:"registered",certified:true,sponsored:true,rating:4.7,reviewCount:128},
   {id:"d2",name:"Bar Latte e Miele",type:"bar",city:"Milano",country:"Italia",address:"Corso Buenos Aires, 34",phone:"+39 02 987654",description:"Bar moderno con latti vegetali e alternative senza lattosio.",emoji:"☕",tags:["lactose_free","vegan","low_cross"],meals:["breakfast","aperitivo"],source:"registered",certified:true,sponsored:false,rating:4.5,reviewCount:89},
@@ -262,13 +261,10 @@ function App(){
   const isGuest=!user;
   const FREE_LIMIT=3,FREE_STRUCTS=5,GUEST_MAX=2;
 
-  // ── EFFETTI ──
   React.useEffect(()=>{
-    // Controlla sessione esistente
     sb.auth.getSession().then(({data:{session}})=>{
       if(session) setUser({name:session.user.user_metadata?.name||session.user.email.split("@")[0],email:session.user.email,id:session.user.id});
     });
-    // Carica strutture
     sb.from("structures").select("*").eq("pending",false).then(({data})=>{
       if(data&&data.length>0){
         const mapped=data.map(s=>({
@@ -304,6 +300,72 @@ function App(){
   const ghost={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const btnG={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
 
+  // ── AUTH FUNCTION — FIXED ──
+  const doAuth=async()=>{
+    if(!aEmail||!aPass)return;
+    setAErr("");
+    try{
+      if(authMode==="register"){
+        const {data,error}=await sb.auth.signUp({
+          email:aEmail,
+          password:aPass,
+          options:{data:{name:aName||aEmail.split("@")[0]}}
+        });
+        if(error){
+          if(error.message.toLowerCase().includes("rate limit")||error.message.toLowerCase().includes("email rate")){
+            setAErr(lang==="it"
+              ?"⏳ Troppi tentativi. Aspetta qualche minuto e riprova."
+              :"⏳ Too many attempts. Wait a few minutes and try again.");
+          } else if(error.message.toLowerCase().includes("already registered")||error.message.toLowerCase().includes("already been registered")){
+            setAErr(lang==="it"
+              ?"📧 Email già registrata. Prova ad accedere."
+              :"📧 Email already registered. Try signing in.");
+          } else {
+            setAErr(error.message);
+          }
+          return;
+        }
+        if(data.user){
+          await sb.from("profiles").insert({
+            id:data.user.id,
+            name:aName||aEmail.split("@")[0],
+            email:aEmail
+          }).catch(()=>{});
+          setUser({name:aName||aEmail.split("@")[0],email:aEmail,id:data.user.id});
+          setAName("");setAEmail("");setAPass("");closeP();go("home");
+        } else {
+          // Email confirmation attiva — utente deve confermare email
+          setAErr(lang==="it"
+            ?"📬 Controlla la tua email per confermare la registrazione, poi torna qui ad accedere!"
+            :"📬 Check your email to confirm registration, then come back to sign in!");
+          return;
+        }
+      } else {
+        const {data,error}=await sb.auth.signInWithPassword({email:aEmail,password:aPass});
+        if(error){
+          if(error.message.toLowerCase().includes("email not confirmed")){
+            setAErr(lang==="it"
+              ?"📬 Conferma prima la tua email, poi accedi."
+              :"📬 Please confirm your email first, then sign in.");
+          } else if(error.message.toLowerCase().includes("invalid")||error.message.toLowerCase().includes("credentials")){
+            setAErr(lang==="it"?"❌ Email o password errati":"❌ Wrong email or password");
+          } else {
+            setAErr(error.message);
+          }
+          return;
+        }
+        if(data.user){
+          setUser({name:data.user.user_metadata?.name||aEmail.split("@")[0],email:aEmail,id:data.user.id});
+          setAName("");setAEmail("");setAPass("");closeP();go("home");
+        }
+      }
+    } catch(e){
+      setAErr(lang==="it"
+        ?"🌐 Errore di rete. Controlla la connessione."
+        :"🌐 Network error. Check your connection.");
+    }
+  };
+
   const doSearch=()=>{
     if(isGuest&&guestSearches>=1){showP(t.popGuest,t.popGuestSub,"register");return;}
     if(!premium&&cnt>=FREE_LIMIT){showP(t.popSearch,t.popSearchSub,"upgrade");return;}
@@ -316,26 +378,6 @@ function App(){
     if(isGuest){setGuestSearches(1);res=res.slice(0,GUEST_MAX);}
     else if(!premium){setCnt(c=>c+1);res=res.slice(0,FREE_STRUCTS);}
     setResults(res);setTab("explore");go("results","home");
-  };
-
-  const doAuth=async()=>{
-    if(!aEmail||!aPass)return;
-    setAErr("");
-    try{
-      if(authMode==="register"){
-        const {data,error}=await sb.auth.signUp({email:aEmail,password:aPass,options:{data:{name:aName||aEmail.split("@")[0]}}});
-        if(error){setAErr(error.message);return;}
-        if(data.user){
-          await sb.from("profiles").insert({id:data.user.id,name:aName||aEmail.split("@")[0],email:aEmail}).catch(()=>{});
-          setUser({name:aName||aEmail.split("@")[0],email:aEmail,id:data.user.id});
-        }
-      } else {
-        const {data,error}=await sb.auth.signInWithPassword({email:aEmail,password:aPass});
-        if(error){setAErr(lang==="it"?"Email o password errati":"Wrong email or password");return;}
-        if(data.user) setUser({name:data.user.user_metadata?.name||aEmail.split("@")[0],email:aEmail,id:data.user.id});
-      }
-      setAName("");setAEmail("");setAPass("");closeP();go("home");
-    } catch(e){setAErr(lang==="it"?"Errore di connessione":"Connection error");}
   };
 
   const addRev=async(sid)=>{
@@ -463,7 +505,6 @@ function App(){
     </div>
   );
 
-  // ── WELCOME ──
   if(screen==="welcome")return(
     <div style={{minHeight:"100vh",background:GREEN,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,color:"white",position:"relative"}}>
       <button onClick={tl} style={{...ghost,position:"absolute",top:16,right:16}}>{lang==="it"?"🇬🇧 EN":"🇮🇹 IT"}</button>
@@ -484,7 +525,6 @@ function App(){
 
   if(screen==="business")return <BusinessScreen lang={lang} go={go}/>;
 
-  // ── AUTH ──
   if(screen==="auth")return(
     <div style={{minHeight:"100vh",background:"#f9fafb"}}>
       <div style={{background:GREEN,padding:"24px 20px 52px",textAlign:"center",color:"white",position:"relative"}}>
@@ -497,7 +537,7 @@ function App(){
         {authMode==="register"&&<div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Nome</label><input value={aName} onChange={e=>setAName(e.target.value)} style={inp} placeholder="Mario Rossi"/></div>}
         <div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Email</label><input type="email" value={aEmail} onChange={e=>setAEmail(e.target.value)} style={inp} placeholder="mario@esempio.it"/></div>
         <div style={{marginBottom:18}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Password</label><input type="password" value={aPass} onChange={e=>setAPass(e.target.value)} style={inp} placeholder="••••••••"/></div>
-        {aErr&&<p style={{margin:"0 0 12px",fontSize:13,color:"#ef4444",textAlign:"center"}}>❌ {aErr}</p>}
+        {aErr&&<p style={{margin:"0 0 12px",fontSize:13,color:aErr.startsWith("📬")?"#1a5c3a":"#ef4444",textAlign:"center",lineHeight:1.5}}>{aErr}</p>}
         <button onClick={doAuth} style={btnG}>{authMode==="login"?t.login:t.register}</button>
         <p style={{textAlign:"center",marginTop:14,fontSize:13,color:"#6b7280",margin:"14px 0 0"}}>
           {authMode==="login"?(lang==="it"?"Non hai un account?":"No account?"):(lang==="it"?"Hai già un account?":"Have an account?")}{" "}
@@ -507,7 +547,6 @@ function App(){
     </div>
   );
 
-  // ── HOME ──
   if(screen==="home")return(
     <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}>
       <div style={{background:GREEN,padding:"18px 20px 20px",color:"white"}}>
@@ -549,7 +588,6 @@ function App(){
     </div>
   );
 
-  // ── RESULTS ──
   if(screen==="results")return(
     <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}>
       <div style={{background:GREEN,padding:"20px",color:"white"}}>
@@ -567,7 +605,6 @@ function App(){
     </div>
   );
 
-  // ── DETAIL ──
   if(screen==="detail"&&sel){
     const s=sel,sRevs=revs[s.id]||[];
     return(
@@ -626,7 +663,6 @@ function App(){
     );
   }
 
-  // ── PROFILE ──
   if(screen==="profile")return(
     <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}>
       <div style={{background:GREEN,padding:"36px 20px 56px",textAlign:"center",color:"white"}}>
