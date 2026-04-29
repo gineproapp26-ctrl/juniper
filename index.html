@@ -118,7 +118,10 @@ function BusinessScreen({lang,go,GREEN,sorted}){
   const [disclaimer,setDisclaimer]=React.useState(false);
   const [form,setForm]=React.useState({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
 
-  const doSearch=()=>{
+  // Carica recensioni quando cambia il locale selezionato
+  React.useEffect(()=>{
+    if(sel&&sel.id) loadReviews(sel.id);
+  },[sel]);
     const lq=q.toLowerCase();
     setFound(sorted.filter(s=>s.name.toLowerCase().includes(lq)||s.city.toLowerCase().includes(lq)));
   };
@@ -775,7 +778,6 @@ function App(){
 
   // DETAIL
   if(screen==="detail"&&sel){
-    React.useEffect(()=>{loadReviews(sel.id);},[sel.id]);
     const s=sel,sRevs=revs[s.id]||[];
     return(
       <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}>
