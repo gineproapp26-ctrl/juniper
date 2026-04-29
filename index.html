@@ -108,8 +108,9 @@ function BusinessScreen({lang,go}){
   const searchGooglePlaces=(query,tags)=>new Promise((resolve)=>{
     if(!window._gmapReady||!window._gplaces){resolve([]);return;}
     const tagWords=tags.map(k=>TAGS[k]?.it||"").filter(Boolean).join(" ");
-    const hasFood=query&&(query.toLowerCase().includes("ristorante")||query.toLowerCase().includes("bar")||query.toLowerCase().includes("pizzeria")||query.toLowerCase().includes("mangiare")||query.toLowerCase().includes("locale"));
-    const q=(hasFood?"":"ristorante bar ")+(query||"Maremma")+(tagWords?" "+tagWords:"")+" Italia";
+    const hasFood=query&&(query.toLowerCase().includes("ristorante")||query.toLowerCase().includes("bar")||query.toLowerCase().includes("pizzeria"));
+    const baseQ=(hasFood?"":"ristorante ")+(query||"Maremma Grosseto")+(tagWords?" "+tagWords:"");
+    const q=baseQ+" Toscana Italia";
     window._gplaces.textSearch({query:q},(results,status)=>{
       if(status!==google.maps.places.PlacesServiceStatus.OK||!results){resolve([]);return;}
       const mapped=results.slice(0,15).map(p=>{
@@ -309,6 +310,7 @@ function App(){
   const [structs,setStructs]=React.useState(DEMO);
   const [loadingData,setLoadingData]=React.useState(true);
   const [searching,setSearching]=React.useState(false);
+  const [loadingMore,setLoadingMore]=React.useState(false);
   const isGuest=!user;
   const FREE_LIMIT=8,FREE_STRUCTS=20,GUEST_MAX=2;
   // Traccia ricerche mensili in localStorage
@@ -404,8 +406,9 @@ function App(){
   const searchGooglePlaces=(query,tags)=>new Promise((resolve)=>{
     if(!window._gmapReady||!window._gplaces){resolve([]);return;}
     const tagWords=tags.map(k=>TAGS[k]?.it||"").filter(Boolean).join(" ");
-    const hasFood=query&&(query.toLowerCase().includes("ristorante")||query.toLowerCase().includes("bar")||query.toLowerCase().includes("pizzeria")||query.toLowerCase().includes("mangiare")||query.toLowerCase().includes("locale"));
-    const q=(hasFood?"":"ristorante bar ")+(query||"Maremma")+(tagWords?" "+tagWords:"")+" Italia";
+    const hasFood=query&&(query.toLowerCase().includes("ristorante")||query.toLowerCase().includes("bar")||query.toLowerCase().includes("pizzeria"));
+    const baseQ=(hasFood?"":"ristorante ")+(query||"Maremma Grosseto")+(tagWords?" "+tagWords:"");
+    const q=baseQ+" Toscana Italia";
     window._gplaces.textSearch({query:q},(results,status)=>{
       if(status!==google.maps.places.PlacesServiceStatus.OK||!results){resolve([]);return;}
       const mapped=results.slice(0,15).map(p=>{
@@ -693,6 +696,7 @@ function App(){
         <h2 style={{margin:"0 0 4px",fontSize:17,fontWeight:800}}>🔍 {t.results}</h2>
         <p style={{margin:0,fontSize:13,opacity:.85}}>
           {results.length>0?`${results.length} ${t.found}`:(lang==="it"?"Mostriamo i locali disponibili":"Showing available venues")}
+          {loadingMore&&<span style={{marginLeft:8,fontSize:12,opacity:.8}}>🌿 {lang==="it"?"Cerco altri...":"Finding more..."}</span>}
         </p>
       </div>
       <div style={{padding:16}}>
