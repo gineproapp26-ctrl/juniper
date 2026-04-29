@@ -587,7 +587,7 @@ function App(){
   React.useEffect(()=>{
     if(!sel)return;
     // Recensioni Supabase
-    sb.from("reviews").select("*").eq("structure_id",sel.id).order("created_at",{ascending:false}).then(({data})=>{
+    sb.from("reviews").select("*").eq("structure_id",sel.id).order("created_at",{ascending:false}).limit(40).then(({data})=>{
       if(data) setRevs(r=>({...r,[sel.id]:data.map(r=>({id:r.id,user:r.user_name,rating:r.rating,text:r.text,date:r.created_at?.split("T")[0]}))}));
     });
     // Recensioni Google Places per locali non verificati
@@ -757,7 +757,7 @@ function App(){
     try{
       await sb.from("reviews").insert({structure_id:sid,user_id:user.id,user_name:user.name,rating:nr.rating,text:nr.text});
       setNr({rating:5,text:""});setRevOk(true);
-      const {data}=await sb.from("reviews").select("*").eq("structure_id",sid).order("created_at",{ascending:false});
+      const {data}=await sb.from("reviews").select("*").eq("structure_id",sid).order("created_at",{ascending:false}).limit(40);
       if(data) setRevs(r=>({...r,[sid]:data.map(r=>({id:r.id,user:r.user_name,rating:r.rating,text:r.text,date:r.created_at?.split("T")[0]}))}));
       setTimeout(()=>setRevOk(false),2500);
     } catch(e){}
@@ -1048,7 +1048,6 @@ function App(){
           {(results||[]).filter(s=>s&&s.name).map(s=><StructCard key={s.id||s.name} s={s} index={0} guestMode={false}/>)}
 
         </>}
-      </div>
       </div>}
       <BottomNav/>{showUp&&<UpgradeModal/>}<Popup/>
     </div>
