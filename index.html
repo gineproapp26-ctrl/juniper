@@ -331,10 +331,13 @@ function App(){
             name:aName||aEmail.split("@")[0],
             email:aEmail
           }).catch(()=>{});
-          // Auto login subito dopo registrazione
-          const {data:loginData}=await sb.auth.signInWithPassword({email:aEmail,password:aPass});
-          const u=loginData?.user||data.user;
-          setUser({name:aName||aEmail.split("@")[0],email:aEmail,id:u.id});
+          try{
+            const {data:loginData}=await sb.auth.signInWithPassword({email:aEmail,password:aPass});
+            if(loginData?.user) setUser({name:aName||aEmail.split("@")[0],email:aEmail,id:loginData.user.id});
+            else setUser({name:aName||aEmail.split("@")[0],email:aEmail,id:data.user.id});
+          }catch(e){
+            setUser({name:aName||aEmail.split("@")[0],email:aEmail,id:data.user.id});
+          }
           setAName("");setAEmail("");setAPass("");closeP();go("home");
         } else {
           setAErr(lang==="it"
