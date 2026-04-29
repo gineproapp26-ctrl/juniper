@@ -13,8 +13,17 @@
 body{font-family:system-ui,-apple-system,sans-serif;background:#f9fafb}
 #root{max-width:480px;margin:0 auto;min-height:100vh}
 </style>
+<script>
+function initMap(){
+  window._gmap=new google.maps.Map(document.getElementById('_gmapDiv'),{center:{lat:42.5,lng:11.1},zoom:10});
+  window._gplaces=new google.maps.places.PlacesService(window._gmap);
+  window._gmapReady=true;
+}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck&libraries=places&callback=initMap"></script>
 </head>
 <body>
+<div id="_gmapDiv" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none"></div>
 <div id="root"></div>
 <script type="text/babel">
 
@@ -94,7 +103,45 @@ function BusinessScreen({lang,go}){
   const [sending,setSending]=React.useState(false);
   const [form,setForm]=React.useState({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
 
-  const doSearch=()=>{
+  // ── GOOGLE PLACES ──
+  const searchGooglePlaces=(query,tags)=>new Promise((resolve)=>{
+    if(!window._gmapReady||!window._gplaces){resolve([]);return;}
+    const tagWords=tags.map(k=>TAGS[k]?.en||"").filter(Boolean).join(" ");
+    const q=(query||"ristorante Maremma")+" "+tagWords+" Italia";
+    window._gplaces.textSearch({query:q},(results,status)=>{
+      if(status!==google.maps.places.PlacesServiceStatus.OK||!results){resolve([]);return;}
+      const mapped=results.slice(0,15).map(p=>{
+        const types=p.types||[];
+        let type="ristorante",emoji="🍽️";
+        if(types.includes("bar")||types.includes("cafe")){type="bar";emoji="☕";}
+        else if(types.includes("bakery")){type="pasticceria";emoji="🧁";}
+        else if(types.includes("lodging")){type="hotel";emoji="🏨";}
+        else if(types.includes("campground")||types.includes("farm")){type="agriturismo";emoji="🌾";}
+        const nl=(p.name||"").toLowerCase(),ql=q.toLowerCase();
+        const ptags=[];
+        if(nl.includes("gluten")||nl.includes("celiach")||ql.includes("gluten")||ql.includes("gluten free"))ptags.push("gluten_free");
+        if(nl.includes("vegan")||ql.includes("vegan"))ptags.push("vegan");
+        if(nl.includes("vegetar")||ql.includes("vegetar"))ptags.push("vegetarian");
+        if(nl.includes("lattosio")||nl.includes("lactose"))ptags.push("lactose_free");
+        const addr=p.formatted_address||p.vicinity||"";
+        const parts=addr.split(",");
+        const city=parts.length>2?parts[parts.length-3].trim():parts[0]?.trim()||"Italia";
+        return {
+          id:"g_"+p.place_id,
+          name:p.name,type,city,country:"Italia",
+          address:p.vicinity||addr,phone:"",
+          description:type+" · "+city,emoji,
+          tags:ptags,
+          meals:type==="bar"?["breakfast","aperitivo"]:["lunch","dinner"],
+          source:"google",certified:false,sponsored:false,
+          rating:p.rating||null,reviewCount:p.user_ratings_total||0,
+        };
+      });
+      resolve(mapped);
+    });
+  });
+
+  const doSearch=async()=>{
     const lq=q.toLowerCase();
     setFound(DEMO.filter(s=>s.name.toLowerCase().includes(lq)||s.city.toLowerCase().includes(lq)));
   };
@@ -334,7 +381,45 @@ function App(){
     // onAuthStateChange farà il redirect automaticamente
   };
 
-  const doSearch=()=>{
+  // ── GOOGLE PLACES ──
+  const searchGooglePlaces=(query,tags)=>new Promise((resolve)=>{
+    if(!window._gmapReady||!window._gplaces){resolve([]);return;}
+    const tagWords=tags.map(k=>TAGS[k]?.en||"").filter(Boolean).join(" ");
+    const q=(query||"ristorante Maremma")+" "+tagWords+" Italia";
+    window._gplaces.textSearch({query:q},(results,status)=>{
+      if(status!==google.maps.places.PlacesServiceStatus.OK||!results){resolve([]);return;}
+      const mapped=results.slice(0,15).map(p=>{
+        const types=p.types||[];
+        let type="ristorante",emoji="🍽️";
+        if(types.includes("bar")||types.includes("cafe")){type="bar";emoji="☕";}
+        else if(types.includes("bakery")){type="pasticceria";emoji="🧁";}
+        else if(types.includes("lodging")){type="hotel";emoji="🏨";}
+        else if(types.includes("campground")||types.includes("farm")){type="agriturismo";emoji="🌾";}
+        const nl=(p.name||"").toLowerCase(),ql=q.toLowerCase();
+        const ptags=[];
+        if(nl.includes("gluten")||nl.includes("celiach")||ql.includes("gluten")||ql.includes("gluten free"))ptags.push("gluten_free");
+        if(nl.includes("vegan")||ql.includes("vegan"))ptags.push("vegan");
+        if(nl.includes("vegetar")||ql.includes("vegetar"))ptags.push("vegetarian");
+        if(nl.includes("lattosio")||nl.includes("lactose"))ptags.push("lactose_free");
+        const addr=p.formatted_address||p.vicinity||"";
+        const parts=addr.split(",");
+        const city=parts.length>2?parts[parts.length-3].trim():parts[0]?.trim()||"Italia";
+        return {
+          id:"g_"+p.place_id,
+          name:p.name,type,city,country:"Italia",
+          address:p.vicinity||addr,phone:"",
+          description:type+" · "+city,emoji,
+          tags:ptags,
+          meals:type==="bar"?["breakfast","aperitivo"]:["lunch","dinner"],
+          source:"google",certified:false,sponsored:false,
+          rating:p.rating||null,reviewCount:p.user_ratings_total||0,
+        };
+      });
+      resolve(mapped);
+    });
+  });
+
+  const doSearch=async()=>{
     if(isGuest&&guestSearches>=1){showP(t.popGuest,t.popGuestSub,"register");return;}
     if(!premium&&cnt>=FREE_LIMIT){showP(t.popSearch,t.popSearchSub,"upgrade");return;}
     let res=structs.filter(s=>{
@@ -343,8 +428,15 @@ function App(){
       const mm=!mealFilter||s.meals.includes(mealFilter);
       return mq&&mf&&mm;
     });
+    // Aggiungi risultati da Google Places
+    if(q&&window._gmapReady){
+      const gRes=await searchGooglePlaces(q,tagFilters);
+      const existing=new Set(res.map(s=>s.name.toLowerCase()));
+      const newG=gRes.filter(g=>!existing.has(g.name.toLowerCase()));
+      res=[...res,...newG];
+    }
     if(isGuest){setGuestSearches(1);res=res.slice(0,GUEST_MAX);}
-    else if(!premium){setCnt(c=>c+1);res=res.slice(0,FREE_STRUCTS);}
+    else if(!premium){setCnt(c=>c+1);}
     setResults(res);setTab("explore");go("results","home");
   };
 
