@@ -650,21 +650,192 @@ function App() {
   );
 
   // ── BUSINESS ──
-  if(screen==="business")return(
-    <div style={{minHeight:"100vh",background:"#f9fafb"}}>
-      <div style={{background:GREEN,padding:"20px 20px 28px",color:"white",position:"relative"}}>
-        <button onClick={()=>go("welcome")} style={{...ghost,marginBottom:10,display:"block"}}>←</button>
-        <Logo size={28}/>
-        <h2 style={{margin:"8px 0 4px",fontSize:17,fontWeight:700}}>🏢 {t.bizBtn}</h2>
-      </div>
-      <div style={{padding:16}}>
-        <div style={S.card}>
-          <p style={{fontSize:14,color:"#6b7280",marginBottom:16,lineHeight:1.6}}>{lang==="it"?"Registra la tua attività su Juniper e raggiungi utenti con intolleranze e scelte alimentari specifiche.":"Register your business on Juniper and reach users with specific dietary needs."}</p>
-          <button onClick={()=>{setAuthMode("register");go("auth");}} style={btnG}>🌿 {t.registerFree}</button>
+  if(screen==="business"){
+    const [bizStep,setBizStep]=React.useState("search"); // search | claim | new | done
+    const [bizQ,setBizQ]=React.useState("");
+    const [bizFound,setBizFound]=React.useState([]);
+    const [bizSel,setBizSel]=React.useState(null);
+    const [biz,setBiz]=React.useState({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
+    const [bizSent,setBizSent]=React.useState(false);
+
+    const searchBiz=()=>{
+      const q=bizQ.toLowerCase();
+      const found=sorted.filter(s=>s.name.toLowerCase().includes(q)||s.city.toLowerCase().includes(q));
+      setBizFound(found);
+    };
+
+    const claimOrNew=(s)=>{
+      if(s){
+        setBizSel(s);
+        setBiz(b=>({...b,name:s.name,city:s.city,address:s.address,phone:s.phone||"",tags:[...s.tags.filter(k=>!["no_cross","low_cross","high_cross"].includes(k))],meals:[...(s.meals||[])],cross:s.tags.find(k=>["no_cross","low_cross","high_cross"].includes(k))||""}));
+        setBizStep("claim");
+      } else {
+        setBizSel(null);
+        setBiz({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
+        setBizStep("new");
+      }
+    };
+
+    const toggleBizTag=k=>setBiz(b=>({...b,tags:b.tags.includes(k)?b.tags.filter(x=>x!==k):[...b.tags,k]}));
+    const toggleBizMeal=k=>setBiz(b=>({...b,meals:b.meals.includes(k)?b.meals.filter(x=>x!==k):[...b.meals,k]}));
+
+    const submitBiz=()=>{
+      if(!biz.email)return;
+      setBizSent(true);
+    };
+
+    const dietTags=Object.keys(TAGS).filter(k=>!["no_cross","low_cross","high_cross"].includes(k));
+    const crossTags=["no_cross","low_cross","high_cross"];
+    const lbl={fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5,display:"block",marginBottom:6};
+
+    return(
+      <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
+        <div style={{background:GREEN,padding:"20px 20px 24px",color:"white",position:"relative"}}>
+          <button onClick={()=>bizStep==="search"?go("welcome"):setBizStep("search")} style={{...ghost,marginBottom:10,display:"block"}}>← {t.back}</button>
+          <Logo size={24}/>
+          <h2 style={{margin:"8px 0 2px",fontSize:17,fontWeight:700}}>🏢 {t.bizBtn}</h2>
+          <p style={{margin:0,fontSize:13,opacity:.8}}>{lang==="it"?"Raggiungi chi cerca esattamente quello che offri":"Reach those looking for exactly what you offer"}</p>
+        </div>
+
+        <div style={{padding:16}}>
+          {bizSent?(
+            <div style={{...S.card,textAlign:"center",padding:28}}>
+              <div style={{fontSize:52,marginBottom:12}}>✅</div>
+              <h3 style={{margin:"0 0 8px",fontSize:18,fontWeight:800,color:"#1a5c3a"}}>{lang==="it"?"Richiesta inviata!":"Request sent!"}</h3>
+              <p style={{margin:"0 0 6px",fontSize:14,color:"#374151"}}>{lang==="it"?"Grazie!":"Thank you!"} <strong>{biz.name||bizSel?.name}</strong></p>
+              <p style={{margin:"0 0 20px",fontSize:14,color:"#6b7280",lineHeight:1.6}}>{lang==="it"?"Ti contatteremo entro 48 ore all'indirizzo":"We'll contact you within 48h at"} <strong>{biz.email}</strong></p>
+              <button onClick={()=>go("welcome")} style={btnG}>{lang==="it"?"Torna alla home":"Back to home"}</button>
+            </div>
+          ):bizStep==="search"?(
+            <div style={S.card}>
+              <p style={{margin:"0 0 6px",fontSize:14,fontWeight:700,color:"#1f2937"}}>{lang==="it"?"Sei già presente su Juniper?":"Are you already on Juniper?"}</p>
+              <p style={{margin:"0 0 12px",fontSize:13,color:"#6b7280"}}>{lang==="it"?"Cerca il tuo locale — se lo trovi, clicca \"Sono il titolare\". Altrimenti aggiungilo tu.":"Search your venue — if found, click \"I'm the owner\". Otherwise add it."}</p>
+              <div style={{display:"flex",gap:8,marginBottom:14}}>
+                <input value={bizQ} onChange={e=>setBizQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&searchBiz()}
+                  placeholder={lang==="it"?"Cerca per nome o città...":"Search by name or city..."}
+                  style={{...S.input,flex:1}}/>
+                <button onClick={searchBiz} style={{background:"#1a5c3a",color:"white",border:"none",padding:"10px 16px",borderRadius:10,cursor:"pointer",fontWeight:700,fontSize:14}}>🔍</button>
+              </div>
+              {bizFound.length>0&&<>
+                <p style={{margin:"0 0 8px",fontSize:12,color:"#6b7280",fontWeight:600}}>{bizFound.length} {lang==="it"?"risultati":"results"}</p>
+                {bizFound.map(s=>(
+                  <div key={s.id} style={{border:"1.5px solid #e5e7eb",borderRadius:12,padding:12,marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+                    <div>
+                      <p style={{margin:"0 0 2px",fontWeight:700,fontSize:13}}>{s.emoji} {s.name}</p>
+                      <p style={{margin:0,fontSize:11,color:"#6b7280"}}>📍 {s.city}</p>
+                    </div>
+                    <button onClick={()=>claimOrNew(s)} style={{background:"#1a5c3a",color:"white",border:"none",padding:"8px 12px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>
+                      {lang==="it"?"Sono il titolare":"I'm the owner"}
+                    </button>
+                  </div>
+                ))}
+                <div style={{borderTop:"1px solid #f3f4f6",paddingTop:14,marginTop:6}}>
+                  <button onClick={()=>claimOrNew(null)} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"1.5px solid #bbf7d0",padding:12,borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:700}}>
+                    + {lang==="it"?"Il mio locale non è in lista, lo aggiungo":"My venue isn't listed, add it"}
+                  </button>
+                </div>
+              </>}
+              {bizFound.length===0&&bizQ&&<p style={{fontSize:13,color:"#9ca3af",textAlign:"center",margin:"8px 0"}}>{lang==="it"?"Nessun risultato.":"No results."}</p>}
+              <button onClick={()=>claimOrNew(null)} style={{width:"100%",background:"#f9fafb",border:"1.5px solid #e5e7eb",padding:12,borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151",marginTop:bizFound.length>0?0:8}}>
+                + {lang==="it"?"Aggiungi la mia attività da zero":"Add my business from scratch"}
+              </button>
+            </div>
+          ):(
+            <div style={S.card}>
+              {bizSel&&<div style={{background:"#f0fdf4",borderRadius:12,padding:12,marginBottom:14,border:"1.5px solid #bbf7d0"}}>
+                <p style={{margin:"0 0 2px",fontWeight:700,fontSize:13,color:"#1a5c3a"}}>{lang==="it"?"Stai rivendicando:":"Claiming:"} {bizSel.emoji} {bizSel.name}</p>
+                <p style={{margin:0,fontSize:11,color:"#6b7280"}}>📍 {bizSel.city} · {lang==="it"?"Completa le informazioni sotto":"Complete the info below"}</p>
+              </div>}
+
+              {/* Info base */}
+              <label style={lbl}>{lang==="it"?"📋 Informazioni base":"📋 Basic info"}</label>
+              {[{k:"name",p:lang==="it"?"Nome attività":"Business name"},{k:"city",p:lang==="it"?"Città":"City"},{k:"address",p:lang==="it"?"Indirizzo":"Address"},{k:"phone",p:lang==="it"?"Telefono":"Phone"},{k:"email",p:"Email *"},{k:"website",p:"Sito web (opzionale)"},{k:"instagram",p:"Instagram (opzionale)"}].map(f=>(
+                <div key={f.k} style={{marginBottom:10}}>
+                  <input value={biz[f.k]} onChange={e=>setBiz(b=>({...b,[f.k]:e.target.value}))}
+                    style={{...S.input,fontSize:13}} placeholder={f.p}/>
+                </div>
+              ))}
+              <div style={{marginBottom:14}}>
+                <textarea value={biz.description} onChange={e=>setBiz(b=>({...b,description:e.target.value}))}
+                  placeholder={lang==="it"?"Descrizione della tua attività...":"Describe your business..."}
+                  style={{...S.input,resize:"none",height:70,fontSize:13}}/>
+              </div>
+
+              {/* Tipo */}
+              <label style={lbl}>{lang==="it"?"🏪 Tipo di attività":"🏪 Type"}</label>
+              <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:14}}>
+                {["ristorante","bar","pizzeria","pasticceria","agriturismo","hotel","altro"].map(tp=>(
+                  <button key={tp} onClick={()=>setBiz(b=>({...b,type:tp}))}
+                    style={{background:biz.type===tp?"#1a5c3a":"#f3f4f6",color:biz.type===tp?"white":"#374151",border:"none",padding:"7px 12px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:biz.type===tp?700:400}}>
+                    {tp==="ristorante"?"🍽️":tp==="bar"?"☕":tp==="pizzeria"?"🍕":tp==="pasticceria"?"🧁":tp==="agriturismo"?"🌾":tp==="hotel"?"🏨":"🏪"} {tp}
+                  </button>
+                ))}
+              </div>
+
+              {/* Pasti */}
+              <label style={lbl}>{lang==="it"?"🍽️ Quando siete aperti?":"🍽️ When are you open?"}</label>
+              <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:14}}>
+                {Object.entries(MEALS).map(([k,m])=>(
+                  <button key={k} onClick={()=>toggleBizMeal(k)}
+                    style={{background:biz.meals.includes(k)?"#1f2937":"#f3f4f6",color:biz.meals.includes(k)?"white":"#374151",border:"none",padding:"7px 12px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:biz.meals.includes(k)?700:400}}>
+                    {m.icon} {m[lang==="it"?"it":"en"]}
+                  </button>
+                ))}
+              </div>
+
+              {/* Caratteristiche */}
+              <label style={lbl}>{lang==="it"?"✅ Cosa offrite? (flagga tutto quello che avete)":"✅ What do you offer?"}</label>
+              <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:14}}>
+                {dietTags.map(k=>(
+                  <button key={k} onClick={()=>toggleBizTag(k)}
+                    style={{background:biz.tags.includes(k)?TAGS[k].color:"#f3f4f6",color:biz.tags.includes(k)?"white":"#374151",border:"none",padding:"7px 12px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:biz.tags.includes(k)?700:400}}>
+                    {TAGS[k].icon} {TAGS[k][lang==="it"?"it":"en"]}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sicurezza cucina */}
+              <label style={lbl}>{lang==="it"?"🔬 Sicurezza in cucina":"🔬 Kitchen safety"}</label>
+              <p style={{margin:"0 0 8px",fontSize:12,color:"#6b7280"}}>{lang==="it"?"Scegline una sola — sii onesto, è importante per i tuoi clienti!":"Choose one — be honest, it matters to your customers!"}</p>
+              <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+                {crossTags.map(k=>(
+                  <div key={k} onClick={()=>setBiz(b=>({...b,cross:b.cross===k?"":k}))}
+                    style={{border:`2px solid ${biz.cross===k?TAGS[k].color:"#e5e7eb"}`,borderRadius:12,padding:"10px 14px",cursor:"pointer",display:"flex",alignItems:"center",gap:10,background:biz.cross===k?TAGS[k].color+"11":"white"}}>
+                    <span style={{fontSize:18}}>{TAGS[k].icon}</span>
+                    <div>
+                      <p style={{margin:"0 0 2px",fontWeight:700,fontSize:13,color:TAGS[k].color}}>{TAGS[k][lang==="it"?"it":"en"]}</p>
+                      <p style={{margin:0,fontSize:11,color:"#6b7280"}}>
+                        {k==="no_cross"?(lang==="it"?"Cucina separata dedicata, zero rischio contaminazione crociata":"Dedicated separate kitchen, zero cross-contamination risk"):
+                         k==="low_cross"?(lang==="it"?"Massima attenzione ma non possiamo garantire al 100%":"We take care but cannot guarantee 100%"):
+                         (lang==="it"?"Cucina condivisa, possibile contaminazione crociata":"Shared kitchen, cross-contamination possible")}
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Badge certificato */}
+              <div style={{background:"#f0fdf4",borderRadius:12,padding:14,marginBottom:16,border:"1.5px solid #bbf7d0",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                <div>
+                  <p style={{margin:"0 0 3px",fontWeight:700,fontSize:13,color:"#1a5c3a"}}>🏅 {lang==="it"?"Richiedi Badge Certificato":"Request Certified Badge"}</p>
+                  <p style={{margin:0,fontSize:11,color:"#6b7280"}}>{lang==="it"?"Il nostro team verifica le tue info. Servizio a pagamento.":"Our team verifies your info. Paid service."}</p>
+                </div>
+                <div onClick={()=>setBiz(b=>({...b,certified:!b.certified}))}
+                  style={{width:44,height:24,borderRadius:12,background:biz.certified?"#1a5c3a":"#e5e7eb",cursor:"pointer",position:"relative",transition:"background 0.2s",flexShrink:0}}>
+                  <div style={{width:18,height:18,borderRadius:"50%",background:"white",position:"absolute",top:3,left:biz.certified?23:3,transition:"left 0.2s"}}/>
+                </div>
+              </div>
+
+              <button onClick={submitBiz} disabled={!biz.email} style={{...btnG,opacity:biz.email?1:0.5}}>
+                🌿 {lang==="it"?"Invia richiesta":"Send request"}
+              </button>
+              <p style={{textAlign:"center",fontSize:11,color:"#9ca3af",marginTop:10}}>{lang==="it"?"Ti risponderemo entro 48 ore":"We'll reply within 48 hours"}</p>
+            </div>
+          )}
         </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   return null;
 }
