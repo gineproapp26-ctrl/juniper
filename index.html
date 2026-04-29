@@ -10,6 +10,7 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
+@keyframes spin{0%{transform:rotate(0deg)}100%{transform:rotate(360deg)}}
 body{font-family:system-ui,-apple-system,sans-serif;background:#f9fafb}
 #root{max-width:480px;margin:0 auto;min-height:100vh}
 </style>
@@ -106,8 +107,9 @@ function BusinessScreen({lang,go}){
   // ── GOOGLE PLACES ──
   const searchGooglePlaces=(query,tags)=>new Promise((resolve)=>{
     if(!window._gmapReady||!window._gplaces){resolve([]);return;}
-    const tagWords=tags.map(k=>TAGS[k]?.en||"").filter(Boolean).join(" ");
-    const q=(query||"ristorante Maremma")+" "+tagWords+" Italia";
+    const tagWords=tags.map(k=>TAGS[k]?.it||"").filter(Boolean).join(" ");
+    const hasFood=query&&(query.toLowerCase().includes("ristorante")||query.toLowerCase().includes("bar")||query.toLowerCase().includes("pizzeria")||query.toLowerCase().includes("mangiare")||query.toLowerCase().includes("locale"));
+    const q=(hasFood?"":"ristorante bar ")+(query||"Maremma")+(tagWords?" "+tagWords:"")+" Italia";
     window._gplaces.textSearch({query:q},(results,status)=>{
       if(status!==google.maps.places.PlacesServiceStatus.OK||!results){resolve([]);return;}
       const mapped=results.slice(0,15).map(p=>{
@@ -306,8 +308,25 @@ function App(){
   const [guestSearches,setGuestSearches]=React.useState(0);
   const [structs,setStructs]=React.useState(DEMO);
   const [loadingData,setLoadingData]=React.useState(true);
+  const [searching,setSearching]=React.useState(false);
   const isGuest=!user;
-  const FREE_LIMIT=3,FREE_STRUCTS=5,GUEST_MAX=2;
+  const FREE_LIMIT=8,GUEST_MAX=2;
+  // Traccia ricerche mensili in localStorage
+  const getSearchData=()=>{
+    try{
+      const d=JSON.parse(localStorage.getItem("juniper_searches")||"{}");
+      const now=Date.now();
+      if(!d.reset||now-d.reset>30*24*60*60*1000) return {count:0,reset:now};
+      return d;
+    }catch(e){return {count:0,reset:Date.now()};}
+  };
+  const incSearchCount=()=>{
+    try{
+      const d=getSearchData();
+      localStorage.setItem("juniper_searches",JSON.stringify({count:(d.count||0)+1,reset:d.reset}));
+    }catch(e){}
+  };
+  const getSearchCount=()=>getSearchData().count||0;
 
   React.useEffect(()=>{
     // Ascolta i cambi di stato auth — funziona per login E registrazione
@@ -384,8 +403,9 @@ function App(){
   // ── GOOGLE PLACES ──
   const searchGooglePlaces=(query,tags)=>new Promise((resolve)=>{
     if(!window._gmapReady||!window._gplaces){resolve([]);return;}
-    const tagWords=tags.map(k=>TAGS[k]?.en||"").filter(Boolean).join(" ");
-    const q=(query||"ristorante Maremma")+" "+tagWords+" Italia";
+    const tagWords=tags.map(k=>TAGS[k]?.it||"").filter(Boolean).join(" ");
+    const hasFood=query&&(query.toLowerCase().includes("ristorante")||query.toLowerCase().includes("bar")||query.toLowerCase().includes("pizzeria")||query.toLowerCase().includes("mangiare")||query.toLowerCase().includes("locale"));
+    const q=(hasFood?"":"ristorante bar ")+(query||"Maremma")+(tagWords?" "+tagWords:"")+" Italia";
     window._gplaces.textSearch({query:q},(results,status)=>{
       if(status!==google.maps.places.PlacesServiceStatus.OK||!results){resolve([]);return;}
       const mapped=results.slice(0,15).map(p=>{
@@ -421,7 +441,8 @@ function App(){
 
   const doSearch=async()=>{
     if(isGuest&&guestSearches>=1){showP(t.popGuest,t.popGuestSub,"register");return;}
-    if(!premium&&cnt>=FREE_LIMIT){showP(t.popSearch,t.popSearchSub,"upgrade");return;}
+    if(!premium&&getSearchCount()>=FREE_LIMIT){showP(t.popSearch,t.popSearchSub,"upgrade");return;}
+    setSearching(true);
     let res=structs.filter(s=>{
       const mq=!q||s.name.toLowerCase().includes(q.toLowerCase())||s.city.toLowerCase().includes(q.toLowerCase());
       const mf=tagFilters.length===0||tagFilters.every(f=>s.tags.includes(f));
@@ -441,8 +462,8 @@ function App(){
       }
     }catch(e){}
     if(isGuest){setGuestSearches(1);res=res.slice(0,GUEST_MAX);}
-    else if(!premium){setCnt(c=>c+1);}
-    setResults(res);setTab("explore");go("results","home");
+    else if(!premium){incSearchCount();setCnt(getSearchCount());}
+    setSearching(false);setResults(res);setTab("explore");go("results","home");
   };
 
   const addRev=async(sid)=>{
@@ -563,9 +584,11 @@ function App(){
         ))}
       </div>
       <p style={{margin:"0 0 14px",fontSize:10,color:"#9ca3af"}}>{t.kitchenLegend}</p>
-      <button onClick={doSearch} style={{...btnG,display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:16,padding:"14px"}}>
-        🔍 {t.searchBtn}
-        {(tagFilters.length>0||mealFilter||q)&&<span style={{background:"rgba(255,255,255,0.25)",fontSize:12,padding:"2px 9px",borderRadius:10}}>{[q&&1,...tagFilters,mealFilter].filter(Boolean).length} {lang==="it"?"filtri":"filters"}</span>}
+      <button onClick={doSearch} disabled={searching} style={{...btnG,display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:16,padding:"14px",opacity:searching?0.85:1}}>
+        {searching
+          ?<><span style={{display:"inline-block",animation:"spin 1s linear infinite",fontSize:18}}>🌿</span>{lang==="it"?"Sto cercando...":"Searching..."}</>
+          :<>🔍 {t.searchBtn}{(tagFilters.length>0||mealFilter||q)&&<span style={{background:"rgba(255,255,255,0.25)",fontSize:12,padding:"2px 9px",borderRadius:10}}>{[q&&1,...tagFilters,mealFilter].filter(Boolean).length} {lang==="it"?"filtri":"filters"}</span>}</>
+        }
       </button>
     </div>
   );
@@ -650,6 +673,11 @@ function App(){
         {isGuest&&<div onClick={()=>{setAuthMode("register");go("auth");}} style={{background:GREEN,color:"white",borderRadius:14,padding:18,textAlign:"center",cursor:"pointer",marginBottom:10}}><p style={{margin:"0 0 4px",fontWeight:700,fontSize:14}}>🌿 {t.popGuest}</p><p style={{margin:"0 0 12px",fontSize:13,opacity:.9}}>{t.popGuestSub}</p><button style={{background:"white",color:"#1a5c3a",border:"none",padding:"9px 18px",borderRadius:20,fontWeight:700,cursor:"pointer",fontSize:13}}>{t.regFree}</button></div>}
       </div>
       <BottomNav/>{showUp&&<UpgradeModal/>}<Popup/>
+      {searching&&<div style={{position:"fixed",inset:0,background:"rgba(255,255,255,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500,gap:14}}>
+        <div style={{fontSize:48,animation:"spin 1.5s linear infinite"}}>🌿</div>
+        <p style={{fontSize:16,fontWeight:700,color:"#1a5c3a"}}>{lang==="it"?"Sto cercando i locali...":"Finding venues..."}</p>
+        <p style={{fontSize:13,color:"#6b7280"}}>{lang==="it"?"Cerco su Google Places...":"Searching Google Places..."}</p>
+      </div>}
     </div>
   );
 
@@ -739,7 +767,7 @@ function App(){
       <div style={{padding:"0 16px",marginTop:-18}}>
         <div style={card}>
           {premium?<div style={{background:"#d1fae5",borderRadius:12,padding:14}}><p style={{margin:"0 0 4px",fontWeight:700,color:"#065f46"}}>⭐ {t.premiumPlan}</p><p style={{margin:0,fontSize:13,color:"#047857"}}>{t.features}</p></div>
-          :<><div style={{background:"#f9fafb",borderRadius:12,padding:12,marginBottom:10}}><p style={{margin:"0 0 8px",fontSize:13,color:"#6b7280"}}>{lang==="it"?"3 ricerche/mese · Max 5 strutture":"3 searches/month · Max 5 structures"}</p><div style={{background:"#e5e7eb",borderRadius:10,height:6,overflow:"hidden",marginBottom:4}}><div style={{background:cnt>=FREE_LIMIT?"#ef4444":"#1a5c3a",height:"100%",width:`${Math.min((cnt/FREE_LIMIT)*100,100)}%`}}/></div><p style={{margin:0,fontSize:11,color:"#6b7280"}}>{cnt}/{FREE_LIMIT} {t.searchesUsed.toLowerCase()}</p></div><button onClick={()=>setShowUp(true)} style={btnG}>⭐ {t.upgradeNow}</button></>}
+          :<><div style={{background:"#f9fafb",borderRadius:12,padding:12,marginBottom:10}}><p style={{margin:"0 0 8px",fontSize:13,color:"#6b7280"}}>{lang==="it"?"3 ricerche/mese · Max 5 strutture":"3 searches/month · Max 5 structures"}</p><div style={{background:"#e5e7eb",borderRadius:10,height:6,overflow:"hidden",marginBottom:4}}><div style={{background:cnt>=FREE_LIMIT?"#ef4444":"#1a5c3a",height:"100%",width:`${Math.min((cnt/FREE_LIMIT)*100,100)}%`}}/></div><p style={{margin:0,fontSize:11,color:"#6b7280"}}>{getSearchCount()}/{FREE_LIMIT} {t.searchesUsed.toLowerCase()} · reset 30gg</p></div><button onClick={()=>setShowUp(true)} style={btnG}>⭐ {t.upgradeNow}</button></>}
         </div>
         <div style={card}>
           <button onClick={tl} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>🌐 {lang==="it"?"Switch to English":"Passa all'italiano"}</button>
