@@ -28,6 +28,7 @@ const sb = window.supabase.createClient(
 
 // ── COSTANTI ──
 const GREEN = "linear-gradient(135deg,#1a5c3a,#0f3d26)";
+const ADMIN_EMAIL = "juniper.app26@gmail.com";
 const TAGS = {
   gluten_free: {it:"Gluten Free",       en:"Gluten Free",          icon:"🌾",color:"#f59e0b"},
   lactose_free:{it:"Lactose Free",       en:"Lactose Free",         icon:"🥛",color:"#3b82f6"},
@@ -336,6 +337,171 @@ function PolicyScreen({lang,go}){
           </div>
         ))}
         <p style={{textAlign:"center",fontSize:11,color:"#9ca3af",marginTop:8}}>{t.updated}</p>
+      </div>
+    </div>
+  );
+}
+
+function AdminScreen({user,lang,go,sb}){
+  const [tab,setTab]=React.useState("requests");
+  const [requests,setRequests]=React.useState([]);
+  const [structures,setStructures]=React.useState([]);
+  const [users,setUsers]=React.useState([]);
+  const [loading,setLoading]=React.useState(true);
+  const [msg,setMsg]=React.useState("");
+  const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
+  const card2={background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:10};
+
+  const load=async()=>{
+    setLoading(true);
+    const [rReq,rStr]=await Promise.all([
+      sb.from("business_requests").select("*").order("created_at",{ascending:false}),
+      sb.from("structures").select("*").order("created_at",{ascending:false}),
+    ]);
+    if(rReq.data)setRequests(rReq.data);
+    if(rStr.data)setStructures(rStr.data);
+    setLoading(false);
+  };
+
+  React.useEffect(()=>{load();},[tab]);
+
+  const showMsg=(m)=>{setMsg(m);setTimeout(()=>setMsg(""),3000);};
+
+  const approveRequest=async(req)=>{
+    await sb.from("structures").insert({
+      name:req.name,type:req.type,city:req.city,address:req.address,
+      phone:req.phone,description:req.description,
+      gluten_free:req.tags?.includes("gluten_free")||false,
+      lactose_free:req.tags?.includes("lactose_free")||false,
+      vegan:req.tags?.includes("vegan")||false,
+      vegetarian:req.tags?.includes("vegetarian")||false,
+      pet_friendly:req.tags?.includes("pet_friendly")||false,
+      combo_free:req.tags?.includes("combo_free")||false,
+      kitchen_safety:req.kitchen_safety||"",
+      source:"registered",certified:false,sponsored:false,pending:false,
+      breakfast:req.meals?.includes("breakfast")||false,
+      lunch:req.meals?.includes("lunch")||false,
+      aperitivo:req.meals?.includes("aperitivo")||false,
+      dinner:req.meals?.includes("dinner")||false,
+    });
+    await sb.from("business_requests").update({status:"approved"}).eq("id",req.id);
+    showMsg("✅ Locale approvato!");
+    load();
+  };
+
+  const rejectRequest=async(id)=>{
+    await sb.from("business_requests").update({status:"rejected"}).eq("id",id);
+    showMsg("❌ Richiesta rifiutata");
+    load();
+  };
+
+  const verifyStructure=async(id,verified)=>{
+    await sb.from("structures").update({source:verified?"verified":"registered"}).eq("id",id);
+    showMsg(verified?"🌿 Badge Verificato assegnato!":"Badge rimosso");
+    load();
+  };
+
+  const deleteStructure=async(id)=>{
+    if(!window.confirm("Sicura di voler eliminare questo locale?"))return;
+    await sb.from("structures").delete().eq("id",id);
+    showMsg("🗑️ Locale eliminato");
+    load();
+  };
+
+  const tabs=[{id:"requests",label:"📋 Richieste"},{id:"structures",label:"🏢 Locali"},{id:"stats",label:"📊 Stats"}];
+
+  return(
+    <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
+      <div style={{background:GREEN,padding:"20px",color:"white"}}>
+        <button onClick={()=>go("profile")} style={{...ghost2,marginBottom:10,display:"block"}}>← Indietro</button>
+        <Logo size={20}/>
+        <h2 style={{margin:"8px 0 2px",fontSize:17,fontWeight:700}}>⚙️ Pannello Admin</h2>
+        <p style={{margin:0,fontSize:12,opacity:.8}}>Ciao {user?.name} 👋</p>
+      </div>
+
+      {msg&&<div style={{background:"#d1fae5",color:"#065f46",padding:"10px 16px",fontWeight:600,fontSize:13,textAlign:"center"}}>{msg}</div>}
+
+      {/* Tab bar */}
+      <div style={{display:"flex",borderBottom:"2px solid #e5e7eb",background:"white"}}>
+        {tabs.map(t=>(
+          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"12px 4px",border:"none",background:"none",fontSize:12,fontWeight:tab===t.id?700:400,color:tab===t.id?"#1a5c3a":"#6b7280",borderBottom:tab===t.id?"2px solid #1a5c3a":"none",cursor:"pointer"}}>{t.label}</button>
+        ))}
+      </div>
+
+      <div style={{padding:16}}>
+        {loading&&<div style={{textAlign:"center",padding:30,color:"#6b7280"}}>🔄 Caricamento...</div>}
+
+        {/* RICHIESTE */}
+        {!loading&&tab==="requests"&&<>
+          <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{requests.filter(r=>!r.status||r.status==="pending").length} richieste in attesa</p>
+          {requests.map(req=>(
+            <div key={req.id} style={{...card2,borderLeft:`4px solid ${!req.status||req.status==="pending"?"#f59e0b":req.status==="approved"?"#10b981":"#ef4444"}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div>
+                  <p style={{margin:"0 0 2px",fontWeight:700,fontSize:14}}>{req.name}</p>
+                  <p style={{margin:"0 0 2px",fontSize:12,color:"#6b7280"}}>📍 {req.city} · {req.type}</p>
+                  <p style={{margin:"0 0 2px",fontSize:12,color:"#6b7280"}}>📧 {req.email}</p>
+                  {req.phone&&<p style={{margin:"0 0 2px",fontSize:12,color:"#6b7280"}}>📞 {req.phone}</p>}
+                  {req.description&&<p style={{margin:"0 0 4px",fontSize:12,color:"#374151"}}>{req.description}</p>}
+                  <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:4}}>
+                    {(req.tags||[]).map(t=><span key={t} style={{background:"#f0fdf4",color:"#1a5c3a",fontSize:10,padding:"2px 6px",borderRadius:8}}>{t}</span>)}
+                  </div>
+                </div>
+                <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:!req.status||req.status==="pending"?"#fef3c7":req.status==="approved"?"#d1fae5":"#fee2e2",color:!req.status||req.status==="pending"?"#92400e":req.status==="approved"?"#065f46":"#dc2626"}}>
+                  {!req.status||req.status==="pending"?"⏳ Attesa":req.status==="approved"?"✅ Approvato":"❌ Rifiutato"}
+                </span>
+              </div>
+              {(!req.status||req.status==="pending")&&<div style={{display:"flex",gap:8}}>
+                <button onClick={()=>approveRequest(req)} style={{flex:1,background:"#1a5c3a",color:"white",border:"none",padding:"8px",borderRadius:10,cursor:"pointer",fontWeight:700,fontSize:13}}>✅ Approva</button>
+                <button onClick={()=>rejectRequest(req.id)} style={{flex:1,background:"#fee2e2",color:"#dc2626",border:"none",padding:"8px",borderRadius:10,cursor:"pointer",fontWeight:700,fontSize:13}}>❌ Rifiuta</button>
+              </div>}
+            </div>
+          ))}
+          {requests.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessuna richiesta</div>}
+        </>}
+
+        {/* LOCALI */}
+        {!loading&&tab==="structures"&&<>
+          <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{structures.length} locali nel database</p>
+          {structures.map(s=>(
+            <div key={s.id} style={card2}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div>
+                  <p style={{margin:"0 0 2px",fontWeight:700,fontSize:14}}>{s.name}</p>
+                  <p style={{margin:0,fontSize:12,color:"#6b7280"}}>📍 {s.city} · {s.type}</p>
+                </div>
+                <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:s.source==="verified"?"#dbeafe":s.source==="registered"?"#e8f5ee":"#f3f4f6",color:s.source==="verified"?"#2563eb":s.source==="registered"?"#1a5c3a":"#6b7280"}}>
+                  {s.source==="verified"?"🌿 Verificato":s.source==="registered"?"🏢 Registrato":"📍 Google"}
+                </span>
+              </div>
+              <div style={{display:"flex",gap:8}}>
+                <button onClick={()=>verifyStructure(s.id,s.source!=="verified")} style={{flex:1,background:s.source==="verified"?"#fef3c7":"#dbeafe",color:s.source==="verified"?"#92400e":"#2563eb",border:"none",padding:"7px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700}}>
+                  {s.source==="verified"?"🏢 Rimuovi badge":"🌿 Assegna Verificato"}
+                </button>
+                <button onClick={()=>deleteStructure(s.id)} style={{background:"#fee2e2",color:"#dc2626",border:"none",padding:"7px 12px",borderRadius:10,cursor:"pointer",fontSize:13}}>🗑️</button>
+              </div>
+            </div>
+          ))}
+          {structures.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessun locale</div>}
+        </>}
+
+        {/* STATS */}
+        {!loading&&tab==="stats"&&<>
+          {[
+            {label:"Locali totali",value:structures.length,icon:"🏢"},
+            {label:"Locali verificati",value:structures.filter(s=>s.source==="verified").length,icon:"🌿"},
+            {label:"Richieste in attesa",value:requests.filter(r=>!r.status||r.status==="pending").length,icon:"⏳"},
+            {label:"Richieste approvate",value:requests.filter(r=>r.status==="approved").length,icon:"✅"},
+          ].map((s,i)=>(
+            <div key={i} style={{...card2,display:"flex",alignItems:"center",gap:16}}>
+              <div style={{fontSize:36}}>{s.icon}</div>
+              <div>
+                <p style={{margin:"0 0 2px",fontSize:28,fontWeight:800,color:"#1a5c3a"}}>{s.value}</p>
+                <p style={{margin:0,fontSize:13,color:"#6b7280"}}>{s.label}</p>
+              </div>
+            </div>
+          ))}
+        </>}
       </div>
     </div>
   );
@@ -732,6 +898,10 @@ function App(){
   );
 
   if(screen==="business")return <BusinessScreen lang={lang} go={go}/>;
+  if(screen==="admin"){
+    if(user?.email!==ADMIN_EMAIL){go("home");return null;}
+    return <AdminScreen user={user} lang={lang} go={go} sb={sb}/>;
+  }
   if(screen==="policy")return <PolicyScreen lang={lang} go={go}/>;
 
   if(screen==="auth")return(
@@ -932,6 +1102,7 @@ function App(){
         <div style={card}>
           <button onClick={tl} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>🌐 {lang==="it"?"Switch to English":"Passa all'italiano"}</button>
           <button onClick={()=>go("policy")} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>⚖️ {lang==="it"?"Policy & Termini":"Policy & Terms"}</button>
+          {user?.email===ADMIN_EMAIL&&<button onClick={()=>go("admin")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",textAlign:"left",marginBottom:8,fontWeight:700}}>⚙️ Pannello Admin</button>}
           <button onClick={async()=>{await sb.auth.signOut();setUser(null);setScreen("welcome");setPremium(false);setCnt(0);setTab("home");}} style={{width:"100%",background:"#fef2f2",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#ef4444",textAlign:"left"}}>🚪 {t.logout}</button>
         </div>
       </div>
