@@ -300,75 +300,24 @@ function App(){
   const ghost={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const btnG={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
 
-  // ── AUTH FUNCTION — FIXED ──
+  // ── AUTH ──
   const doAuth=async()=>{
     if(!aEmail||!aPass)return;
     setAErr("");
-    try{
-      if(authMode==="register"){
-        const {data,error}=await sb.auth.signUp({
-          email:aEmail,
-          password:aPass,
-          options:{data:{name:aName||aEmail.split("@")[0]}}
-        });
-        if(error){
-          if(error.message.toLowerCase().includes("rate limit")||error.message.toLowerCase().includes("email rate")){
-            setAErr(lang==="it"
-              ?"⏳ Troppi tentativi. Aspetta qualche minuto e riprova."
-              :"⏳ Too many attempts. Wait a few minutes and try again.");
-          } else if(error.message.toLowerCase().includes("already registered")||error.message.toLowerCase().includes("already been registered")){
-            setAErr(lang==="it"
-              ?"📧 Email già registrata. Prova ad accedere."
-              :"📧 Email already registered. Try signing in.");
-          } else {
-            setAErr(error.message);
-          }
-          return;
-        }
-        if(data.user){
-          await sb.from("profiles").insert({
-            id:data.user.id,
-            name:aName||aEmail.split("@")[0],
-            email:aEmail
-          }).catch(()=>{});
-          try{
-            const {data:loginData}=await sb.auth.signInWithPassword({email:aEmail,password:aPass});
-            if(loginData?.user) setUser({name:aName||aEmail.split("@")[0],email:aEmail,id:loginData.user.id});
-            else setUser({name:aName||aEmail.split("@")[0],email:aEmail,id:data.user.id});
-          }catch(e){
-            setUser({name:aName||aEmail.split("@")[0],email:aEmail,id:data.user.id});
-          }
-          setAName("");setAEmail("");setAPass("");closeP();go("home");
-        } else {
-          setAErr(lang==="it"
-            ?"📬 Controlla la tua email per confermare la registrazione, poi torna qui ad accedere!"
-            :"📬 Check your email to confirm registration, then come back to sign in!");
-          return;
-        }
-      } else {
-        const {data,error}=await sb.auth.signInWithPassword({email:aEmail,password:aPass});
-        if(error){
-          if(error.message.toLowerCase().includes("email not confirmed")){
-            setAErr(lang==="it"
-              ?"📬 Conferma prima la tua email, poi accedi."
-              :"📬 Please confirm your email first, then sign in.");
-          } else if(error.message.toLowerCase().includes("invalid")||error.message.toLowerCase().includes("credentials")){
-            setAErr(lang==="it"?"❌ Email o password errati":"❌ Wrong email or password");
-          } else {
-            setAErr(error.message);
-          }
-          return;
-        }
-        if(data.user){
-          setUser({name:data.user.user_metadata?.name||aEmail.split("@")[0],email:aEmail,id:data.user.id});
-          setAName("");setAEmail("");setAPass("");closeP();go("home");
-        }
-      }
-    } catch(e){
-      setAErr(lang==="it"
-        ?"🌐 Errore di rete. Controlla la connessione."
-        :"🌐 Network error. Check your connection.");
+    const nome=aName||aEmail.split("@")[0];
+    if(authMode==="register"){
+      const res=await sb.auth.signUp({email:aEmail,password:aPass,options:{data:{name:nome}}}).catch(()=>({data:null,error:{message:"err"}}));
+      if(res.error?.message?.toLowerCase().includes("already")){setAErr("📧 Email già registrata. Vai su Accedi.");return;}
+      if(res.error?.message?.toLowerCase().includes("rate")){setAErr("⏳ Troppi tentativi. Aspetta qualche minuto.");return;}
+      sb.from("profiles").insert({id:res.data?.user?.id||"",name:nome,email:aEmail}).catch(()=>{});
+      setUser({name:nome,email:aEmail,id:res.data?.user?.id||""});
+      setAName("");setAEmail("");setAPass("");go("home");
+      return;
     }
+    const res=await sb.auth.signInWithPassword({email:aEmail,password:aPass}).catch(()=>({data:null,error:{message:"err"}}));
+    if(res.error||!res.data?.user){setAErr("❌ Email o password errati");return;}
+    setUser({name:res.data.user.user_metadata?.name||aEmail.split("@")[0],email:aEmail,id:res.data.user.id});
+    setAName("");setAEmail("");setAPass("");go("home");
   };
 
   const doSearch=()=>{
