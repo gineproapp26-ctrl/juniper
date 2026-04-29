@@ -255,6 +255,7 @@ function App(){
   const [aEmail,setAEmail]=React.useState("");
   const [aPass,setAPass]=React.useState("");
   const [aErr,setAErr]=React.useState("");
+  const [aLoading,setALoading]=React.useState(false);
   const [guestSearches,setGuestSearches]=React.useState(0);
   const [structs,setStructs]=React.useState(DEMO);
   const [loadingData,setLoadingData]=React.useState(true);
@@ -302,22 +303,30 @@ function App(){
 
   // ── AUTH ──
   const doAuth=async()=>{
-    if(!aEmail||!aPass)return;
-    setAErr("");
+    if(!aEmail||!aPass||aLoading)return;
+    setAErr("");setALoading(true);
     const nome=aName||aEmail.split("@")[0];
     if(authMode==="register"){
-      const res=await sb.auth.signUp({email:aEmail,password:aPass,options:{data:{name:nome}}}).catch(()=>({data:null,error:{message:"err"}}));
-      if(res.error?.message?.toLowerCase().includes("already")){setAErr("📧 Email già registrata. Vai su Accedi.");return;}
-      if(res.error?.message?.toLowerCase().includes("rate")){setAErr("⏳ Troppi tentativi. Aspetta qualche minuto.");return;}
-      sb.from("profiles").insert({id:res.data?.user?.id||"",name:nome,email:aEmail}).catch(()=>{});
-      setUser({name:nome,email:aEmail,id:res.data?.user?.id||""});
-      setAName("");setAEmail("");setAPass("");go("home");
+      const {data,error}=await sb.auth.signUp({email:aEmail,password:aPass,options:{data:{name:nome}}}).catch(e=>({data:null,error:e}));
+      setALoading(false);
+      if(error){
+        const m=(error.message||"").toLowerCase();
+        if(m.includes("already")){setAErr("📧 Email già registrata. Vai su Accedi.");return;}
+        if(m.includes("rate")){setAErr("⏳ Troppi tentativi. Aspetta qualche minuto.");return;}
+        setAErr("❌ "+error.message);return;
+      }
+      sb.from("profiles").insert({id:data?.user?.id||"",name:nome,email:aEmail}).catch(()=>{});
+      setUser({name:nome,email:aEmail,id:data?.user?.id||""});
+      setAName("");setAEmail("");setAPass("");
+      setScreen("home");
       return;
     }
-    const res=await sb.auth.signInWithPassword({email:aEmail,password:aPass}).catch(()=>({data:null,error:{message:"err"}}));
-    if(res.error||!res.data?.user){setAErr("❌ Email o password errati");return;}
-    setUser({name:res.data.user.user_metadata?.name||aEmail.split("@")[0],email:aEmail,id:res.data.user.id});
-    setAName("");setAEmail("");setAPass("");go("home");
+    const {data,error}=await sb.auth.signInWithPassword({email:aEmail,password:aPass}).catch(e=>({data:null,error:e}));
+    setALoading(false);
+    if(error||!data?.user){setAErr("❌ Email o password errati");return;}
+    setUser({name:data.user.user_metadata?.name||aEmail.split("@")[0],email:aEmail,id:data.user.id});
+    setAName("");setAEmail("");setAPass("");
+    setScreen("home");
   };
 
   const doSearch=()=>{
@@ -492,7 +501,7 @@ function App(){
         <div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Email</label><input type="email" value={aEmail} onChange={e=>setAEmail(e.target.value)} style={inp} placeholder="mario@esempio.it"/></div>
         <div style={{marginBottom:18}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Password</label><input type="password" value={aPass} onChange={e=>setAPass(e.target.value)} style={inp} placeholder="••••••••"/></div>
         {aErr&&<p style={{margin:"0 0 12px",fontSize:13,color:aErr.startsWith("📬")?"#1a5c3a":"#ef4444",textAlign:"center",lineHeight:1.5}}>{aErr}</p>}
-        <button onClick={doAuth} style={btnG}>{authMode==="login"?t.login:t.register}</button>
+        <button onClick={doAuth} disabled={aLoading} style={{...btnG,opacity:aLoading?0.7:1}}>{aLoading?"⏳ Attendere...":(authMode==="login"?t.login:t.register)}</button>
         <p style={{textAlign:"center",marginTop:14,fontSize:13,color:"#6b7280",margin:"14px 0 0"}}>
           {authMode==="login"?(lang==="it"?"Non hai un account?":"No account?"):(lang==="it"?"Hai già un account?":"Have an account?")}{" "}
           <span onClick={()=>{setAuthMode(m=>m==="login"?"register":"login");setAErr("");}} style={{color:"#1a5c3a",cursor:"pointer",fontWeight:600}}>{authMode==="login"?t.register:t.login}</span>
