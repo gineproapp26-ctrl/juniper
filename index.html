@@ -444,13 +444,12 @@ function App(){
   const doSearch=async()=>{
     if(isGuest&&guestSearches>=1){showP(t.popGuest,t.popGuestSub,"register");return;}
     setSearching(true);
-    // Cerca per filtri prima, città è opzionale
+    // 1. Risultati da Supabase
     let res=structs.filter(s=>{
       const mf=tagFilters.length===0||tagFilters.every(f=>s.tags&&s.tags.includes(f));
       const mm=!mealFilter||(s.meals&&s.meals.includes(mealFilter));
       return mf&&mm;
     });
-    // Poi filtra per città se c'è una query (ma mantieni tutto se 0 risultati)
     if(q){
       const qRes=res.filter(s=>
         (s.name&&s.name.toLowerCase().includes(q.toLowerCase()))||
@@ -460,13 +459,22 @@ function App(){
       if(qRes.length>0)res=qRes;
     }
     if(isGuest){setGuestSearches(1);res=res.slice(0,GUEST_MAX);}
-    else if(!premium){incSearchCount();setCnt(getSearchCount());}
-    // Cerca su Google Places in background e aggiorna i risultati
+    // 2. Google Places — cerca e aspetta max 5 secondi
+    try{
+      const gRes=await Promise.race([
+        searchGooglePlaces(q||"ristorante",tagFilters),
+        new Promise(r=>setTimeout(()=>r([]),5000))
+      ]);
+      if(gRes&&gRes.length>0){
+        const existing=new Set(res.map(s=>(s.name||"").toLowerCase()));
+        const newG=gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase()));
+        res=[...res,...newG];
+      }
+    }catch(e){}
     setSearching(false);
     setResults(res);
     setTab("explore");
     go("results","home");
-
   };
 
   const addRev=async(sid)=>{
