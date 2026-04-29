@@ -155,6 +155,12 @@ function App() {
   const [aPass,setAPass]=React.useState("");
   const [guestSearches,setGuestSearches]=React.useState(0);
   const [socialPopup,setSocialPopup]=React.useState(null);
+  const [bizStep,setBizStep]=React.useState("search");
+  const [bizQ,setBizQ]=React.useState("");
+  const [bizFound,setBizFound]=React.useState([]);
+  const [bizSel,setBizSel]=React.useState(null);
+  const [biz,setBiz]=React.useState({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
+  const [bizSent,setBizSent]=React.useState(false);
   const isGuest=!user;
   const t=T[lang];
 
