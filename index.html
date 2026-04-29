@@ -14,7 +14,6 @@
 body{font-family:system-ui,-apple-system,sans-serif;background:#f9fafb}
 #root{max-width:480px;margin:0 auto;min-height:100vh}
 </style>
-
 </head>
 <body>
 <div id="root"></div>
@@ -26,30 +25,29 @@ const sb = window.supabase.createClient(
   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyeHFtdmtpbGxncXBkbGh2Znh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0Njk2MjYsImV4cCI6MjA5MzA0NTYyNn0.Ceb4fljxIclKX6D3luzlOfjpzcaEnF2cYkJM0qxOoFo"
 );
 
-// ── COSTANTI ──
 const GREEN = "linear-gradient(135deg,#1a5c3a,#0f3d26)";
 const ADMIN_EMAIL = "juniper.app26@gmail.com";
 const TAGS = {
-  gluten_free: {it:"Gluten Free",       en:"Gluten Free",          icon:"🌾",color:"#f59e0b"},
-  lactose_free:{it:"Lactose Free",       en:"Lactose Free",         icon:"🥛",color:"#3b82f6"},
+  gluten_free: {it:"Gluten Free",en:"Gluten Free",icon:"🌾",color:"#f59e0b"},
+  lactose_free:{it:"Lactose Free",en:"Lactose Free",icon:"🥛",color:"#3b82f6"},
   combo_free:  {it:"Glutine & Lattosio Free",en:"Gluten & Lactose Free",icon:"✨",color:"#e05c1a"},
-  vegan:       {it:"Vegano",             en:"Vegan",                icon:"🌱",color:"#10b981"},
-  vegetarian:  {it:"Vegetariano",        en:"Vegetarian",           icon:"🥗",color:"#84cc16"},
-  pet_friendly:{it:"Pet Friendly",       en:"Pet Friendly",         icon:"🐾",color:"#8b5cf6"},
-  no_cross:    {it:"Cucina Dedicata",    en:"Dedicated Kitchen",    icon:"✅",color:"#065f46"},
-  low_cross:   {it:"Attenzione Massima", en:"Extra Care",           icon:"⚠️",color:"#d97706"},
-  high_cross:  {it:"Cucina Condivisa",   en:"Shared Kitchen",       icon:"❌",color:"#dc2626"},
+  vegan:       {it:"Vegano",en:"Vegan",icon:"🌱",color:"#10b981"},
+  vegetarian:  {it:"Vegetariano",en:"Vegetarian",icon:"🥗",color:"#84cc16"},
+  pet_friendly:{it:"Pet Friendly",en:"Pet Friendly",icon:"🐾",color:"#8b5cf6"},
+  no_cross:    {it:"Cucina Dedicata",en:"Dedicated Kitchen",icon:"✅",color:"#065f46"},
+  low_cross:   {it:"Attenzione Massima",en:"Extra Care",icon:"⚠️",color:"#d97706"},
+  high_cross:  {it:"Cucina Condivisa",en:"Shared Kitchen",icon:"❌",color:"#dc2626"},
 };
 const MEALS = {
   breakfast:{it:"Colazione",en:"Breakfast",icon:"🥐"},
-  lunch:    {it:"Pranzo",   en:"Lunch",    icon:"☀️"},
+  lunch:    {it:"Pranzo",en:"Lunch",icon:"☀️"},
   aperitivo:{it:"Aperitivo",en:"Aperitivo",icon:"🍹"},
-  dinner:   {it:"Cena",     en:"Dinner",   icon:"🌙"},
+  dinner:   {it:"Cena",en:"Dinner",icon:"🌙"},
 };
 const SOURCES = {
-  registered:  {it:"Registrata",   en:"Registered",    icon:"🏢",color:"#1a5c3a",bg:"#e8f5ee"},
-  verified:    {it:"Verificata",   en:"Verified",      icon:"🌿",color:"#2563eb",bg:"#dbeafe"},
-  google:      {it:"Non Verificato",en:"Not Verified", icon:"⚠️",color:"#b45309",bg:"#fef3c7"},
+  registered:{it:"Registrata",en:"Registered",icon:"🏢",color:"#1a5c3a",bg:"#e8f5ee"},
+  verified:  {it:"Verificata",en:"Verified",icon:"🌿",color:"#2563eb",bg:"#dbeafe"},
+  google:    {it:"Non Verificato",en:"Not Verified",icon:"⚠️",color:"#b45309",bg:"#fef3c7"},
 };
 const DIET_TAGS  = ["gluten_free","lactose_free","combo_free","vegan","vegetarian","pet_friendly"];
 const CROSS_TAGS = ["no_cross","low_cross","high_cross"];
@@ -57,9 +55,7 @@ const CROSS_DESC = {
   it:{no_cross:"Cucina separata dedicata, zero rischio contaminazione",low_cross:"Massima attenzione ma non garantiamo al 100%",high_cross:"Cucina condivisa, possibile contaminazione crociata"},
   en:{no_cross:"Dedicated separate kitchen, zero cross-contamination",low_cross:"We take care but cannot guarantee 100%",high_cross:"Shared kitchen, cross-contamination possible"},
 };
-
 const DEMO = [];
-
 const inp = {width:"100%",padding:"10px 14px",borderRadius:10,border:"1.5px solid #e5e7eb",fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"};
 const card = {background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:10};
 
@@ -73,271 +69,25 @@ function Logo({size=18,white=true}){
   );
 }
 
-function BusinessScreen({lang,go}){
-  const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
-  const btnG2={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
-  const tx={
-    it:{back:"Indietro",title:"Registra la tua attività",sub:"Raggiungi chi cerca esattamente quello che offri",searchPh:"Cerca per nome o città...",claim:"Sono il titolare",addNew:"Aggiungi da zero",results:"risultati",baseInfo:"📋 Info base",typeLabel:"🏪 Tipo",openLabel:"🍽️ Quando siete aperti?",offersLabel:"✅ Cosa offrite?",kitchenLabel:"🔬 Sicurezza in cucina",kitchenSub:"Sii onesto — è importante per i tuoi clienti",badgeLabel:"🏅 Richiedi Badge Certificato",badgeSub:"Verifica a pagamento.",send:"Invia richiesta",sent:"Richiesta inviata!",sentSub:"Ti contatteremo a",backHome:"Torna alla home",disclaimerTitle:"⚖️ Dichiarazione di responsabilità",disclaimerText:"Il titolare dichiara sotto la propria responsabilità che le informazioni inserite sono veritiere e aggiornate. Juniper non è responsabile per eventuali inesattezze. L'utente finale è sempre invitato a confermare direttamente con il locale prima di consumare.",disclaimerCheck:"Ho letto e accetto. Confermo che le informazioni sono veritiere e mi assumo la piena responsabilità dei contenuti pubblicati.",cancel:"Annulla"},
-    en:{back:"Back",title:"Register your business",sub:"Reach those looking for exactly what you offer",searchPh:"Search by name or city...",claim:"I'm the owner",addNew:"Add from scratch",results:"results",baseInfo:"📋 Basic info",typeLabel:"🏪 Type",openLabel:"🍽️ When are you open?",offersLabel:"✅ What do you offer?",kitchenLabel:"🔬 Kitchen safety",kitchenSub:"Be honest — it matters to your customers",badgeLabel:"🏅 Request Certified Badge",badgeSub:"Paid verification service.",send:"Send request",sent:"Request sent!",sentSub:"We'll contact you at",backHome:"Back to home",disclaimerTitle:"⚖️ Liability Declaration",disclaimerText:"The owner declares under their own responsibility that the information provided is truthful and up to date. Juniper is not liable for any inaccuracies. End users are always encouraged to confirm directly with the venue before consuming.",disclaimerCheck:"I have read and agree. I confirm the information is truthful and take full responsibility for the published content.",cancel:"Cancel"},
-  };
-  const t=tx[lang];
-  const [step,setStep]=React.useState("search");
-  const [q,setQ]=React.useState("");
-  const [found,setFound]=React.useState([]);
-  const [sel,setSel]=React.useState(null);
-  const [sent,setSent]=React.useState(false);
-  const [disclaimer,setDisclaimer]=React.useState(false);
-  const [sending,setSending]=React.useState(false);
-  const [form,setForm]=React.useState({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
-
-  // ── GOOGLE PLACES REST API ──
-  const GKEY="AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck";
-  const searchGooglePlaces=async(query,tags)=>{
-    try{
-      const tagWords=(tags||[]).map(k=>TAGS[k]?.it||"").filter(Boolean).join(" ");
-      const hasFood=query&&["ristorante","bar","pizzeria","agriturismo"].some(w=>query.toLowerCase().includes(w));
-      const textQuery=(hasFood?"":"ristorante ")+(query||"Maremma Grosseto")+(tagWords?" "+tagWords:"")+" Toscana Italia";
-      const resp=await fetch("https://places.googleapis.com/v1/places:searchText",{
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json",
-          "X-Goog-Api-Key":GKEY,
-          "X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryType,places.shortFormattedAddress,places.location"
-        },
-        body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:15})
-      });
-      if(!resp.ok)return[];
-      const data=await resp.json();
-      const places=data.places||[];
-      return places.map(p=>{
-        const pt=p.primaryType||"";
-        let type="ristorante",emoji="🍽️";
-        if(pt.includes("bar")||pt.includes("cafe")){type="bar";emoji="☕";}
-        else if(pt.includes("bakery")||pt.includes("pastry")){type="pasticceria";emoji="🧁";}
-        else if(pt.includes("lodging")||pt.includes("hotel")){type="hotel";emoji="🏨";}
-        else if(pt.includes("farm")||pt.includes("campground")){type="agriturismo";emoji="🌾";}
-        const name=(p.displayName?.text||p.displayName||"Locale");
-        const addr=p.shortFormattedAddress||p.formattedAddress||"";
-        const parts=(p.formattedAddress||"").split(",");
-        const city=parts.length>2?parts[parts.length-3]?.trim()||"Italia":"Italia";
-        const lat=p.location?.latitude||null;
-        const lng=p.location?.longitude||null;
-        return{
-          id:"g_"+(p.id||Math.random().toString(36)),
-          name,type,city,country:"Italia",address:addr,phone:"",
-          description:type+" · "+city,emoji,
-          tags:[], // nessun tag automatico — vengono dalle recensioni
-          lat,lng,
-          meals:type==="bar"?["breakfast","aperitivo"]:["lunch","dinner"],
-          source:"google",certified:false,sponsored:false,
-          rating:p.rating||null,reviewCount:p.userRatingCount||0,
-          unverified:true,
-        };
-      });
-    }catch(e){return[];}
-  };
-
-  const doSearch=async()=>{
-    const lq=q.toLowerCase();
-    setFound(DEMO.filter(s=>s.name.toLowerCase().includes(lq)||s.city.toLowerCase().includes(lq)));
-  };
-  const claim=(s)=>{
-    setSel(s);
-    if(s) setForm(f=>({...f,name:s.name,city:s.city,address:s.address||"",phone:s.phone||"",tags:s.tags.filter(k=>DIET_TAGS.includes(k)),meals:s.meals||[],cross:s.tags.find(k=>CROSS_TAGS.includes(k))||""}));
-    else setForm({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
-    setStep("form");
-  };
-  const toggleTag=k=>setForm(f=>({...f,tags:f.tags.includes(k)?f.tags.filter(x=>x!==k):[...f.tags,k]}));
-  const toggleMeal=k=>setForm(f=>({...f,meals:f.meals.includes(k)?f.meals.filter(x=>x!==k):[...f.meals,k]}));
-
-  const submit=async()=>{
-    if(!form.email||!disclaimer)return;
-    setSending(true);
-    await sb.from("business_requests").insert({
-      structure_id: sel?.id&&!sel.id.startsWith("d")?sel.id:null,
-      name:form.name,type:form.type,city:form.city,address:form.address,
-      phone:form.phone,email:form.email,website:form.website,instagram:form.instagram,
-      description:form.description,tags:form.tags,meals:form.meals,
-      kitchen_safety:form.cross,certified_request:form.certified,
-      disclaimer_accepted:true,disclaimer_accepted_at:new Date().toISOString(),
-    });
-    setSending(false);
-    setSent(true);
-  };
-
-  if(sent) return(
-    <div style={{minHeight:"100vh",background:"#f9fafb"}}>
-      <div style={{background:GREEN,padding:"20px",color:"white"}}>
-        <button onClick={()=>go("welcome")} style={{...ghost2,display:"block"}}>← {t.back}</button>
-      </div>
-      <div style={{padding:16}}>
-        <div style={{...card,textAlign:"center",padding:28}}>
-          <div style={{fontSize:52,marginBottom:12}}>✅</div>
-          <h3 style={{margin:"0 0 8px",fontSize:18,fontWeight:800,color:"#1a5c3a"}}>{t.sent}</h3>
-          <p style={{margin:"0 0 20px",fontSize:14,color:"#6b7280"}}>{t.sentSub} <strong>{form.email}</strong></p>
-          <button onClick={()=>go("welcome")} style={btnG2}>{t.backHome}</button>
-        </div>
-      </div>
-    </div>
-  );
-
-  if(step==="search") return(
-    <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
-      <div style={{background:GREEN,padding:"20px",color:"white"}}>
-        <button onClick={()=>go("welcome")} style={{...ghost2,marginBottom:10,display:"block"}}>← {t.back}</button>
-        <Logo size={24}/>
-        <h2 style={{margin:"8px 0 2px",fontSize:17,fontWeight:700}}>🏢 {t.title}</h2>
-        <p style={{margin:0,fontSize:13,opacity:.8}}>{t.sub}</p>
-      </div>
-      <div style={{padding:16}}>
-        <div style={card}>
-          <div style={{display:"flex",gap:8,marginBottom:12}}>
-            <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={t.searchPh} style={{...inp,flex:1}}/>
-            <button onClick={doSearch} style={{background:"#1a5c3a",color:"white",border:"none",padding:"10px 16px",borderRadius:10,cursor:"pointer",fontWeight:700}}>🔍</button>
-          </div>
-          {found.map(s=>(
-            <div key={s.id} style={{border:"1.5px solid #e5e7eb",borderRadius:12,padding:12,marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
-              <div><p style={{margin:"0 0 2px",fontWeight:700,fontSize:13}}>{s.emoji} {s.name}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>📍 {s.city}</p></div>
-              <button onClick={()=>claim(s)} style={{background:"#1a5c3a",color:"white",border:"none",padding:"8px 12px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>{t.claim}</button>
-            </div>
-          ))}
-          <button onClick={()=>claim(null)} style={{width:"100%",background:"#f9fafb",border:"1.5px solid #e5e7eb",padding:12,borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151",marginTop:found.length>0?8:0}}>+ {t.addNew}</button>
-        </div>
-      </div>
-    </div>
-  );
-
-  const types=["ristorante","bar","pizzeria","pasticceria","agriturismo","hotel","altro"];
-  const typeEmojis={ristorante:"🍽️",bar:"☕",pizzeria:"🍕",pasticceria:"🧁",agriturismo:"🌾",hotel:"🏨",altro:"🏪"};
-  return(
-    <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
-      <div style={{background:GREEN,padding:"20px",color:"white"}}>
-        <button onClick={()=>setStep("search")} style={{...ghost2,marginBottom:10,display:"block"}}>← {t.back}</button>
-        <Logo size={24}/>
-        <h2 style={{margin:"8px 0 0",fontSize:17,fontWeight:700}}>🏢 {t.title}</h2>
-      </div>
-      <div style={{padding:16}}>
-        {sel&&<div style={{background:"#f0fdf4",borderRadius:12,padding:12,marginBottom:12,border:"1.5px solid #bbf7d0"}}><p style={{margin:0,fontWeight:700,fontSize:13,color:"#1a5c3a"}}>{sel.emoji} {sel.name} — {lang==="it"?"dati precompilati":"pre-filled data"}</p></div>}
-        <div style={card}>
-          <p style={{margin:"0 0 10px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.baseInfo}</p>
-          {[{k:"name",p:lang==="it"?"Nome attività *":"Business name *"},{k:"city",p:lang==="it"?"Città *":"City *"},{k:"address",p:lang==="it"?"Indirizzo":"Address"},{k:"phone",p:"Telefono"},{k:"email",p:"Email *"},{k:"website",p:"Sito web"},{k:"instagram",p:"Instagram"}].map(f=>(
-            <input key={f.k} value={form[f.k]} onChange={e=>setForm(fm=>({...fm,[f.k]:e.target.value}))} placeholder={f.p} style={{...inp,marginBottom:10,fontSize:13}}/>
-          ))}
-          <textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder={lang==="it"?"Descrizione...":"Description..."} style={{...inp,resize:"none",height:70,fontSize:13}}/>
-        </div>
-        <div style={card}>
-          <p style={{margin:"0 0 8px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.typeLabel}</p>
-          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-            {types.map(tp=><button key={tp} onClick={()=>setForm(f=>({...f,type:tp}))} style={{background:form.type===tp?"#1a5c3a":"#f3f4f6",color:form.type===tp?"white":"#374151",border:"none",padding:"7px 12px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:form.type===tp?700:400}}>{typeEmojis[tp]} {tp}</button>)}
-          </div>
-        </div>
-        <div style={card}>
-          <p style={{margin:"0 0 8px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.openLabel}</p>
-          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-            {Object.entries(MEALS).map(([k,m])=><button key={k} onClick={()=>toggleMeal(k)} style={{background:form.meals.includes(k)?"#1f2937":"#f3f4f6",color:form.meals.includes(k)?"white":"#374151",border:"none",padding:"7px 12px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:form.meals.includes(k)?700:400}}>{m.icon} {m[lang==="it"?"it":"en"]}</button>)}
-          </div>
-        </div>
-        <div style={card}>
-          <p style={{margin:"0 0 8px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.offersLabel}</p>
-          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-            {DIET_TAGS.map(k=><button key={k} onClick={()=>toggleTag(k)} style={{background:form.tags.includes(k)?TAGS[k].color:"#f3f4f6",color:form.tags.includes(k)?"white":"#374151",border:"none",padding:"7px 12px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:form.tags.includes(k)?700:400}}>{TAGS[k].icon} {TAGS[k][lang==="it"?"it":"en"]}</button>)}
-          </div>
-        </div>
-        <div style={card}>
-          <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.kitchenLabel}</p>
-          <p style={{margin:"0 0 10px",fontSize:12,color:"#9ca3af"}}>{t.kitchenSub}</p>
-          {CROSS_TAGS.map(k=>(
-            <div key={k} onClick={()=>setForm(f=>({...f,cross:f.cross===k?"":k}))} style={{border:"2px solid "+(form.cross===k?TAGS[k].color:"#e5e7eb"),borderRadius:12,padding:"10px 14px",cursor:"pointer",marginBottom:8,background:form.cross===k?TAGS[k].color+"11":"white",display:"flex",alignItems:"center",gap:10}}>
-              <span style={{fontSize:18}}>{TAGS[k].icon}</span>
-              <div><p style={{margin:"0 0 2px",fontWeight:700,fontSize:13,color:TAGS[k].color}}>{TAGS[k][lang==="it"?"it":"en"]}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>{CROSS_DESC[lang][k]}</p></div>
-            </div>
-          ))}
-        </div>
-        <div style={{...card,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div><p style={{margin:"0 0 3px",fontWeight:700,fontSize:13,color:"#1a5c3a"}}>{t.badgeLabel}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>{t.badgeSub}</p></div>
-          <div onClick={()=>setForm(f=>({...f,certified:!f.certified}))} style={{width:44,height:24,borderRadius:12,background:form.certified?"#1a5c3a":"#e5e7eb",cursor:"pointer",position:"relative",flexShrink:0}}>
-            <div style={{width:18,height:18,borderRadius:"50%",background:"white",position:"absolute",top:3,left:form.certified?23:3,transition:"left 0.2s"}}/>
-          </div>
-        </div>
-        <div style={{background:"#fef9ec",borderRadius:14,padding:16,marginBottom:14,border:"1.5px solid #fed7aa"}}>
-          <p style={{margin:"0 0 8px",fontSize:12,fontWeight:700,color:"#92400e"}}>⚖️ {t.disclaimerTitle}</p>
-          <p style={{margin:"0 0 12px",fontSize:12,color:"#374151",lineHeight:1.6}}>{t.disclaimerText}</p>
-          <label style={{display:"flex",gap:10,alignItems:"flex-start",cursor:"pointer"}}>
-            <input type="checkbox" checked={disclaimer} onChange={e=>setDisclaimer(e.target.checked)} style={{marginTop:2,accentColor:"#1a5c3a",width:16,height:16,flexShrink:0}}/>
-            <span style={{fontSize:12,color:"#374151",fontWeight:600,lineHeight:1.5}}>{t.disclaimerCheck}</span>
-          </label>
-        </div>
-        <button onClick={submit} disabled={!form.email||!disclaimer||sending} style={{...btnG2,opacity:(form.email&&disclaimer)?1:0.5,fontSize:16,padding:"15px"}}>
-          {sending?"⏳ Invio...":`🌿 ${t.send}`}
-        </button>
-      </div>
-    </div>
-  );
-}
-
 function PolicyScreen({lang,go}){
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const card2={background:"white",borderRadius:14,padding:20,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:12};
-  const GREEN2="linear-gradient(135deg,#1a5c3a,#0f3d26)";
   const tx={
-    it:{
-      title:"Policy & Termini",
-      back:"Indietro",
-      s1title:"⚖️ Responsabilità dei contenuti",
-      s1:"Ogni locale registrato su Juniper è responsabile in prima persona delle informazioni inserite nella propria scheda, incluse le caratteristiche alimentari dichiarate (gluten free, vegano, senza lattosio, ecc.). Juniper non verifica in modo autonomo e continuativo le informazioni pubblicate dai locali.",
-      s2title:"🌿 Ruolo di Juniper",
-      s2:"Juniper è una piattaforma di ricerca e scoperta. Mettiamo in contatto utenti con esigenze alimentari specifiche e locali che dichiarano di soddisfarle. Non siamo responsabili di eventuali errori, omissioni o cambiamenti nelle informazioni fornite dai locali.",
-      s3title:"⚠️ Avviso per gli utenti",
-      s3:"Ti consigliamo sempre di confermare direttamente con il locale prima di consumare, soprattutto in caso di allergie o intolleranze gravi. Le informazioni presenti su Juniper sono fornite a titolo indicativo e non costituiscono garanzia medica o legale.",
-      s4title:"🏅 Badge Verificato",
-      s4:"Il badge 'Verificato da Juniper' indica che il locale ha fornito documentazione a supporto delle proprie dichiarazioni ed ha sottoscritto la nostra dichiarazione di responsabilità. Tuttavia, anche i locali verificati rimangono gli unici responsabili della veridicità delle informazioni.",
-      s5title:"📋 Registrazione dei locali",
-      s5:"I locali che si registrano su Juniper accettano esplicitamente di fornire informazioni veritiere e aggiornate. La pubblicazione di informazioni false o fuorvianti comporta la rimozione immediata dalla piattaforma.",
-      s6title:"📬 Contatti",
-      s6:"Per segnalazioni, richieste di verifica o rimozione di contenuti: juniper.app26@gmail.com",
-      updated:"Ultimo aggiornamento: aprile 2026",
-    },
-    en:{
-      title:"Policy & Terms",
-      back:"Back",
-      s1title:"⚖️ Content Responsibility",
-      s1:"Each venue registered on Juniper is solely responsible for the information in their profile, including declared dietary features (gluten free, vegan, lactose free, etc.). Juniper does not independently and continuously verify the information published by venues.",
-      s2title:"🌿 Juniper's Role",
-      s2:"Juniper is a search and discovery platform. We connect users with specific dietary needs to venues that declare they can meet them. We are not responsible for errors, omissions or changes in information provided by venues.",
-      s3title:"⚠️ User Warning",
-      s3:"We always recommend confirming directly with the venue before consuming, especially in cases of severe allergies or intolerances. Information on Juniper is provided for guidance only and does not constitute medical or legal guarantee.",
-      s4title:"🏅 Verified Badge",
-      s4:"The 'Verified by Juniper' badge indicates the venue has provided supporting documentation and signed our liability declaration. However, verified venues remain solely responsible for the accuracy of their information.",
-      s5title:"📋 Venue Registration",
-      s5:"Venues registering on Juniper explicitly agree to provide truthful and up-to-date information. Publishing false or misleading information results in immediate removal from the platform.",
-      s6title:"📬 Contact",
-      s6:"For reports, verification requests or content removal: juniper.app26@gmail.com",
-      updated:"Last updated: April 2026",
-    }
+    it:{title:"Policy & Termini",back:"Indietro",s1title:"⚖️ Responsabilità dei contenuti",s1:"Ogni locale registrato su Juniper è responsabile in prima persona delle informazioni inserite nella propria scheda, incluse le caratteristiche alimentari dichiarate (gluten free, vegano, senza lattosio, ecc.). Juniper non verifica in modo autonomo e continuativo le informazioni pubblicate dai locali.",s2title:"🌿 Ruolo di Juniper",s2:"Juniper è una piattaforma di ricerca e scoperta. Mettiamo in contatto utenti con esigenze alimentari specifiche e locali che dichiarano di soddisfarle. Non siamo responsabili di eventuali errori, omissioni o cambiamenti nelle informazioni fornite dai locali.",s3title:"⚠️ Avviso per gli utenti",s3:"Ti consigliamo sempre di confermare direttamente con il locale prima di consumare, soprattutto in caso di allergie o intolleranze gravi. Le informazioni presenti su Juniper sono fornite a titolo indicativo e non costituiscono garanzia medica o legale.",s4title:"🏅 Badge Verificato",s4:"Il badge Verificato da Juniper indica che il locale ha fornito documentazione a supporto delle proprie dichiarazioni ed ha sottoscritto la nostra dichiarazione di responsabilità. Tuttavia, anche i locali verificati rimangono gli unici responsabili della veridicità delle informazioni.",s5title:"📋 Registrazione dei locali",s5:"I locali che si registrano su Juniper accettano esplicitamente di fornire informazioni veritiere e aggiornate. La pubblicazione di informazioni false o fuorvianti comporta la rimozione immediata dalla piattaforma.",s6title:"📬 Contatti",s6:"Per segnalazioni, richieste di verifica o rimozione di contenuti: juniper.app26@gmail.com",updated:"Ultimo aggiornamento: aprile 2026"},
+    en:{title:"Policy & Terms",back:"Back",s1title:"⚖️ Content Responsibility",s1:"Each venue registered on Juniper is solely responsible for the information in their profile, including declared dietary features (gluten free, vegan, lactose free, etc.). Juniper does not independently and continuously verify the information published by venues.",s2title:"🌿 Juniper Role",s2:"Juniper is a search and discovery platform. We connect users with specific dietary needs to venues that declare they can meet them. We are not responsible for errors, omissions or changes in information provided by venues.",s3title:"⚠️ User Warning",s3:"We always recommend confirming directly with the venue before consuming, especially in cases of severe allergies or intolerances. Information on Juniper is provided for guidance only and does not constitute medical or legal guarantee.",s4title:"🏅 Verified Badge",s4:"The Verified by Juniper badge indicates the venue has provided supporting documentation and signed our liability declaration. However, verified venues remain solely responsible for the accuracy of their information.",s5title:"📋 Venue Registration",s5:"Venues registering on Juniper explicitly agree to provide truthful and up-to-date information. Publishing false or misleading information results in immediate removal from the platform.",s6title:"📬 Contact",s6:"For reports, verification requests or content removal: juniper.app26@gmail.com",updated:"Last updated: April 2026"},
   };
   const t=tx[lang]||tx.it;
-  const sections=[
-    {title:t.s1title,text:t.s1},
-    {title:t.s2title,text:t.s2},
-    {title:t.s3title,text:t.s3},
-    {title:t.s4title,text:t.s4},
-    {title:t.s5title,text:t.s5},
-    {title:t.s6title,text:t.s6},
-  ];
   return(
     <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
-      <div style={{background:GREEN2,padding:"20px",color:"white"}}>
+      <div style={{background:GREEN,padding:"20px",color:"white"}}>
         <button onClick={()=>go("welcome")} style={{...ghost2,marginBottom:10,display:"block"}}>← {t.back}</button>
         <Logo size={22}/>
         <h2 style={{margin:"8px 0 2px",fontSize:17,fontWeight:700}}>⚖️ {t.title}</h2>
         <p style={{margin:0,fontSize:12,opacity:.8}}>Juniper — juniperapp.eu</p>
       </div>
       <div style={{padding:16}}>
-        {sections.map((s,i)=>(
-          <div key={i} style={card2}>
-            <p style={{margin:"0 0 8px",fontSize:13,fontWeight:700,color:"#1a5c3a"}}>{s.title}</p>
-            <p style={{margin:0,fontSize:13,color:"#374151",lineHeight:1.7}}>{s.text}</p>
-          </div>
+        {[{title:t.s1title,text:t.s1},{title:t.s2title,text:t.s2},{title:t.s3title,text:t.s3},{title:t.s4title,text:t.s4},{title:t.s5title,text:t.s5},{title:t.s6title,text:t.s6}].map((s,i)=>(
+          <div key={i} style={{...card2}}><p style={{margin:"0 0 8px",fontSize:13,fontWeight:700,color:"#1a5c3a"}}>{s.title}</p><p style={{margin:0,fontSize:13,color:"#374151",lineHeight:1.7}}>{s.text}</p></div>
         ))}
         <p style={{textAlign:"center",fontSize:11,color:"#9ca3af",marginTop:8}}>{t.updated}</p>
       </div>
@@ -349,12 +99,10 @@ function AdminScreen({user,lang,go,sb}){
   const [tab,setTab]=React.useState("requests");
   const [requests,setRequests]=React.useState([]);
   const [structures,setStructures]=React.useState([]);
-  const [users,setUsers]=React.useState([]);
   const [loading,setLoading]=React.useState(true);
   const [msg,setMsg]=React.useState("");
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const card2={background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:10};
-
   const load=async()=>{
     setLoading(true);
     const [rReq,rStr]=await Promise.all([
@@ -365,54 +113,17 @@ function AdminScreen({user,lang,go,sb}){
     if(rStr.data)setStructures(rStr.data);
     setLoading(false);
   };
-
   React.useEffect(()=>{load();},[tab]);
-
   const showMsg=(m)=>{setMsg(m);setTimeout(()=>setMsg(""),3000);};
-
   const approveRequest=async(req)=>{
-    await sb.from("structures").insert({
-      name:req.name,type:req.type,city:req.city,address:req.address,
-      phone:req.phone,description:req.description,
-      gluten_free:req.tags?.includes("gluten_free")||false,
-      lactose_free:req.tags?.includes("lactose_free")||false,
-      vegan:req.tags?.includes("vegan")||false,
-      vegetarian:req.tags?.includes("vegetarian")||false,
-      pet_friendly:req.tags?.includes("pet_friendly")||false,
-      combo_free:req.tags?.includes("combo_free")||false,
-      kitchen_safety:req.kitchen_safety||"",
-      source:"registered",certified:false,sponsored:false,pending:false,
-      breakfast:req.meals?.includes("breakfast")||false,
-      lunch:req.meals?.includes("lunch")||false,
-      aperitivo:req.meals?.includes("aperitivo")||false,
-      dinner:req.meals?.includes("dinner")||false,
-    });
+    await sb.from("structures").insert({name:req.name,type:req.type,city:req.city,address:req.address,phone:req.phone,description:req.description,gluten_free:req.tags?.includes("gluten_free")||false,lactose_free:req.tags?.includes("lactose_free")||false,vegan:req.tags?.includes("vegan")||false,vegetarian:req.tags?.includes("vegetarian")||false,pet_friendly:req.tags?.includes("pet_friendly")||false,combo_free:req.tags?.includes("combo_free")||false,kitchen_safety:req.kitchen_safety||"",source:"registered",certified:false,sponsored:false,pending:false,breakfast:req.meals?.includes("breakfast")||false,lunch:req.meals?.includes("lunch")||false,aperitivo:req.meals?.includes("aperitivo")||false,dinner:req.meals?.includes("dinner")||false});
     await sb.from("business_requests").update({status:"approved"}).eq("id",req.id);
-    showMsg("✅ Locale approvato!");
-    load();
+    showMsg("✅ Locale approvato!");load();
   };
-
-  const rejectRequest=async(id)=>{
-    await sb.from("business_requests").update({status:"rejected"}).eq("id",id);
-    showMsg("❌ Richiesta rifiutata");
-    load();
-  };
-
-  const verifyStructure=async(id,verified)=>{
-    await sb.from("structures").update({source:verified?"verified":"registered"}).eq("id",id);
-    showMsg(verified?"🌿 Badge Verificato assegnato!":"Badge rimosso");
-    load();
-  };
-
-  const deleteStructure=async(id)=>{
-    if(!window.confirm("Sicura di voler eliminare questo locale?"))return;
-    await sb.from("structures").delete().eq("id",id);
-    showMsg("🗑️ Locale eliminato");
-    load();
-  };
-
+  const rejectRequest=async(id)=>{await sb.from("business_requests").update({status:"rejected"}).eq("id",id);showMsg("❌ Richiesta rifiutata");load();};
+  const verifyStructure=async(id,verified)=>{await sb.from("structures").update({source:verified?"verified":"registered"}).eq("id",id);showMsg(verified?"🌿 Badge Verificato assegnato!":"Badge rimosso");load();};
+  const deleteStructure=async(id)=>{if(!window.confirm("Sicura di voler eliminare questo locale?"))return;await sb.from("structures").delete().eq("id",id);showMsg("🗑️ Locale eliminato");load();};
   const tabs=[{id:"requests",label:"📋 Richieste"},{id:"structures",label:"🏢 Locali"},{id:"stats",label:"📊 Stats"}];
-
   return(
     <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
       <div style={{background:GREEN,padding:"20px",color:"white"}}>
@@ -421,20 +132,12 @@ function AdminScreen({user,lang,go,sb}){
         <h2 style={{margin:"8px 0 2px",fontSize:17,fontWeight:700}}>⚙️ Pannello Admin</h2>
         <p style={{margin:0,fontSize:12,opacity:.8}}>Ciao {user?.name} 👋</p>
       </div>
-
       {msg&&<div style={{background:"#d1fae5",color:"#065f46",padding:"10px 16px",fontWeight:600,fontSize:13,textAlign:"center"}}>{msg}</div>}
-
-      {/* Tab bar */}
       <div style={{display:"flex",borderBottom:"2px solid #e5e7eb",background:"white"}}>
-        {tabs.map(t=>(
-          <button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"12px 4px",border:"none",background:"none",fontSize:12,fontWeight:tab===t.id?700:400,color:tab===t.id?"#1a5c3a":"#6b7280",borderBottom:tab===t.id?"2px solid #1a5c3a":"none",cursor:"pointer"}}>{t.label}</button>
-        ))}
+        {tabs.map(t=><button key={t.id} onClick={()=>setTab(t.id)} style={{flex:1,padding:"12px 4px",border:"none",background:"none",fontSize:12,fontWeight:tab===t.id?700:400,color:tab===t.id?"#1a5c3a":"#6b7280",borderBottom:tab===t.id?"2px solid #1a5c3a":"none",cursor:"pointer"}}>{t.label}</button>)}
       </div>
-
       <div style={{padding:16}}>
         {loading&&<div style={{textAlign:"center",padding:30,color:"#6b7280"}}>🔄 Caricamento...</div>}
-
-        {/* RICHIESTE */}
         {!loading&&tab==="requests"&&<>
           <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{requests.filter(r=>!r.status||r.status==="pending").length} richieste in attesa</p>
           {requests.map(req=>(
@@ -446,13 +149,9 @@ function AdminScreen({user,lang,go,sb}){
                   <p style={{margin:"0 0 2px",fontSize:12,color:"#6b7280"}}>📧 {req.email}</p>
                   {req.phone&&<p style={{margin:"0 0 2px",fontSize:12,color:"#6b7280"}}>📞 {req.phone}</p>}
                   {req.description&&<p style={{margin:"0 0 4px",fontSize:12,color:"#374151"}}>{req.description}</p>}
-                  <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:4}}>
-                    {(req.tags||[]).map(t=><span key={t} style={{background:"#f0fdf4",color:"#1a5c3a",fontSize:10,padding:"2px 6px",borderRadius:8}}>{t}</span>)}
-                  </div>
+                  <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:4}}>{(req.tags||[]).map(t=><span key={t} style={{background:"#f0fdf4",color:"#1a5c3a",fontSize:10,padding:"2px 6px",borderRadius:8}}>{t}</span>)}</div>
                 </div>
-                <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:!req.status||req.status==="pending"?"#fef3c7":req.status==="approved"?"#d1fae5":"#fee2e2",color:!req.status||req.status==="pending"?"#92400e":req.status==="approved"?"#065f46":"#dc2626"}}>
-                  {!req.status||req.status==="pending"?"⏳ Attesa":req.status==="approved"?"✅ Approvato":"❌ Rifiutato"}
-                </span>
+                <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:!req.status||req.status==="pending"?"#fef3c7":req.status==="approved"?"#d1fae5":"#fee2e2",color:!req.status||req.status==="pending"?"#92400e":req.status==="approved"?"#065f46":"#dc2626"}}>{!req.status||req.status==="pending"?"⏳ Attesa":req.status==="approved"?"✅ Approvato":"❌ Rifiutato"}</span>
               </div>
               {(!req.status||req.status==="pending")&&<div style={{display:"flex",gap:8}}>
                 <button onClick={()=>approveRequest(req)} style={{flex:1,background:"#1a5c3a",color:"white",border:"none",padding:"8px",borderRadius:10,cursor:"pointer",fontWeight:700,fontSize:13}}>✅ Approva</button>
@@ -462,47 +161,25 @@ function AdminScreen({user,lang,go,sb}){
           ))}
           {requests.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessuna richiesta</div>}
         </>}
-
-        {/* LOCALI */}
         {!loading&&tab==="structures"&&<>
           <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{structures.length} locali nel database</p>
           {structures.map(s=>(
             <div key={s.id} style={card2}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
-                <div>
-                  <p style={{margin:"0 0 2px",fontWeight:700,fontSize:14}}>{s.name}</p>
-                  <p style={{margin:0,fontSize:12,color:"#6b7280"}}>📍 {s.city} · {s.type}</p>
-                </div>
-                <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:s.source==="verified"?"#dbeafe":s.source==="registered"?"#e8f5ee":"#f3f4f6",color:s.source==="verified"?"#2563eb":s.source==="registered"?"#1a5c3a":"#6b7280"}}>
-                  {s.source==="verified"?"🌿 Verificato":s.source==="registered"?"🏢 Registrato":"📍 Google"}
-                </span>
+                <div><p style={{margin:"0 0 2px",fontWeight:700,fontSize:14}}>{s.name}</p><p style={{margin:0,fontSize:12,color:"#6b7280"}}>📍 {s.city} · {s.type}</p></div>
+                <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:s.source==="verified"?"#dbeafe":s.source==="registered"?"#e8f5ee":"#f3f4f6",color:s.source==="verified"?"#2563eb":s.source==="registered"?"#1a5c3a":"#6b7280"}}>{s.source==="verified"?"🌿 Verificato":s.source==="registered"?"🏢 Registrato":"📍 Google"}</span>
               </div>
               <div style={{display:"flex",gap:8}}>
-                <button onClick={()=>verifyStructure(s.id,s.source!=="verified")} style={{flex:1,background:s.source==="verified"?"#fef3c7":"#dbeafe",color:s.source==="verified"?"#92400e":"#2563eb",border:"none",padding:"7px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700}}>
-                  {s.source==="verified"?"🏢 Rimuovi badge":"🌿 Assegna Verificato"}
-                </button>
+                <button onClick={()=>verifyStructure(s.id,s.source!=="verified")} style={{flex:1,background:s.source==="verified"?"#fef3c7":"#dbeafe",color:s.source==="verified"?"#92400e":"#2563eb",border:"none",padding:"7px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700}}>{s.source==="verified"?"🏢 Rimuovi badge":"🌿 Assegna Verificato"}</button>
                 <button onClick={()=>deleteStructure(s.id)} style={{background:"#fee2e2",color:"#dc2626",border:"none",padding:"7px 12px",borderRadius:10,cursor:"pointer",fontSize:13}}>🗑️</button>
               </div>
             </div>
           ))}
           {structures.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessun locale</div>}
         </>}
-
-        {/* STATS */}
         {!loading&&tab==="stats"&&<>
-          {[
-            {label:"Locali totali",value:structures.length,icon:"🏢"},
-            {label:"Locali verificati",value:structures.filter(s=>s.source==="verified").length,icon:"🌿"},
-            {label:"Richieste in attesa",value:requests.filter(r=>!r.status||r.status==="pending").length,icon:"⏳"},
-            {label:"Richieste approvate",value:requests.filter(r=>r.status==="approved").length,icon:"✅"},
-          ].map((s,i)=>(
-            <div key={i} style={{...card2,display:"flex",alignItems:"center",gap:16}}>
-              <div style={{fontSize:36}}>{s.icon}</div>
-              <div>
-                <p style={{margin:"0 0 2px",fontSize:28,fontWeight:800,color:"#1a5c3a"}}>{s.value}</p>
-                <p style={{margin:0,fontSize:13,color:"#6b7280"}}>{s.label}</p>
-              </div>
-            </div>
+          {[{label:"Locali totali",value:structures.length,icon:"🏢"},{label:"Locali verificati",value:structures.filter(s=>s.source==="verified").length,icon:"🌿"},{label:"Richieste in attesa",value:requests.filter(r=>!r.status||r.status==="pending").length,icon:"⏳"},{label:"Richieste approvate",value:requests.filter(r=>r.status==="approved").length,icon:"✅"}].map((s,i)=>(
+            <div key={i} style={{...card2,display:"flex",alignItems:"center",gap:16}}><div style={{fontSize:36}}>{s.icon}</div><div><p style={{margin:"0 0 2px",fontSize:28,fontWeight:800,color:"#1a5c3a"}}>{s.value}</p><p style={{margin:0,fontSize:13,color:"#6b7280"}}>{s.label}</p></div></div>
           ))}
         </>}
       </div>
@@ -510,12 +187,40 @@ function AdminScreen({user,lang,go,sb}){
   );
 }
 
+function BusinessScreen({lang,go}){
+  const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
+  const btnG2={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
+  const tx={
+    it:{back:"Indietro",title:"Registra la tua attività",sub:"Raggiungi chi cerca esattamente quello che offri",searchPh:"Cerca per nome o città...",claim:"Sono il titolare",addNew:"Aggiungi da zero",baseInfo:"📋 Info base",typeLabel:"🏪 Tipo",openLabel:"🍽️ Quando siete aperti?",offersLabel:"✅ Cosa offrite?",kitchenLabel:"🔬 Sicurezza in cucina",kitchenSub:"Sii onesto — è importante per i tuoi clienti",badgeLabel:"🏅 Richiedi Badge Certificato",badgeSub:"Verifica a pagamento.",send:"Invia richiesta",sent:"Richiesta inviata!",sentSub:"Ti contatteremo a",backHome:"Torna alla home",disclaimerTitle:"⚖️ Dichiarazione di responsabilità",disclaimerText:"Il titolare dichiara sotto la propria responsabilità che le informazioni inserite sono veritiere e aggiornate. Juniper non è responsabile per eventuali inesattezze. L utente finale è sempre invitato a confermare direttamente con il locale prima di consumare.",disclaimerCheck:"Ho letto e accetto. Confermo che le informazioni sono veritiere e mi assumo la piena responsabilità dei contenuti pubblicati.",cancel:"Annulla"},
+    en:{back:"Back",title:"Register your business",sub:"Reach those looking for exactly what you offer",searchPh:"Search by name or city...",claim:"I am the owner",addNew:"Add from scratch",baseInfo:"📋 Basic info",typeLabel:"🏪 Type",openLabel:"🍽️ When are you open?",offersLabel:"✅ What do you offer?",kitchenLabel:"🔬 Kitchen safety",kitchenSub:"Be honest — it matters to your customers",badgeLabel:"🏅 Request Certified Badge",badgeSub:"Paid verification service.",send:"Send request",sent:"Request sent!",sentSub:"We will contact you at",backHome:"Back to home",disclaimerTitle:"⚖️ Liability Declaration",disclaimerText:"The owner declares under their own responsibility that the information provided is truthful and up to date. Juniper is not liable for any inaccuracies. End users are always encouraged to confirm directly with the venue before consuming.",disclaimerCheck:"I have read and agree. I confirm the information is truthful and take full responsibility for the published content.",cancel:"Cancel"},
+  };
+  const t=tx[lang];
+  const [step,setStep]=React.useState("search");
+  const [q,setQ]=React.useState("");
+  const [found,setFound]=React.useState([]);
+  const [sel,setSel]=React.useState(null);
+  const [sent,setSent]=React.useState(false);
+  const [disclaimer,setDisclaimer]=React.useState(false);
+  const [sending,setSending]=React.useState(false);
+  const [form,setForm]=React.useState({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
+  const doSearch=()=>{const lq=q.toLowerCase();setFound(DEMO.filter(s=>s.name.toLowerCase().includes(lq)||s.city.toLowerCase().includes(lq)));};
+  const claim=(s)=>{setSel(s);if(s)setForm(f=>({...f,name:s.name,city:s.city,address:s.address||"",phone:s.phone||"",tags:(s.tags||[]).filter(k=>DIET_TAGS.includes(k)),meals:s.meals||[],cross:(s.tags||[]).find(k=>CROSS_TAGS.includes(k))||""}));else setForm({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});setStep("form");};
+  const toggleTag=k=>setForm(f=>({...f,tags:f.tags.includes(k)?f.tags.filter(x=>x!==k):[...f.tags,k]}));
+  const toggleMeal=k=>setForm(f=>({...f,meals:f.meals.includes(k)?f.meals.filter(x=>x!==k):[...f.meals,k]}));
+  const submit=async()=>{if(!form.email||!disclaimer)return;setSending(true);await sb.from("business_requests").insert({structure_id:sel?.id&&!sel.id.startsWith("d")?sel.id:null,name:form.name,type:form.type,city:form.city,address:form.address,phone:form.phone,email:form.email,website:form.website,instagram:form.instagram,description:form.description,tags:form.tags,meals:form.meals,kitchen_safety:form.cross,certified_request:form.certified,disclaimer_accepted:true,disclaimer_accepted_at:new Date().toISOString()});setSending(false);setSent(true);};
+  if(sent)return(<div style={{minHeight:"100vh",background:"#f9fafb"}}><div style={{background:GREEN,padding:"20px",color:"white"}}><button onClick={()=>go("welcome")} style={{...ghost2,display:"block"}}>← {t.back}</button></div><div style={{padding:16}}><div style={{...card,textAlign:"center",padding:28}}><div style={{fontSize:52,marginBottom:12}}>✅</div><h3 style={{margin:"0 0 8px",fontSize:18,fontWeight:800,color:"#1a5c3a"}}>{t.sent}</h3><p style={{margin:"0 0 20px",fontSize:14,color:"#6b7280"}}>{t.sentSub} <strong>{form.email}</strong></p><button onClick={()=>go("welcome")} style={btnG2}>{t.backHome}</button></div></div></div>);
+  if(step==="search")return(<div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}><div style={{background:GREEN,padding:"20px",color:"white"}}><button onClick={()=>go("welcome")} style={{...ghost2,marginBottom:10,display:"block"}}>← {t.back}</button><Logo size={24}/><h2 style={{margin:"8px 0 2px",fontSize:17,fontWeight:700}}>🏢 {t.title}</h2><p style={{margin:0,fontSize:13,opacity:.8}}>{t.sub}</p></div><div style={{padding:16}}><div style={card}><div style={{display:"flex",gap:8,marginBottom:12}}><input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={t.searchPh} style={{...inp,flex:1}}/><button onClick={doSearch} style={{background:"#1a5c3a",color:"white",border:"none",padding:"10px 16px",borderRadius:10,cursor:"pointer",fontWeight:700}}>🔍</button></div>{found.map(s=>(<div key={s.id} style={{border:"1.5px solid #e5e7eb",borderRadius:12,padding:12,marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}><div><p style={{margin:"0 0 2px",fontWeight:700,fontSize:13}}>{s.emoji} {s.name}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>📍 {s.city}</p></div><button onClick={()=>claim(s)} style={{background:"#1a5c3a",color:"white",border:"none",padding:"8px 12px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>{t.claim}</button></div>))}<button onClick={()=>claim(null)} style={{width:"100%",background:"#f9fafb",border:"1.5px solid #e5e7eb",padding:12,borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151",marginTop:found.length>0?8:0}}>+ {t.addNew}</button></div></div></div>);
+  const types=["ristorante","bar","pizzeria","pasticceria","agriturismo","hotel","altro"];
+  const typeEmojis={ristorante:"🍽️",bar:"☕",pizzeria:"🍕",pasticceria:"🧁",agriturismo:"🌾",hotel:"🏨",altro:"🏪"};
+  return(<div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}><div style={{background:GREEN,padding:"20px",color:"white"}}><button onClick={()=>setStep("search")} style={{...ghost2,marginBottom:10,display:"block"}}>← {t.back}</button><Logo size={24}/><h2 style={{margin:"8px 0 0",fontSize:17,fontWeight:700}}>🏢 {t.title}</h2></div><div style={{padding:16}}>{sel&&<div style={{background:"#f0fdf4",borderRadius:12,padding:12,marginBottom:12,border:"1.5px solid #bbf7d0"}}><p style={{margin:0,fontWeight:700,fontSize:13,color:"#1a5c3a"}}>{sel.emoji} {sel.name} — {lang==="it"?"dati precompilati":"pre-filled data"}</p></div>}<div style={card}><p style={{margin:"0 0 10px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.baseInfo}</p>{[{k:"name",p:lang==="it"?"Nome attività *":"Business name *"},{k:"city",p:lang==="it"?"Città *":"City *"},{k:"address",p:lang==="it"?"Indirizzo":"Address"},{k:"phone",p:"Telefono"},{k:"email",p:"Email *"},{k:"website",p:"Sito web"},{k:"instagram",p:"Instagram"}].map(f=>(<input key={f.k} value={form[f.k]} onChange={e=>setForm(fm=>({...fm,[f.k]:e.target.value}))} placeholder={f.p} style={{...inp,marginBottom:10,fontSize:13}}/>))}<textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder={lang==="it"?"Descrizione...":"Description..."} style={{...inp,resize:"none",height:70,fontSize:13}}/></div><div style={card}><p style={{margin:"0 0 8px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.typeLabel}</p><div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{types.map(tp=><button key={tp} onClick={()=>setForm(f=>({...f,type:tp}))} style={{background:form.type===tp?"#1a5c3a":"#f3f4f6",color:form.type===tp?"white":"#374151",border:"none",padding:"7px 12px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:form.type===tp?700:400}}>{typeEmojis[tp]} {tp}</button>)}</div></div><div style={card}><p style={{margin:"0 0 8px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.openLabel}</p><div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{Object.entries(MEALS).map(([k,m])=><button key={k} onClick={()=>toggleMeal(k)} style={{background:form.meals.includes(k)?"#1f2937":"#f3f4f6",color:form.meals.includes(k)?"white":"#374151",border:"none",padding:"7px 12px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:form.meals.includes(k)?700:400}}>{m.icon} {m[lang==="it"?"it":"en"]}</button>)}</div></div><div style={card}><p style={{margin:"0 0 8px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.offersLabel}</p><div style={{display:"flex",gap:7,flexWrap:"wrap"}}>{DIET_TAGS.map(k=><button key={k} onClick={()=>toggleTag(k)} style={{background:form.tags.includes(k)?TAGS[k].color:"#f3f4f6",color:form.tags.includes(k)?"white":"#374151",border:"none",padding:"7px 12px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:form.tags.includes(k)?700:400}}>{TAGS[k].icon} {TAGS[k][lang==="it"?"it":"en"]}</button>)}</div></div><div style={card}><p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.kitchenLabel}</p><p style={{margin:"0 0 10px",fontSize:12,color:"#9ca3af"}}>{t.kitchenSub}</p>{CROSS_TAGS.map(k=>(<div key={k} onClick={()=>setForm(f=>({...f,cross:f.cross===k?"":k}))} style={{border:"2px solid "+(form.cross===k?TAGS[k].color:"#e5e7eb"),borderRadius:12,padding:"10px 14px",cursor:"pointer",marginBottom:8,background:form.cross===k?TAGS[k].color+"11":"white",display:"flex",alignItems:"center",gap:10}}><span style={{fontSize:18}}>{TAGS[k].icon}</span><div><p style={{margin:"0 0 2px",fontWeight:700,fontSize:13,color:TAGS[k].color}}>{TAGS[k][lang==="it"?"it":"en"]}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>{CROSS_DESC[lang][k]}</p></div></div>))}</div><div style={{...card,display:"flex",justifyContent:"space-between",alignItems:"center"}}><div><p style={{margin:"0 0 3px",fontWeight:700,fontSize:13,color:"#1a5c3a"}}>{t.badgeLabel}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>{t.badgeSub}</p></div><div onClick={()=>setForm(f=>({...f,certified:!f.certified}))} style={{width:44,height:24,borderRadius:12,background:form.certified?"#1a5c3a":"#e5e7eb",cursor:"pointer",position:"relative",flexShrink:0}}><div style={{width:18,height:18,borderRadius:"50%",background:"white",position:"absolute",top:3,left:form.certified?23:3,transition:"left 0.2s"}}/></div></div><div style={{background:"#fef9ec",borderRadius:14,padding:16,marginBottom:14,border:"1.5px solid #fed7aa"}}><p style={{margin:"0 0 8px",fontSize:12,fontWeight:700,color:"#92400e"}}>⚖️ {t.disclaimerTitle}</p><p style={{margin:"0 0 12px",fontSize:12,color:"#374151",lineHeight:1.6}}>{t.disclaimerText}</p><label style={{display:"flex",gap:10,alignItems:"flex-start",cursor:"pointer"}}><input type="checkbox" checked={disclaimer} onChange={e=>setDisclaimer(e.target.checked)} style={{marginTop:2,accentColor:"#1a5c3a",width:16,height:16,flexShrink:0}}/><span style={{fontSize:12,color:"#374151",fontWeight:600,lineHeight:1.5}}>{t.disclaimerCheck}</span></label></div><button onClick={submit} disabled={!form.email||!disclaimer||sending} style={{...btnG2,opacity:(form.email&&disclaimer)?1:0.5,fontSize:16,padding:"15px"}}>{sending?"⏳ Invio...":`🌿 ${t.send}`}</button></div></div>);
+}
+
 function App(){
   const [lang,setLang]=React.useState("it");
   const [screen,setScreen]=React.useState("welcome");
   const [authMode,setAuthMode]=React.useState("login");
   const [user,setUser]=React.useState(null);
-  const [premium,setPremium]=React.useState(true); // tutto gratis in fase beta
+  const [premium,setPremium]=React.useState(true);
   const [q,setQ]=React.useState("");
   const [tagFilters,setTagFilters]=React.useState([]);
   const [mealFilter,setMealFilter]=React.useState(null);
@@ -534,48 +239,24 @@ function App(){
   const [aPass,setAPass]=React.useState("");
   const [aErr,setAErr]=React.useState("");
   const [aLoading,setALoading]=React.useState(false);
-  const [guestSearches,setGuestSearches]=React.useState(0);
   const [structs,setStructs]=React.useState(DEMO);
   const [loadingData,setLoadingData]=React.useState(true);
   const [searching,setSearching]=React.useState(false);
   const [loadingMore,setLoadingMore]=React.useState(false);
   const isGuest=!user;
   const FREE_LIMIT=8,FREE_STRUCTS=20,GUEST_MAX=2;
-  // Traccia ricerche mensili in localStorage
-  const getSearchData=()=>{
-    try{
-      const d=JSON.parse(localStorage.getItem("juniper_searches")||"{}");
-      const now=Date.now();
-      if(!d.reset||now-d.reset>30*24*60*60*1000) return {count:0,reset:now};
-      return d;
-    }catch(e){return {count:0,reset:Date.now()};}
-  };
-  const incSearchCount=()=>{
-    try{
-      const d=getSearchData();
-      localStorage.setItem("juniper_searches",JSON.stringify({count:(d.count||0)+1,reset:d.reset}));
-    }catch(e){}
-  };
-  const getSearchCount=()=>getSearchData().count||0;
 
   React.useEffect(()=>{
-    // Ascolta i cambi di stato auth — funziona per login E registrazione
     const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
       if((event==="SIGNED_IN"||event==="INITIAL_SESSION")&&session?.user){
         setUser({name:session.user.user_metadata?.name||session.user.email.split("@")[0],email:session.user.email,id:session.user.id});
-        setALoading(false);
-        setScreen("home");
+        setALoading(false);setScreen("home");
       }
       if(event==="SIGNED_OUT"){setUser(null);setScreen("welcome");}
     });
     sb.from("structures").select("*").eq("pending",false).then(({data})=>{
       if(data&&data.length>0){
-        const mapped=data.map(s=>({
-          ...s,
-          tags:[s.gluten_free&&"gluten_free",s.lactose_free&&"lactose_free",s.combo_free&&"combo_free",s.vegan&&"vegan",s.vegetarian&&"vegetarian",s.pet_friendly&&"pet_friendly",s.kitchen_safety==="no_cross"&&"no_cross",s.kitchen_safety==="low_cross"&&"low_cross",s.kitchen_safety==="high_cross"&&"high_cross"].filter(Boolean),
-          meals:[s.breakfast&&"breakfast",s.lunch&&"lunch",s.aperitivo&&"aperitivo",s.dinner&&"dinner"].filter(Boolean),
-          reviewCount:s.review_count||0,
-        })).sort((a,b)=>({registered:3,verified:2,google:1}[b.source]||0)-({registered:3,verified:2,google:1}[a.source]||0)||Number(b.sponsored)-Number(a.sponsored));
+        const mapped=data.map(s=>({...s,tags:[s.gluten_free&&"gluten_free",s.lactose_free&&"lactose_free",s.combo_free&&"combo_free",s.vegan&&"vegan",s.vegetarian&&"vegetarian",s.pet_friendly&&"pet_friendly",s.kitchen_safety==="no_cross"&&"no_cross",s.kitchen_safety==="low_cross"&&"low_cross",s.kitchen_safety==="high_cross"&&"high_cross"].filter(Boolean),meals:[s.breakfast&&"breakfast",s.lunch&&"lunch",s.aperitivo&&"aperitivo",s.dinner&&"dinner"].filter(Boolean),reviewCount:s.review_count||0})).sort((a,b)=>({registered:3,verified:2,google:1}[b.source]||0)-({registered:3,verified:2,google:1}[a.source]||0)||Number(b.sponsored)-Number(a.sponsored));
         setStructs(mapped);
       }
       setLoadingData(false);
@@ -585,52 +266,34 @@ function App(){
 
   React.useEffect(()=>{
     if(!sel)return;
-    // Recensioni Supabase
     sb.from("reviews").select("*").eq("structure_id",sel.id).order("created_at",{ascending:false}).limit(40).then(({data})=>{
-      if(data) setRevs(r=>({...r,[sel.id]:data.map(r=>({id:r.id,user:r.user_name,rating:r.rating,text:r.text,date:r.created_at?.split("T")[0]}))}));
+      if(data)setRevs(r=>({...r,[sel.id]:data.map(r=>({id:r.id,user:r.user_name,rating:r.rating,text:r.text,date:r.created_at?.split("T")[0]}))}));
     });
-    // Recensioni Google Places per locali non verificati
     if(sel.source==="google"&&sel.id.startsWith("g_")){
       const placeId=sel.id.replace("g_","");
-      fetch(`https://places.googleapis.com/v1/places/${placeId}`,{
-        headers:{
-          "X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck",
-          "X-Goog-FieldMask":"reviews,editorialSummary"
-        }
-      }).then(r=>r.json()).then(data=>{
-        const gRevs=(data.reviews||[]).slice(0,40).map((r,i)=>({
-          id:"gr_"+i,
-          user:r.authorAttribution?.displayName||"Utente Google",
-          rating:r.rating||5,
-          text:r.text?.text||r.originalText?.text||"",
-          date:r.publishTime?.split("T")[0]||"",
-          source:"google"
-        })).filter(r=>r.text);
-        if(gRevs.length>0){
-          // Scansiona le recensioni per tag dietetici
-          const allText=gRevs.map(r=>r.text.toLowerCase()).join(" ");
-          const revTags=[];
-          if(allText.includes("gluten")||allText.includes("celiach")||allText.includes("senza glutine"))revTags.push("gluten_free");
-          if(allText.includes("vegan")||allText.includes("vegano")||allText.includes("vegana"))revTags.push("vegan");
-          if(allText.includes("vegetar"))revTags.push("vegetarian");
-          if(allText.includes("lattosio")||allText.includes("lactose")||allText.includes("senza latte"))revTags.push("lactose_free");
-          if(allText.includes("pet")||allText.includes("cane")||allText.includes("animali"))revTags.push("pet_friendly");
-          // Aggiorna il locale con i tag trovati nelle recensioni
-          if(revTags.length>0){
-            setSel(prev=>({...prev,reviewTags:revTags}));
+      fetch(`https://places.googleapis.com/v1/places/${placeId}`,{headers:{"X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"reviews,editorialSummary"}})
+        .then(r=>r.json()).then(data=>{
+          const gRevs=(data.reviews||[]).slice(0,40).map((r,i)=>({id:"gr_"+i,user:r.authorAttribution?.displayName||"Utente Google",rating:r.rating||5,text:r.text?.text||r.originalText?.text||"",date:r.publishTime?.split("T")[0]||"",source:"google"})).filter(r=>r.text);
+          if(gRevs.length>0){
+            const allText=gRevs.map(r=>r.text.toLowerCase()).join(" ");
+            const revTags=[];
+            if(allText.includes("gluten")||allText.includes("celiach")||allText.includes("senza glutine"))revTags.push("gluten_free");
+            if(allText.includes("vegan")||allText.includes("vegano")||allText.includes("vegana"))revTags.push("vegan");
+            if(allText.includes("vegetar"))revTags.push("vegetarian");
+            if(allText.includes("lattosio")||allText.includes("lactose")||allText.includes("senza latte"))revTags.push("lactose_free");
+            if(allText.includes("pet")||allText.includes("cane")||allText.includes("animali"))revTags.push("pet_friendly");
+            if(revTags.length>0)setSel(prev=>({...prev,reviewTags:revTags}));
+            setRevs(r=>({...r,[sel.id]:[...(r[sel.id]||[]),...gRevs]}));
           }
-          setRevs(r=>({...r,[sel.id]:[...(r[sel.id]||[]),...gRevs]}));
-        }
-      }).catch(()=>{});
+        }).catch(()=>{});
     }
   },[sel]);
 
   const T={
-    it:{appName:"Juniper",hi:"Ciao",login:"Accedi",register:"Registrati",mealFilter:"Tipo di pasto",allMeals:"Tutti i pasti",filters:"Caratteristiche",certified:"Certificato",sponsored:"In evidenza",reviews:"recensioni",upgradeNow:"Passa a Premium",monthlyPlan:"Piano Mensile",yearlyPlan:"Piano Annuale",perMonth:"/mese",perYear:"/anno",yearSave:"Risparmia 6€",features:"Strutture illimitate · Ricerche illimitate · GPS",leaveReview:"Lascia una recensione",placeholder:"Scrivi la tua recensione...",submit:"Invia",home:"Home",explore:"Esplora",profile:"Profilo",results:"Risultati",noResults:"Nessun risultato",found:"trovate",featured:"In evidenza",nearby:"Strutture in Italia",freePlan:"Piano Gratuito",premiumPlan:"Piano Premium",searchesUsed:"Ricerche usate",selectPlan:"Scegli il piano",cancel:"Annulla",logout:"Esci",back:"Indietro",upgrade:"Upgrade",reviewAdded:"Recensione aggiunta! ✅",noRev:"Nessuna recensione ancora",searchBtn:"Cerca",whereLabel:"Dove vuoi andare?",wherePh:"Città, zona o nome locale...",nearMe:"Vicino a me",kitchenTitle:"🔬 Sicurezza in cucina",kitchenSub:"Il locale garantisce assenza di contaminazione crociata?",kitchenLegend:"✅ cucina separata · ⚠️ non garantisce · ❌ cucina condivisa",popGPS:"Funzione Premium 📍",popGPSSub:"Disponibile con il piano Premium.",popGuest:"Contenuto riservato 🌿",popGuestSub:"Registrati gratis per sbloccare più strutture!",popLimit:"Limite raggiunto 🔒",popLimitSub:"Passa a Premium per ricerche illimitate.",popReview:"Vuoi lasciare una recensione? 💬",popReviewSub:"Registrati gratis!",popSearch:"Ricerche esaurite 🔍",popSearchSub:"Con Premium cerchi senza limiti.",regFree:"Registrati gratis",goPremium:"Vai a Premium",orLogin:"Hai già un account?",freeBanner:"Piano gratuito",bizBtn:"Registra la tua attività"},
-    en:{appName:"Juniper",hi:"Hi",login:"Sign In",register:"Register",mealFilter:"Meal type",allMeals:"All meals",filters:"Features",certified:"Certified",sponsored:"Featured",reviews:"reviews",upgradeNow:"Go Premium",monthlyPlan:"Monthly Plan",yearlyPlan:"Yearly Plan",perMonth:"/month",perYear:"/year",yearSave:"Save €6",features:"Unlimited structures · Unlimited searches · GPS",leaveReview:"Leave a review",placeholder:"Write your review...",submit:"Submit",home:"Home",explore:"Explore",profile:"Profile",results:"Results",noResults:"No results",found:"found",featured:"Featured",nearby:"Structures in Italy",freePlan:"Free Plan",premiumPlan:"Premium Plan",searchesUsed:"Searches used",selectPlan:"Choose your plan",cancel:"Cancel",logout:"Sign Out",back:"Back",upgrade:"Upgrade",reviewAdded:"Review added! ✅",noRev:"No reviews yet",searchBtn:"Search",whereLabel:"Where do you want to go?",wherePh:"City, area or place name...",nearMe:"Near me",kitchenTitle:"🔬 Kitchen Safety",kitchenSub:"Does the venue guarantee no cross-contamination?",kitchenLegend:"✅ separate kitchen · ⚠️ not guaranteed · ❌ shared kitchen",popGPS:"Premium Feature 📍",popGPSSub:"Available with Premium plan.",popGuest:"Members only 🌿",popGuestSub:"Sign up free to unlock more structures!",popLimit:"Limit reached 🔒",popLimitSub:"Go Premium for unlimited searches.",popReview:"Want to leave a review? 💬",popReviewSub:"Sign up free!",popSearch:"Searches used up 🔍",popSearchSub:"With Premium search without limits.",regFree:"Sign up free",goPremium:"Go Premium",orLogin:"Already have an account?",freeBanner:"Free plan",bizBtn:"Register your business"},
+    it:{appName:"Juniper",hi:"Ciao",login:"Accedi",register:"Registrati",mealFilter:"Tipo di pasto",allMeals:"Tutti i pasti",filters:"Caratteristiche",certified:"Certificato",reviews:"recensioni",leaveReview:"Lascia una recensione",placeholder:"Scrivi la tua recensione...",submit:"Invia",home:"Home",explore:"Esplora",profile:"Profilo",results:"Risultati",found:"trovate",featured:"In evidenza",nearby:"Strutture in Italia",premiumPlan:"Piano Premium",features:"Strutture illimitate · Ricerche illimitate · GPS",cancel:"Annulla",logout:"Esci",back:"Indietro",reviewAdded:"Recensione aggiunta! ✅",noRev:"Nessuna recensione ancora",searchBtn:"Cerca",whereLabel:"Dove vuoi andare?",wherePh:"Città, zona o nome locale...",kitchenTitle:"🔬 Sicurezza in cucina",kitchenSub:"Il locale garantisce assenza di contaminazione crociata?",kitchenLegend:"✅ cucina separata · ⚠️ non garantisce · ❌ cucina condivisa",popGuest:"Contenuto riservato 🌿",popGuestSub:"Registrati gratis per sbloccare i locali!",popReview:"Vuoi lasciare una recensione? 💬",popReviewSub:"Registrati gratis!",regFree:"Registrati gratis",orLogin:"Hai già un account?",bizBtn:"Registra la tua attività"},
+    en:{appName:"Juniper",hi:"Hi",login:"Sign In",register:"Register",mealFilter:"Meal type",allMeals:"All meals",filters:"Features",certified:"Certified",reviews:"reviews",leaveReview:"Leave a review",placeholder:"Write your review...",submit:"Submit",home:"Home",explore:"Explore",profile:"Profile",results:"Results",found:"found",featured:"Featured",nearby:"Structures in Italy",premiumPlan:"Premium Plan",features:"Unlimited structures · Unlimited searches · GPS",cancel:"Cancel",logout:"Sign Out",back:"Back",reviewAdded:"Review added! ✅",noRev:"No reviews yet",searchBtn:"Search",whereLabel:"Where do you want to go?",wherePh:"City, area or place name...",kitchenTitle:"🔬 Kitchen Safety",kitchenSub:"Does the venue guarantee no cross-contamination?",kitchenLegend:"✅ separate kitchen · ⚠️ not guaranteed · ❌ shared kitchen",popGuest:"Members only 🌿",popGuestSub:"Sign up free to unlock venues!",popReview:"Want to leave a review? 💬",popReviewSub:"Sign up free!",regFree:"Sign up free",orLogin:"Already have an account?",bizBtn:"Register your business"},
   };
   const t=T[lang];
-
   const go=(s,prev)=>{if(prev)setPrevScr(prev);setScreen(s);};
   const tl=()=>setLang(l=>l==="it"?"en":"it");
   const toggleTag=f=>setTagFilters(fs=>fs.includes(f)?fs.filter(x=>x!==f):[...fs,f]);
@@ -639,52 +302,30 @@ function App(){
   const ghost={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const btnG={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
 
-  // ── AUTH — onAuthStateChange gestisce il redirect ──
   const doAuth=async()=>{
     if(!aEmail||!aPass||aLoading)return;
     setAErr("");setALoading(true);
     const nome=aName||aEmail.split("@")[0];
     if(authMode==="register"){
       const {data,error}=await sb.auth.signUp({email:aEmail,password:aPass,options:{data:{name:nome}}}).catch(e=>({data:null,error:e}));
-      if(error){
-        setALoading(false);
-        const m=(error.message||"").toLowerCase();
-        if(m.includes("already")){setAErr("📧 Email già registrata. Vai su Accedi.");return;}
-        if(m.includes("rate")){setAErr("⏳ Troppi tentativi. Aspetta qualche minuto.");return;}
-        setAErr("❌ "+error.message);return;
-      }
+      if(error){setALoading(false);const m=(error.message||"").toLowerCase();if(m.includes("already")){setAErr("📧 Email già registrata. Vai su Accedi.");return;}if(m.includes("rate")){setAErr("⏳ Troppi tentativi. Aspetta qualche minuto.");return;}setAErr("❌ "+error.message);return;}
       sb.from("profiles").insert({id:data?.user?.id||"",name:nome,email:aEmail}).catch(()=>{});
-      // onAuthStateChange farà il redirect automaticamente
       return;
     }
     const {data,error}=await sb.auth.signInWithPassword({email:aEmail,password:aPass}).catch(e=>({data:null,error:e}));
-    if(error||!data?.user){
-      setALoading(false);
-      setAErr("❌ Email o password errati");return;
-    }
-    // onAuthStateChange farà il redirect automaticamente
+    if(error||!data?.user){setALoading(false);setAErr("❌ Email o password errati");return;}
   };
 
-  // ── GOOGLE PLACES REST API ──
   const GKEY="AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck";
   const searchGooglePlaces=async(query,tags)=>{
     try{
       const tagWords=(tags||[]).map(k=>TAGS[k]?.it||"").filter(Boolean).join(" ");
       const hasFood=query&&["ristorante","bar","pizzeria","agriturismo"].some(w=>query.toLowerCase().includes(w));
       const textQuery=(hasFood?"":"ristorante ")+(query||"Maremma Grosseto")+(tagWords?" "+tagWords:"")+" Toscana Italia";
-      const resp=await fetch("https://places.googleapis.com/v1/places:searchText",{
-        method:"POST",
-        headers:{
-          "Content-Type":"application/json",
-          "X-Goog-Api-Key":GKEY,
-          "X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryType,places.shortFormattedAddress,places.location"
-        },
-        body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:15})
-      });
+      const resp=await fetch("https://places.googleapis.com/v1/places:searchText",{method:"POST",headers:{"Content-Type":"application/json","X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryType,places.shortFormattedAddress,places.location"},body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:15})});
       if(!resp.ok)return[];
       const data=await resp.json();
-      const places=data.places||[];
-      return places.map(p=>{
+      return (data.places||[]).map(p=>{
         const pt=p.primaryType||"";
         let type="ristorante",emoji="🍽️";
         if(pt.includes("bar")||pt.includes("cafe")){type="bar";emoji="☕";}
@@ -695,19 +336,7 @@ function App(){
         const addr=p.shortFormattedAddress||p.formattedAddress||"";
         const parts=(p.formattedAddress||"").split(",");
         const city=parts.length>2?parts[parts.length-3]?.trim()||"Italia":"Italia";
-        const lat=p.location?.latitude||null;
-        const lng=p.location?.longitude||null;
-        return{
-          id:"g_"+(p.id||Math.random().toString(36)),
-          name,type,city,country:"Italia",address:addr,phone:"",
-          description:type+" · "+city,emoji,
-          tags:[], // nessun tag automatico — vengono dalle recensioni
-          lat,lng,
-          meals:type==="bar"?["breakfast","aperitivo"]:["lunch","dinner"],
-          source:"google",certified:false,sponsored:false,
-          rating:p.rating||null,reviewCount:p.userRatingCount||0,
-          unverified:true,
-        };
+        return{id:"g_"+(p.id||Math.random().toString(36)),name,type,city,country:"Italia",address:addr,phone:"",description:type+" · "+city,emoji,tags:[],lat:p.location?.latitude||null,lng:p.location?.longitude||null,meals:type==="bar"?["breakfast","aperitivo"]:["lunch","dinner"],source:"google",certified:false,sponsored:false,rating:p.rating||null,reviewCount:p.userRatingCount||0,unverified:true};
       });
     }catch(e){return[];}
   };
@@ -715,39 +344,17 @@ function App(){
   const doSearch=async()=>{
     if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
     setSearching(true);
-    // 1. Risultati da Supabase
     let res=structs.filter(s=>{
       const mf=tagFilters.length===0||tagFilters.every(f=>s.tags&&s.tags.includes(f));
       const mm=!mealFilter||(s.meals&&s.meals.includes(mealFilter));
       return mf&&mm;
     });
-    if(q){
-      const qRes=res.filter(s=>
-        (s.name&&s.name.toLowerCase().includes(q.toLowerCase()))||
-        (s.city&&s.city.toLowerCase().includes(q.toLowerCase()))||
-        (s.address&&s.address.toLowerCase().includes(q.toLowerCase()))
-      );
-      if(qRes.length>0)res=qRes;
-    }
-    if(isGuest){setGuestSearches(1);res=res.slice(0,GUEST_MAX);}
-    // 2. Google Places — cerca e aspetta max 5 secondi
+    if(q){const qRes=res.filter(s=>(s.name&&s.name.toLowerCase().includes(q.toLowerCase()))||(s.city&&s.city.toLowerCase().includes(q.toLowerCase()))||(s.address&&s.address.toLowerCase().includes(q.toLowerCase())));if(qRes.length>0)res=qRes;}
     try{
-      const gRes=await Promise.race([
-        searchGooglePlaces(q||"ristorante",tagFilters),
-        new Promise(r=>setTimeout(()=>r([]),5000))
-      ]);
-      if(gRes&&gRes.length>0){
-        const existing=new Set(res.map(s=>(s.name||"").toLowerCase()));
-        // Mostra sempre tutti i locali Google — non filtrare per tag
-        // L'utente vede il badge ⚠️ e controlla le recensioni
-        const newG=gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase()));
-        res=[...res,...newG];
-      }
+      const gRes=await Promise.race([searchGooglePlaces(q||"ristorante",tagFilters),new Promise(r=>setTimeout(()=>r([]),5000))]);
+      if(gRes&&gRes.length>0){const existing=new Set(res.map(s=>(s.name||"").toLowerCase()));const newG=gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase()));res=[...res,...newG];}
     }catch(e){}
-    setSearching(false);
-    setResults(res);
-    setTab("explore");
-    go("results","home");
+    setSearching(false);setResults(res);setTab("explore");go("results","home");
   };
 
   const addRev=async(sid)=>{
@@ -757,15 +364,12 @@ function App(){
       await sb.from("reviews").insert({structure_id:sid,user_id:user.id,user_name:user.name,rating:nr.rating,text:nr.text});
       setNr({rating:5,text:""});setRevOk(true);
       const {data}=await sb.from("reviews").select("*").eq("structure_id",sid).order("created_at",{ascending:false}).limit(40);
-      if(data) setRevs(r=>({...r,[sid]:data.map(r=>({id:r.id,user:r.user_name,rating:r.rating,text:r.text,date:r.created_at?.split("T")[0]}))}));
+      if(data)setRevs(r=>({...r,[sid]:data.map(r=>({id:r.id,user:r.user_name,rating:r.rating,text:r.text,date:r.created_at?.split("T")[0]}))}));
       setTimeout(()=>setRevOk(false),2500);
-    } catch(e){}
+    }catch(e){}
   };
 
-  const SrcBadge=({source})=>{
-    const s=SOURCES[source];if(!s)return null;
-    return <span style={{background:s.bg,color:s.color,fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:10,whiteSpace:"nowrap"}}>{s.icon} {s[lang]}</span>;
-  };
+  const SrcBadge=({source})=>{const s=SOURCES[source];if(!s)return null;return <span style={{background:s.bg,color:s.color,fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:10,whiteSpace:"nowrap"}}>{s.icon} {s[lang]}</span>;};
 
   const StructCard=({s,index,guestMode})=>{
     if(!s||!s.name)return null;
@@ -773,34 +377,19 @@ function App(){
     if(!s.meals)s={...s,meals:[]};
     const locked=guestMode&&index>=GUEST_MAX;
     return(
-      <div onClick={()=>{if(locked){showP(t.popGuest,t.popGuestSub,"register");return;}setSel(s);go("detail",screen);}}
-        style={{...card,border:s.sponsored?"2px solid #f59e0b":"2px solid transparent",cursor:"pointer",position:"relative",filter:locked?"blur(3px)":"none"}}>
-        {locked&&<div style={{position:"absolute",inset:0,background:"rgba(255,255,255,0.6)",borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",zIndex:2,flexDirection:"column",gap:5}}>
-          <span style={{fontSize:26}}>🔒</span><span style={{fontSize:11,color:"#1a5c3a",fontWeight:700,background:"#d1fae5",padding:"3px 10px",borderRadius:10}}>{t.regFree}</span>
-        </div>}
-        {s.unverified&&<div style={{background:"#fef9ec",borderRadius:10,padding:"6px 10px",marginBottom:8,display:"flex",alignItems:"center",gap:6,border:"1px solid #fcd34d"}}>
-          <span style={{fontSize:12}}>⚠️</span>
-          <span style={{fontSize:11,color:"#92400e",fontWeight:600}}>{lang==="it"?"Locale non verificato — conferma prima di andare":"Unverified venue — confirm before visiting"}</span>
-        </div>}
+      <div onClick={()=>{if(locked){showP(t.popGuest,t.popGuestSub,"register");return;}setSel(s);go("detail",screen);}} style={{...card,border:s.sponsored?"2px solid #f59e0b":"2px solid transparent",cursor:"pointer",position:"relative",filter:locked?"blur(3px)":"none"}}>
+        {locked&&<div style={{position:"absolute",inset:0,background:"rgba(255,255,255,0.6)",borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",zIndex:2,flexDirection:"column",gap:5}}><span style={{fontSize:26}}>🔒</span><span style={{fontSize:11,color:"#1a5c3a",fontWeight:700,background:"#d1fae5",padding:"3px 10px",borderRadius:10}}>{t.regFree}</span></div>}
+        {s.unverified&&<div style={{background:"#fef9ec",borderRadius:10,padding:"6px 10px",marginBottom:8,display:"flex",alignItems:"center",gap:6,border:"1px solid #fcd34d"}}><span style={{fontSize:12}}>⚠️</span><span style={{fontSize:11,color:"#92400e",fontWeight:600}}>{lang==="it"?"Locale non verificato — conferma prima di andare":"Unverified venue — confirm before visiting"}</span></div>}
         <div style={{display:"flex",gap:12}}>
           <div style={{fontSize:30,background:"#f0fdf4",borderRadius:12,width:54,height:54,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{s.emoji}</div>
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:"flex",justifyContent:"space-between",gap:4,marginBottom:3}}>
               <h4 style={{margin:0,fontSize:14,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</h4>
-              <div style={{display:"flex",gap:3,flexShrink:0}}>
-                {s.sponsored&&<span style={{background:"#fef3c7",color:"#d97706",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:10}}>📢</span>}
-                {s.certified&&<span style={{background:"#d1fae5",color:"#065f46",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:10}}>✅</span>}
-                <SrcBadge source={s.source}/>
-              </div>
+              <div style={{display:"flex",gap:3,flexShrink:0}}>{s.sponsored&&<span style={{background:"#fef3c7",color:"#d97706",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:10}}>📢</span>}{s.certified&&<span style={{background:"#d1fae5",color:"#065f46",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:10}}>✅</span>}<SrcBadge source={s.source}/></div>
             </div>
             <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280"}}>📍 {s.city}, {s.country}</p>
-            <div style={{display:"flex",gap:3,flexWrap:"wrap",marginBottom:3}}>
-              {s.meals.map(m=><span key={m} style={{background:"#fef9ec",color:"#d97706",fontSize:10,padding:"2px 6px",borderRadius:10}}>{MEALS[m]?.icon} {MEALS[m]?.[lang]}</span>)}
-            </div>
-            <div style={{display:"flex",gap:3,flexWrap:"wrap",marginBottom:3}}>
-              {s.tags.filter(k=>DIET_TAGS.includes(k)).map(k=><span key={k} style={{background:TAGS[k].color+"22",color:TAGS[k].color,fontSize:10,padding:"2px 6px",borderRadius:10}}>{TAGS[k].icon} {TAGS[k][lang]}</span>)}
-              {s.tags.filter(k=>CROSS_TAGS.includes(k)).map(k=><span key={k} style={{background:TAGS[k].color+"22",color:TAGS[k].color,fontSize:10,padding:"2px 6px",borderRadius:10}}>{TAGS[k].icon}</span>)}
-            </div>
+            <div style={{display:"flex",gap:3,flexWrap:"wrap",marginBottom:3}}>{s.meals.map(m=><span key={m} style={{background:"#fef9ec",color:"#d97706",fontSize:10,padding:"2px 6px",borderRadius:10}}>{MEALS[m]?.icon} {MEALS[m]?.[lang]}</span>)}</div>
+            <div style={{display:"flex",gap:3,flexWrap:"wrap",marginBottom:3}}>{s.tags.filter(k=>DIET_TAGS.includes(k)).map(k=><span key={k} style={{background:TAGS[k].color+"22",color:TAGS[k].color,fontSize:10,padding:"2px 6px",borderRadius:10}}>{TAGS[k].icon} {TAGS[k][lang]}</span>)}{s.tags.filter(k=>CROSS_TAGS.includes(k)).map(k=><span key={k} style={{background:TAGS[k].color+"22",color:TAGS[k].color,fontSize:10,padding:"2px 6px",borderRadius:10}}>{TAGS[k].icon}</span>)}</div>
             {s.rating&&<div style={{display:"flex",alignItems:"center",gap:4}}><span style={{color:"#f59e0b",fontSize:11}}>⭐</span><span style={{fontSize:12,fontWeight:600}}>{s.rating}</span><span style={{fontSize:11,color:"#9ca3af"}}>({s.reviewCount})</span></div>}
           </div>
         </div>
@@ -808,318 +397,35 @@ function App(){
     );
   };
 
-  const BottomNav=()=>(
-    <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"space-around",padding:"8px 0 10px",zIndex:100,boxShadow:"0 -4px 15px rgba(0,0,0,.06)"}}>
-      {[{id:"home",icon:"🏠",lbl:t.home},{id:"explore",icon:"🔍",lbl:t.explore},{id:"profile",icon:"👤",lbl:t.profile}].map(tb=>(
-        <button key={tb.id} onClick={()=>{setTab(tb.id);if(tb.id==="home")go("home");else if(tb.id==="profile")isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("profile");else if(tb.id==="explore"&&results.length>0)go("results");}} style={{background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",padding:"4px 20px",color:tab===tb.id?"#1a5c3a":"#9ca3af"}}>
-          <span style={{fontSize:22}}>{tb.icon}</span><span style={{fontSize:11,fontWeight:tab===tb.id?700:400}}>{tb.lbl}</span>
-        </button>
-      ))}
-    </div>
-  );
+  const BottomNav=()=>(<div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"space-around",padding:"8px 0 10px",zIndex:100,boxShadow:"0 -4px 15px rgba(0,0,0,.06)"}}>{[{id:"home",icon:"🏠",lbl:t.home},{id:"explore",icon:"🔍",lbl:t.explore},{id:"profile",icon:"👤",lbl:t.profile}].map(tb=>(<button key={tb.id} onClick={()=>{setTab(tb.id);if(tb.id==="home")go("home");else if(tb.id==="profile")isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("profile");else if(tb.id==="explore"&&results.length>0)go("results");}} style={{background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",padding:"4px 20px",color:tab===tb.id?"#1a5c3a":"#9ca3af"}}><span style={{fontSize:22}}>{tb.icon}</span><span style={{fontSize:11,fontWeight:tab===tb.id?700:400}}>{tb.lbl}</span></button>))}</div>);
 
-  const UpgradeModal=()=>(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:1000}}>
-      <div style={{background:"white",width:"100%",maxWidth:480,borderRadius:"24px 24px 0 0",padding:"28px 24px 36px"}}>
-        <div style={{textAlign:"center",marginBottom:20}}><div style={{fontSize:44}}>⭐</div><h2 style={{margin:"8px 0 6px",fontSize:20,fontWeight:800}}>{t.selectPlan}</h2><p style={{margin:0,fontSize:14,color:"#6b7280"}}>{t.features}</p></div>
-        {[{lbl:t.yearlyPlan,price:"30€",sub:t.yearSave,best:true},{lbl:t.monthlyPlan,price:"3€",sub:t.perMonth,best:false}].map((p,i)=>(
-          <div key={i} onClick={()=>{setPremium(true);setShowUp(false);closeP();}} style={{border:"2px solid "+(p.best?"#1a5c3a":"#e5e7eb"),borderRadius:14,padding:16,cursor:"pointer",marginBottom:10,position:"relative"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div><p style={{margin:"0 0 2px",fontWeight:700,fontSize:16}}>{p.lbl}</p>{p.best&&<p style={{margin:0,fontSize:12,color:"#1a5c3a",fontWeight:600}}>{p.sub}</p>}</div>
-              <div style={{textAlign:"right"}}><p style={{margin:0,fontSize:22,fontWeight:800,color:p.best?"#1a5c3a":"#374151"}}>{p.price}</p>{!p.best&&<p style={{margin:0,fontSize:12,color:"#6b7280"}}>{p.sub}</p>}</div>
-            </div>
-            {p.best&&<span style={{position:"absolute",top:-10,right:12,background:"#1a5c3a",color:"white",fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:10}}>BEST</span>}
-          </div>
-        ))}
-        <button onClick={()=>{setShowUp(false);closeP();}} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:12,fontSize:14,color:"#6b7280",cursor:"pointer"}}>{t.cancel}</button>
-      </div>
-    </div>
-  );
+  const Popup=()=>{if(!popup)return null;return(<div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20}}><div style={{background:"white",width:"100%",maxWidth:340,borderRadius:20,padding:28,textAlign:"center"}}><div style={{fontSize:44,marginBottom:10}}>🌿</div><h3 style={{margin:"0 0 8px",fontSize:17,fontWeight:800}}>{popup.title}</h3><p style={{margin:"0 0 20px",fontSize:14,color:"#6b7280",lineHeight:1.5}}>{popup.sub}</p>{popup.type==="register"&&<><button onClick={()=>{closeP();setAuthMode("register");go("auth");}} style={{...btnG,marginBottom:10,fontSize:14}}>🌿 {t.regFree}</button><p style={{margin:"0 0 8px",fontSize:13,color:"#9ca3af"}}>{t.orLogin}</p><button onClick={()=>{closeP();setAuthMode("login");go("auth");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer"}}>{t.login}</button></>}<button onClick={closeP} style={{width:"100%",background:"none",border:"none",padding:8,fontSize:13,color:"#9ca3af",cursor:"pointer",marginTop:4}}>{t.cancel}</button></div></div>);};
 
-  const Popup=()=>{
-    if(!popup)return null;
-    return(
-      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20}}>
-        <div style={{background:"white",width:"100%",maxWidth:340,borderRadius:20,padding:28,textAlign:"center"}}>
-          <div style={{fontSize:44,marginBottom:10}}>{popup.type==="register"?"🌿":popup.type==="upgrade"?"⭐":"📍"}</div>
-          <h3 style={{margin:"0 0 8px",fontSize:17,fontWeight:800}}>{popup.title}</h3>
-          <p style={{margin:"0 0 20px",fontSize:14,color:"#6b7280",lineHeight:1.5}}>{popup.sub}</p>
-          {popup.type==="register"&&<><button onClick={()=>{closeP();setAuthMode("register");go("auth");}} style={{...btnG,marginBottom:10,fontSize:14}}>🌿 {t.regFree}</button><p style={{margin:"0 0 8px",fontSize:13,color:"#9ca3af"}}>{t.orLogin}</p><button onClick={()=>{closeP();setAuthMode("login");go("auth");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer"}}>{t.login}</button></>}
-          {popup.type==="upgrade"&&<button onClick={()=>{closeP();setShowUp(true);}} style={{...btnG,marginBottom:10,fontSize:14}}>⭐ {t.goPremium}</button>}
-          <button onClick={closeP} style={{width:"100%",background:"none",border:"none",padding:8,fontSize:13,color:"#9ca3af",cursor:"pointer",marginTop:4}}>{t.cancel}</button>
-        </div>
-      </div>
-    );
-  };
+  const FilterPanel=()=>(<div style={card}><p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.mealFilter}</p><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}><button onClick={()=>setMealFilter(null)} style={{background:!mealFilter?"#1f2937":"#f3f4f6",color:!mealFilter?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:!mealFilter?700:400}}>🍽️ {t.allMeals}</button>{Object.entries(MEALS).map(([k,m])=>(<button key={k} onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):setMealFilter(mealFilter===k?null:k)} style={{background:mealFilter===k?"#1f2937":"#f3f4f6",color:mealFilter===k?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:mealFilter===k?700:400}}>{m.icon} {m[lang]}</button>))}</div><p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.filters}</p><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>{DIET_TAGS.map(k=>(<button key={k} onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):toggleTag(k)} style={{background:tagFilters.includes(k)?TAGS[k].color:"#f3f4f6",color:tagFilters.includes(k)?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:tagFilters.includes(k)?700:400}}>{TAGS[k].icon} {TAGS[k][lang]}</button>))}</div><p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.kitchenTitle}</p><p style={{margin:"0 0 8px",fontSize:11,color:"#9ca3af"}}>{t.kitchenSub}</p><div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:5}}>{CROSS_TAGS.map(k=>(<button key={k} onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):toggleTag(k)} style={{background:tagFilters.includes(k)?TAGS[k].color:"#f3f4f6",color:tagFilters.includes(k)?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:tagFilters.includes(k)?700:400}}>{TAGS[k].icon} {TAGS[k][lang]}</button>))}</div><p style={{margin:"0 0 14px",fontSize:10,color:"#9ca3af"}}>{t.kitchenLegend}</p><button onClick={doSearch} disabled={searching} style={{...btnG,display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:16,padding:"14px",opacity:searching?0.85:1}}>{searching?<><span style={{display:"inline-block",animation:"spin 1s linear infinite",fontSize:18}}>🌿</span>{lang==="it"?"Sto cercando...":"Searching..."}</>:<>🔍 {t.searchBtn}{(tagFilters.length>0||mealFilter||q)&&<span style={{background:"rgba(255,255,255,0.25)",fontSize:12,padding:"2px 9px",borderRadius:10}}>{[q&&1,...tagFilters,mealFilter].filter(Boolean).length} {lang==="it"?"filtri":"filters"}</span>}</>}</button></div>);
 
-  const FilterPanel=()=>(
-    <div style={card}>
-      <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.mealFilter}</p>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
-        <button onClick={()=>setMealFilter(null)} style={{background:!mealFilter?"#1f2937":"#f3f4f6",color:!mealFilter?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:!mealFilter?700:400}}>🍽️ {t.allMeals}</button>
-        {Object.entries(MEALS).map(([k,m])=>(
-          <button key={k} onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):setMealFilter(mealFilter===k?null:k)} style={{background:mealFilter===k?"#1f2937":"#f3f4f6",color:mealFilter===k?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:mealFilter===k?700:400}}>{m.icon} {m[lang]}</button>
-        ))}
-      </div>
-      <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.filters}</p>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
-        {DIET_TAGS.map(k=>(
-          <button key={k} onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):toggleTag(k)} style={{background:tagFilters.includes(k)?TAGS[k].color:"#f3f4f6",color:tagFilters.includes(k)?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:tagFilters.includes(k)?700:400}}>{TAGS[k].icon} {TAGS[k][lang]}</button>
-        ))}
-      </div>
-      <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.kitchenTitle}</p>
-      <p style={{margin:"0 0 8px",fontSize:11,color:"#9ca3af"}}>{t.kitchenSub}</p>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:5}}>
-        {CROSS_TAGS.map(k=>(
-          <button key={k} onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):toggleTag(k)} style={{background:tagFilters.includes(k)?TAGS[k].color:"#f3f4f6",color:tagFilters.includes(k)?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:tagFilters.includes(k)?700:400}}>{TAGS[k].icon} {TAGS[k][lang]}</button>
-        ))}
-      </div>
-      <p style={{margin:"0 0 14px",fontSize:10,color:"#9ca3af"}}>{t.kitchenLegend}</p>
-      <button onClick={doSearch} disabled={searching} style={{...btnG,display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:16,padding:"14px",opacity:searching?0.85:1}}>
-        {searching
-          ?<><span style={{display:"inline-block",animation:"spin 1s linear infinite",fontSize:18}}>🌿</span>{lang==="it"?"Sto cercando...":"Searching..."}</>
-          :<>🔍 {t.searchBtn}{(tagFilters.length>0||mealFilter||q)&&<span style={{background:"rgba(255,255,255,0.25)",fontSize:12,padding:"2px 9px",borderRadius:10}}>{[q&&1,...tagFilters,mealFilter].filter(Boolean).length} {lang==="it"?"filtri":"filters"}</span>}</>
-        }
-      </button>
-    </div>
-  );
-
-  if(screen==="welcome")return(
-    <div style={{minHeight:"100vh",background:GREEN,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,color:"white",position:"relative"}}>
-      <button onClick={tl} style={{...ghost,position:"absolute",top:16,right:16}}>{lang==="it"?"🇬🇧 EN":"🇮🇹 IT"}</button>
-      <Logo size={54}/>
-      <h1 style={{fontSize:32,fontWeight:200,margin:"12px 0 6px",letterSpacing:8}}>{t.appName}</h1>
-      <p style={{fontSize:14,opacity:.9,textAlign:"center",marginBottom:36,maxWidth:280}}>{lang==="it"?"Trova il posto perfetto per le tue esigenze":"Find the perfect place for your needs"}</p>
-      <div style={{display:"flex",flexDirection:"column",gap:10,width:"100%",maxWidth:300}}>
-        <button onClick={()=>{setAuthMode("register");go("auth");}} style={{background:"white",color:"#1a5c3a",border:"none",padding:14,borderRadius:12,fontWeight:700,fontSize:16,cursor:"pointer"}}>🌿 {t.register}</button>
-        <button onClick={()=>{setAuthMode("login");go("auth");}} style={{background:"rgba(255,255,255,.15)",color:"white",border:"2px solid white",padding:14,borderRadius:12,fontWeight:700,fontSize:16,cursor:"pointer"}}>{t.login}</button>
-
-      </div>
-      <div style={{marginTop:20,width:"100%",maxWidth:300,borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:14,textAlign:"center"}}>
-        <p style={{margin:"0 0 8px",fontSize:13,opacity:.8}}>{lang==="it"?"Sei un'azienda?":"Are you a business?"}</p>
-        <button onClick={()=>go("business")} style={{background:"rgba(255,255,255,.15)",color:"white",border:"1px solid rgba(255,255,255,.4)",padding:"9px 20px",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer"}}>🏢 {t.bizBtn}</button>
-        <p onClick={()=>go("policy")} style={{margin:"12px 0 0",fontSize:12,opacity:.6,cursor:"pointer",textDecoration:"underline"}}>{lang==="it"?"Policy & Termini":"Policy & Terms"}</p>
-      </div>
-    </div>
-  );
+  if(screen==="welcome")return(<div style={{minHeight:"100vh",background:GREEN,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,color:"white",position:"relative"}}><button onClick={tl} style={{...ghost,position:"absolute",top:16,right:16}}>{lang==="it"?"🇬🇧 EN":"🇮🇹 IT"}</button><Logo size={54}/><h1 style={{fontSize:32,fontWeight:200,margin:"12px 0 6px",letterSpacing:8}}>{t.appName}</h1><p style={{fontSize:14,opacity:.9,textAlign:"center",marginBottom:36,maxWidth:280}}>{lang==="it"?"Trova il posto perfetto per le tue esigenze":"Find the perfect place for your needs"}</p><div style={{display:"flex",flexDirection:"column",gap:10,width:"100%",maxWidth:300}}><button onClick={()=>{setAuthMode("register");go("auth");}} style={{background:"white",color:"#1a5c3a",border:"none",padding:14,borderRadius:12,fontWeight:700,fontSize:16,cursor:"pointer"}}>🌿 {t.register}</button><button onClick={()=>{setAuthMode("login");go("auth");}} style={{background:"rgba(255,255,255,.15)",color:"white",border:"2px solid white",padding:14,borderRadius:12,fontWeight:700,fontSize:16,cursor:"pointer"}}>{t.login}</button></div><div style={{marginTop:20,width:"100%",maxWidth:300,borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:14,textAlign:"center"}}><p style={{margin:"0 0 8px",fontSize:13,opacity:.8}}>{lang==="it"?"Sei un azienda?":"Are you a business?"}</p><button onClick={()=>go("business")} style={{background:"rgba(255,255,255,.15)",color:"white",border:"1px solid rgba(255,255,255,.4)",padding:"9px 20px",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer"}}>🏢 {t.bizBtn}</button><p onClick={()=>go("policy")} style={{margin:"12px 0 0",fontSize:12,opacity:.6,cursor:"pointer",textDecoration:"underline"}}>{lang==="it"?"Policy & Termini":"Policy & Terms"}</p></div></div>);
 
   if(screen==="business")return <BusinessScreen lang={lang} go={go}/>;
-  if(screen==="admin"){
-    if(user?.email!==ADMIN_EMAIL){go("home");return null;}
-    return <AdminScreen user={user} lang={lang} go={go} sb={sb}/>;
-  }
+  if(screen==="admin"){if(user?.email!==ADMIN_EMAIL){go("home");return null;}return <AdminScreen user={user} lang={lang} go={go} sb={sb}/>;}
   if(screen==="policy")return <PolicyScreen lang={lang} go={go}/>;
 
-  if(screen==="auth")return(
-    <div style={{minHeight:"100vh",background:"#f9fafb"}}>
-      <div style={{background:GREEN,padding:"24px 20px 52px",textAlign:"center",color:"white",position:"relative"}}>
-        <button onClick={()=>go("welcome")} style={{...ghost,position:"absolute",top:16,left:16}}>←</button>
-        <button onClick={tl} style={{...ghost,position:"absolute",top:16,right:16}}>{lang==="it"?"🇬🇧":"🇮🇹"}</button>
-        <Logo size={34}/>
-        <h2 style={{margin:"8px 0 0",fontSize:21,fontWeight:800}}>{authMode==="login"?t.login:t.register}</h2>
-      </div>
-      <div style={{margin:"0 16px",background:"white",borderRadius:16,padding:24,marginTop:-22,boxShadow:"0 4px 20px rgba(0,0,0,.1)"}}>
-        {authMode==="register"&&<div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Nome</label><input value={aName} onChange={e=>setAName(e.target.value)} style={inp} placeholder="Mario Rossi"/></div>}
-        <div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Email</label><input type="email" value={aEmail} onChange={e=>setAEmail(e.target.value)} style={inp} placeholder="mario@esempio.it"/></div>
-        <div style={{marginBottom:18}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Password</label><input type="password" value={aPass} onChange={e=>setAPass(e.target.value)} style={inp} placeholder="••••••••"/></div>
-        {aErr&&<p style={{margin:"0 0 12px",fontSize:13,color:aErr.startsWith("📬")?"#1a5c3a":"#ef4444",textAlign:"center",lineHeight:1.5}}>{aErr}</p>}
-        <button onClick={doAuth} disabled={aLoading} style={{...btnG,opacity:aLoading?0.7:1}}>{aLoading?"⏳ Attendere...":(authMode==="login"?t.login:t.register)}</button>
-        <p style={{textAlign:"center",marginTop:14,fontSize:13,color:"#6b7280",margin:"14px 0 0"}}>
-          {authMode==="login"?(lang==="it"?"Non hai un account?":"No account?"):(lang==="it"?"Hai già un account?":"Have an account?")}{" "}
-          <span onClick={()=>{setAuthMode(m=>m==="login"?"register":"login");setAErr("");}} style={{color:"#1a5c3a",cursor:"pointer",fontWeight:600}}>{authMode==="login"?t.register:t.login}</span>
-        </p>
-      </div>
-    </div>
-  );
+  if(screen==="auth")return(<div style={{minHeight:"100vh",background:"#f9fafb"}}><div style={{background:GREEN,padding:"24px 20px 52px",textAlign:"center",color:"white",position:"relative"}}><button onClick={()=>go("welcome")} style={{...ghost,position:"absolute",top:16,left:16}}>←</button><button onClick={tl} style={{...ghost,position:"absolute",top:16,right:16}}>{lang==="it"?"🇬🇧":"🇮🇹"}</button><Logo size={34}/><h2 style={{margin:"8px 0 0",fontSize:21,fontWeight:800}}>{authMode==="login"?t.login:t.register}</h2></div><div style={{margin:"0 16px",background:"white",borderRadius:16,padding:24,marginTop:-22,boxShadow:"0 4px 20px rgba(0,0,0,.1)"}}>{authMode==="register"&&<div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Nome</label><input value={aName} onChange={e=>setAName(e.target.value)} style={inp} placeholder="Mario Rossi"/></div>}<div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Email</label><input type="email" value={aEmail} onChange={e=>setAEmail(e.target.value)} style={inp} placeholder="mario@esempio.it"/></div><div style={{marginBottom:18}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Password</label><input type="password" value={aPass} onChange={e=>setAPass(e.target.value)} style={inp} placeholder="••••••••"/></div>{aErr&&<p style={{margin:"0 0 12px",fontSize:13,color:aErr.startsWith("📬")?"#1a5c3a":"#ef4444",textAlign:"center",lineHeight:1.5}}>{aErr}</p>}<button onClick={doAuth} disabled={aLoading} style={{...btnG,opacity:aLoading?0.7:1}}>{aLoading?"⏳ Attendere...":(authMode==="login"?t.login:t.register)}</button><p style={{textAlign:"center",marginTop:14,fontSize:13,color:"#6b7280",margin:"14px 0 0"}}>{authMode==="login"?(lang==="it"?"Non hai un account?":"No account?"):(lang==="it"?"Hai già un account?":"Have an account?")}{" "}<span onClick={()=>{setAuthMode(m=>m==="login"?"register":"login");setAErr("");}} style={{color:"#1a5c3a",cursor:"pointer",fontWeight:600}}>{authMode==="login"?t.register:t.login}</span></p></div></div>);
 
-  if(screen==="home")return(
-    <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}>
-      <div style={{background:GREEN,padding:"18px 20px 20px",color:"white"}}>
-        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div style={{display:"flex",alignItems:"center",gap:10}}>
-            <Logo size={16}/>
-            <div>
-              <p style={{margin:0,fontSize:12,opacity:.8}}>{isGuest?(lang==="it"?"Ospite 👀":"Guest 👀"):`${t.hi}, ${user?.name?.split(" ")[0]} 👋`}</p>
-              <h2 style={{margin:0,fontSize:18,fontWeight:200,letterSpacing:6}}>{t.appName}</h2>
-            </div>
-          </div>
-          <div style={{display:"flex",gap:7}}>
-            <button onClick={tl} style={ghost}>{lang==="it"?"🇬🇧":"🇮🇹"}</button>
-            {isGuest&&<button onClick={()=>{setAuthMode("register");go("auth");}} style={{background:"white",color:"#1a5c3a",border:"none",padding:"6px 11px",borderRadius:15,cursor:"pointer",fontSize:12,fontWeight:700}}>{t.register}</button>}
+  if(screen==="home")return(<div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}><div style={{background:GREEN,padding:"18px 20px 20px",color:"white"}}><div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}><div style={{display:"flex",alignItems:"center",gap:10}}><Logo size={16}/><div><p style={{margin:0,fontSize:12,opacity:.8}}>{isGuest?(lang==="it"?"Ospite 👀":"Guest 👀"):`${t.hi}, ${user?.name?.split(" ")[0]} 👋`}</p><h2 style={{margin:0,fontSize:18,fontWeight:200,letterSpacing:6}}>{t.appName}</h2></div></div><div style={{display:"flex",gap:7}}><button onClick={tl} style={ghost}>{lang==="it"?"🇬🇧":"🇮🇹"}</button>{isGuest&&<button onClick={()=>{setAuthMode("register");go("auth");}} style={{background:"white",color:"#1a5c3a",border:"none",padding:"6px 11px",borderRadius:15,cursor:"pointer",fontSize:12,fontWeight:700}}>{t.register}</button>}</div></div></div><div style={{padding:"12px 16px 0"}}><div style={card}><p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📍 {t.whereLabel}</p><div style={{display:"flex",gap:8}}><input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={t.wherePh} style={{...inp,flex:1,fontSize:14}}/><button onClick={()=>{if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}if(!navigator.geolocation){alert(lang==="it"?"GPS non disponibile":"GPS not available");return;}navigator.geolocation.getCurrentPosition(pos=>{const lat=pos.coords.latitude.toFixed(4);const lon=pos.coords.longitude.toFixed(4);setQ(lang==="it"?`Vicino a me (${lat}, ${lon})`:`Near me (${lat}, ${lon})`);searchGooglePlaces(`ristorante vicino ${lat},${lon}`,[]).then(res=>{if(res&&res.length>0){setResults(res);setTab("explore");go("results","home");}});},()=>{alert(lang==="it"?"Impossibile ottenere la posizione":"Could not get location");});}} style={{background:"#1a5c3a",color:"white",border:"none",padding:"10px 12px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>📍</button></div></div><FilterPanel/>{isGuest&&<div style={{background:"#f0fdf4",borderRadius:12,padding:"9px 14px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid #bbf7d0"}}><span style={{fontSize:12,color:"#1a5c3a"}}>🌿 {lang==="it"?"Beta gratuita — registrati per accedere!":"Free beta — sign up to access!"}</span><span onClick={()=>{setAuthMode("register");go("auth");}} style={{fontSize:12,color:"#1a5c3a",cursor:"pointer",fontWeight:700}}>{t.regFree} →</span></div>}{loadingData&&<div style={{textAlign:"center",padding:"20px",color:"#6b7280",fontSize:14}}>🔄 {lang==="it"?"Caricamento locali...":"Loading venues..."}</div>}<h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"4px 0 10px"}}>📢 {t.featured}</h3>{structs.filter(s=>s.sponsored).map((s,i)=><StructCard key={s.id} s={s} index={i} guestMode={isGuest}/>)}<h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"14px 0 10px"}}>🇮🇹 {t.nearby}</h3>{structs.filter(s=>s.country==="Italia"&&!s.sponsored).slice(0,5).map((s,i)=><StructCard key={s.id} s={s} index={i+2} guestMode={isGuest}/>)}</div><BottomNav/><Popup/>{searching&&<div style={{position:"fixed",inset:0,background:"rgba(255,255,255,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500,gap:14}}><div style={{fontSize:48,animation:"spin 1.5s linear infinite"}}>🌿</div><p style={{fontSize:16,fontWeight:700,color:"#1a5c3a"}}>{lang==="it"?"Sto cercando i locali...":"Finding venues..."}</p><p style={{fontSize:13,color:"#6b7280"}}>{lang==="it"?"Cerco su Google Places...":"Searching Google Places..."}</p></div>}</div>);
 
-            {!isGuest&&premium&&<span style={{...ghost,fontWeight:700}}>⭐</span>}
-          </div>
-        </div>
-      </div>
-      <div style={{padding:"12px 16px 0"}}>
-        <div style={card}>
-          <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📍 {t.whereLabel}</p>
-          <div style={{display:"flex",gap:8}}>
-            <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={t.wherePh} style={{...inp,flex:1,fontSize:14}}/>
-            <button onClick={()=>{
-              if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
-              if(!navigator.geolocation){alert(lang==="it"?"GPS non disponibile su questo dispositivo":"GPS not available on this device");return;}
-              navigator.geolocation.getCurrentPosition(pos=>{
-                const lat=pos.coords.latitude.toFixed(4);
-                const lon=pos.coords.longitude.toFixed(4);
-                setQ(lang==="it"?`Vicino a me (${lat}, ${lon})`:`Near me (${lat}, ${lon})`);
-                // Cerca locali vicino alle coordinate
-                searchGooglePlaces(`ristorante vicino ${lat},${lon}`,[]).then(res=>{
-                  if(res&&res.length>0){setResults(res);setTab("explore");go("results","home");}
-                });
-              },()=>{alert(lang==="it"?"Impossibile ottenere la posizione. Controlla i permessi GPS.":"Could not get location. Check GPS permissions.");});
-            }} style={{background:"#1a5c3a",color:"white",border:"none",padding:"10px 12px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>📍</button>
-          </div>
-        </div>
-        <FilterPanel/>
-        {isGuest&&<div style={{background:"#f0fdf4",borderRadius:12,padding:"9px 14px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid #bbf7d0"}}><span style={{fontSize:12,color:"#1a5c3a"}}>🌿 {lang==="it"?"Beta gratuita — registrati per salvare i preferiti!":"Free beta — sign up to save favourites!"}</span><span onClick={()=>{setAuthMode("register");go("auth");}} style={{fontSize:12,color:"#1a5c3a",cursor:"pointer",fontWeight:700}}>{t.regFree} →</span></div>}
-
-        {loadingData&&<div style={{textAlign:"center",padding:"20px",color:"#6b7280",fontSize:14}}>🔄 {lang==="it"?"Caricamento locali...":"Loading venues..."}</div>}
-        <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"4px 0 10px"}}>📢 {t.featured}</h3>
-        {structs.filter(s=>s.sponsored).map((s,i)=><StructCard key={s.id} s={s} index={i} guestMode={isGuest}/>)}
-        <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"14px 0 10px"}}>🇮🇹 {t.nearby}</h3>
-        {structs.filter(s=>s.country==="Italia"&&!s.sponsored).slice(0,5).map((s,i)=><StructCard key={s.id} s={s} index={i+2} guestMode={isGuest}/>)}
-        {isGuest&&<div onClick={()=>{setAuthMode("register");go("auth");}} style={{background:GREEN,color:"white",borderRadius:14,padding:18,textAlign:"center",cursor:"pointer",marginBottom:10}}><p style={{margin:"0 0 4px",fontWeight:700,fontSize:14}}>🌿 {t.popGuest}</p><p style={{margin:"0 0 12px",fontSize:13,opacity:.9}}>{t.popGuestSub}</p><button style={{background:"white",color:"#1a5c3a",border:"none",padding:"9px 18px",borderRadius:20,fontWeight:700,cursor:"pointer",fontSize:13}}>{t.regFree}</button></div>}
-      </div>
-      <BottomNav/>{showUp&&<UpgradeModal/>}<Popup/>
-      {searching&&<div style={{position:"fixed",inset:0,background:"rgba(255,255,255,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500,gap:14}}>
-        <div style={{fontSize:48,animation:"spin 1.5s linear infinite"}}>🌿</div>
-        <p style={{fontSize:16,fontWeight:700,color:"#1a5c3a"}}>{lang==="it"?"Sto cercando i locali...":"Finding venues..."}</p>
-        <p style={{fontSize:13,color:"#6b7280"}}>{lang==="it"?"Cerco su Google Places...":"Searching Google Places..."}</p>
-      </div>}
-    </div>
-  );
-
-  if(screen==="results")return(
-    <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}>
-      <div style={{background:GREEN,padding:"20px",color:"white"}}>
-        <button onClick={()=>{go("home");setTab("home");}} style={{...ghost,marginBottom:10,display:"block"}}>← {t.back}</button>
-        <h2 style={{margin:"0 0 4px",fontSize:17,fontWeight:800}}>🔍 {t.results}</h2>
-        <p style={{margin:0,fontSize:13,opacity:.85}}>
-          {results.length>0?`${results.length} ${t.found}`:(lang==="it"?"Mostriamo i locali disponibili":"Showing available venues")}
-          {loadingMore&&<span style={{marginLeft:8,fontSize:12,opacity:.8}}>🌿</span>}
-        </p>
-      </div>
-      <div style={{padding:16}}>
-        {results.length===0
-        ?<>
-          <div style={{textAlign:"center",padding:"30px 20px 16px"}}>
-            <div style={{fontSize:40}}>🔍</div>
-            <p style={{color:"#6b7280",marginTop:8,fontSize:14}}>{lang==="it"?"Nessun locale trovato per questa ricerca":"No venues found for this search"}</p>
-            <p style={{color:"#9ca3af",fontSize:12,marginTop:4}}>{lang==="it"?"Ecco alcuni locali disponibili:":"Here are some available venues:"}</p>
-          </div>
-          {structs.slice(0,6).filter(s=>s&&s.name).map(s=><StructCard key={s.id} s={s} index={0} guestMode={false}/>)}
-        </>
-        :<>
-          {(results||[]).filter(s=>s&&s.name).map(s=><StructCard key={s.id||s.name} s={s} index={0} guestMode={false}/>)}
-
-        </>}
-      </div>
-      <BottomNav/>{showUp&&<UpgradeModal/>}<Popup/>
-    </div>
-  );
+  if(screen==="results")return(<div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}><div style={{background:GREEN,padding:"20px",color:"white"}}><button onClick={()=>{go("home");setTab("home");}} style={{...ghost,marginBottom:10,display:"block"}}>← {t.back}</button><h2 style={{margin:"0 0 4px",fontSize:17,fontWeight:800}}>🔍 {t.results}</h2><p style={{margin:0,fontSize:13,opacity:.85}}>{results.length>0?`${results.length} ${t.found}`:(lang==="it"?"Mostriamo i locali disponibili":"Showing available venues")}{loadingMore&&<span style={{marginLeft:8,fontSize:12,opacity:.8}}>🌿</span>}</p></div><div style={{padding:16}}>{results.length===0?<><div style={{textAlign:"center",padding:"30px 20px 16px"}}><div style={{fontSize:40}}>🔍</div><p style={{color:"#6b7280",marginTop:8,fontSize:14}}>{lang==="it"?"Nessun locale trovato":"No venues found"}</p></div>{structs.slice(0,6).filter(s=>s&&s.name).map(s=><StructCard key={s.id} s={s} index={0} guestMode={false}/>)}</>:<>{(results||[]).filter(s=>s&&s.name).map(s=><StructCard key={s.id||s.name} s={s} index={0} guestMode={false}/>)}</>}</div><BottomNav/><Popup/></div>);
 
   if(screen==="detail"&&sel){
     const s=sel,sRevs=revs[s.id]||[];
-    return(
-      <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}>
-        <div style={{background:GREEN,padding:"20px 20px 36px",color:"white"}}>
-          <button onClick={()=>go(prevScr)} style={{...ghost,marginBottom:12,display:"block"}}>← {t.back}</button>
-          <div style={{display:"flex",gap:14,alignItems:"center"}}>
-            <div style={{fontSize:40,background:"rgba(255,255,255,.15)",borderRadius:16,width:68,height:68,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{s.emoji}</div>
-            <div>
-              <h2 style={{margin:"0 0 4px",fontSize:18,fontWeight:800}}>{s.name}</h2>
-              <p style={{margin:"0 0 6px",fontSize:13,opacity:.85}}>📍 {s.city}, {s.country}</p>
-              <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                <SrcBadge source={s.source}/>
-                {s.certified&&<span style={{background:"rgba(255,255,255,.25)",color:"white",fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:10}}>✅ {t.certified}</span>}
-              </div>
-            </div>
-          </div>
-        </div>
-        <div style={{padding:"0 16px",marginTop:-14}}>
-          <div style={card}>
-            <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>{s.meals.map(m=><span key={m} style={{background:"#fef9ec",color:"#d97706",fontSize:13,padding:"5px 11px",borderRadius:20,fontWeight:600}}>{MEALS[m]?.icon} {MEALS[m]?.[lang]}</span>)}</div>
-            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-              {s.tags.map(k=><span key={k} style={{background:TAGS[k]?.color+"22",color:TAGS[k]?.color,fontSize:12,padding:"4px 10px",borderRadius:20,fontWeight:600}}>{TAGS[k]?.icon} {TAGS[k]?.[lang]}</span>)}
-            </div>
-            {s.reviewTags&&s.reviewTags.length>0&&<div style={{marginTop:8}}>
-              <p style={{margin:"0 0 6px",fontSize:11,color:"#6b7280",fontWeight:700}}>💬 {lang==="it"?"Segnalato nelle recensioni:":"Mentioned in reviews:"}</p>
-              <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                {s.reviewTags.map(k=><span key={k} style={{background:"#fef9ec",color:"#92400e",fontSize:11,padding:"3px 8px",borderRadius:20,border:"1px dashed #fcd34d"}}>💬 {TAGS[k]?.[lang]}</span>)}
-              </div>
-              <p style={{margin:"6px 0 0",fontSize:10,color:"#9ca3af"}}>{lang==="it"?"Basato sulle recensioni degli utenti, non verificato da Juniper":"Based on user reviews, not verified by Juniper"}</p>
-            </div>}
-          </div>
-          <div style={card}>
-            <p style={{margin:"0 0 10px",fontSize:14,color:"#374151",lineHeight:1.6}}>{s.description}</p>
-            <div style={{borderTop:"1px solid #f3f4f6",paddingTop:10,display:"flex",flexDirection:"column",gap:5}}>
-              <p style={{margin:0,fontSize:13,color:"#6b7280"}}>📍 {s.address}</p>
-              {s.phone&&<p style={{margin:0,fontSize:13,color:"#6b7280"}}>📞 {s.phone}</p>}
-              {s.rating&&<div style={{display:"flex",alignItems:"center",gap:5}}><span style={{color:"#f59e0b"}}>{"⭐".repeat(Math.round(s.rating))}</span><span style={{fontSize:13,fontWeight:700}}>{s.rating}</span><span style={{fontSize:12,color:"#9ca3af"}}>({s.reviewCount} {t.reviews})</span></div>}
-            </div>
-          </div>
-          <div style={card}>
-            <h3 style={{margin:"0 0 12px",fontSize:14,fontWeight:700}}>💬 {t.reviews} ({sRevs.length})</h3>
-            {sRevs.length===0?<p style={{color:"#9ca3af",fontSize:14,textAlign:"center",padding:"8px 0"}}>{t.noRev}</p>
-            :sRevs.map((r,i)=>(
-              <div key={r.id} style={{borderBottom:i<sRevs.length-1?"1px solid #f3f4f6":"none",paddingBottom:10,marginBottom:10}}>
-                <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
-                  <div style={{display:"flex",alignItems:"center",gap:5}}>
-                    <span style={{fontWeight:600,fontSize:13}}>{r.user}</span>
-                    {r.source==="google"&&<span style={{fontSize:10,background:"#f3f4f6",color:"#6b7280",padding:"1px 5px",borderRadius:6}}>Google</span>}
-                  </div>
-                  <span style={{fontSize:11,color:"#9ca3af"}}>{r.date}</span>
-                </div>
-                <div style={{marginBottom:3,fontSize:13}}>{"⭐".repeat(r.rating)}</div>
-                <p style={{margin:0,fontSize:13,color:"#374151"}}>{r.text}</p>
-              </div>
-            ))}
-            <div style={{borderTop:"1px solid #f3f4f6",marginTop:12,paddingTop:12}}>
-              {isGuest?<div onClick={()=>showP(t.popReview,t.popReviewSub,"register")} style={{background:"#f0fdf4",borderRadius:12,padding:14,textAlign:"center",cursor:"pointer",border:"2px dashed #a7f3d0"}}><p style={{margin:"0 0 4px",fontWeight:600,color:"#1a5c3a",fontSize:13}}>💬 {t.popReview}</p><p style={{margin:0,fontSize:12,color:"#6b7280"}}>{t.popReviewSub}</p></div>
-              :revOk?<div style={{background:"#d1fae5",color:"#065f46",padding:10,borderRadius:10,fontSize:14,fontWeight:600,textAlign:"center"}}>{t.reviewAdded}</div>
-              :<>
-                <h4 style={{margin:"0 0 8px",fontSize:13,fontWeight:600}}>✏️ {t.leaveReview}</h4>
-                <div style={{display:"flex",gap:3,marginBottom:8}}>{[1,2,3,4,5].map(star=><button key={star} onClick={()=>setNr(r=>({...r,rating:star}))} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",opacity:star<=nr.rating?1:0.3,padding:0}}>⭐</button>)}</div>
-                <textarea value={nr.text} onChange={e=>setNr(r=>({...r,text:e.target.value}))} placeholder={t.placeholder} style={{width:"100%",padding:10,borderRadius:10,border:"1px solid #e5e7eb",fontSize:14,resize:"none",height:75,boxSizing:"border-box",fontFamily:"inherit",outline:"none"}}/>
-                <button onClick={()=>addRev(s.id)} style={{...btnG,marginTop:8,fontSize:14}}>{t.submit}</button>
-              </>}
-            </div>
-          </div>
-        </div>
-        <BottomNav/><Popup/>
-      </div>
-    );
+    return(<div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}><div style={{background:GREEN,padding:"20px 20px 36px",color:"white"}}><button onClick={()=>go(prevScr)} style={{...ghost,marginBottom:12,display:"block"}}>← {t.back}</button><div style={{display:"flex",gap:14,alignItems:"center"}}><div style={{fontSize:40,background:"rgba(255,255,255,.15)",borderRadius:16,width:68,height:68,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{s.emoji}</div><div><h2 style={{margin:"0 0 4px",fontSize:18,fontWeight:800}}>{s.name}</h2><p style={{margin:"0 0 6px",fontSize:13,opacity:.85}}>📍 {s.city}, {s.country}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}><SrcBadge source={s.source}/>{s.certified&&<span style={{background:"rgba(255,255,255,.25)",color:"white",fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:10}}>✅ {t.certified}</span>}</div></div></div></div><div style={{padding:"0 16px",marginTop:-14}}><div style={card}><div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>{s.meals.map(m=><span key={m} style={{background:"#fef9ec",color:"#d97706",fontSize:13,padding:"5px 11px",borderRadius:20,fontWeight:600}}>{MEALS[m]?.icon} {MEALS[m]?.[lang]}</span>)}</div><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{s.tags.map(k=><span key={k} style={{background:TAGS[k]?.color+"22",color:TAGS[k]?.color,fontSize:12,padding:"4px 10px",borderRadius:20,fontWeight:600}}>{TAGS[k]?.icon} {TAGS[k]?.[lang]}</span>)}</div>{s.reviewTags&&s.reviewTags.length>0&&<div style={{marginTop:8}}><p style={{margin:"0 0 6px",fontSize:11,color:"#6b7280",fontWeight:700}}>💬 {lang==="it"?"Segnalato nelle recensioni:":"Mentioned in reviews:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{s.reviewTags.map(k=><span key={k} style={{background:"#fef9ec",color:"#92400e",fontSize:11,padding:"3px 8px",borderRadius:20,border:"1px dashed #fcd34d"}}>💬 {TAGS[k]?.[lang]}</span>)}</div><p style={{margin:"6px 0 0",fontSize:10,color:"#9ca3af"}}>{lang==="it"?"Basato sulle recensioni degli utenti, non verificato da Juniper":"Based on user reviews, not verified by Juniper"}</p></div>}</div><div style={card}><p style={{margin:"0 0 10px",fontSize:14,color:"#374151",lineHeight:1.6}}>{s.description}</p><div style={{borderTop:"1px solid #f3f4f6",paddingTop:10,display:"flex",flexDirection:"column",gap:5}}><p style={{margin:0,fontSize:13,color:"#6b7280"}}>📍 {s.address}</p>{s.phone&&<p style={{margin:0,fontSize:13,color:"#6b7280"}}>📞 {s.phone}</p>}{s.rating&&<div style={{display:"flex",alignItems:"center",gap:5}}><span style={{color:"#f59e0b"}}>{"⭐".repeat(Math.round(s.rating))}</span><span style={{fontSize:13,fontWeight:700}}>{s.rating}</span><span style={{fontSize:12,color:"#9ca3af"}}>({s.reviewCount} {t.reviews})</span></div>}</div></div><div style={card}><h3 style={{margin:"0 0 12px",fontSize:14,fontWeight:700}}>💬 {t.reviews} ({sRevs.length})</h3>{sRevs.length===0?<p style={{color:"#9ca3af",fontSize:14,textAlign:"center",padding:"8px 0"}}>{t.noRev}</p>:sRevs.map((r,i)=>(<div key={r.id} style={{borderBottom:i<sRevs.length-1?"1px solid #f3f4f6":"none",paddingBottom:10,marginBottom:10}}><div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}><div style={{display:"flex",alignItems:"center",gap:5}}><span style={{fontWeight:600,fontSize:13}}>{r.user}</span>{r.source==="google"&&<span style={{fontSize:10,background:"#f3f4f6",color:"#6b7280",padding:"1px 5px",borderRadius:6}}>Google</span>}</div><span style={{fontSize:11,color:"#9ca3af"}}>{r.date}</span></div><div style={{marginBottom:3,fontSize:13}}>{"⭐".repeat(r.rating)}</div><p style={{margin:0,fontSize:13,color:"#374151"}}>{r.text}</p></div>))}<div style={{borderTop:"1px solid #f3f4f6",marginTop:12,paddingTop:12}}>{isGuest?<div onClick={()=>showP(t.popReview,t.popReviewSub,"register")} style={{background:"#f0fdf4",borderRadius:12,padding:14,textAlign:"center",cursor:"pointer",border:"2px dashed #a7f3d0"}}><p style={{margin:"0 0 4px",fontWeight:600,color:"#1a5c3a",fontSize:13}}>💬 {t.popReview}</p><p style={{margin:0,fontSize:12,color:"#6b7280"}}>{t.popReviewSub}</p></div>:revOk?<div style={{background:"#d1fae5",color:"#065f46",padding:10,borderRadius:10,fontSize:14,fontWeight:600,textAlign:"center"}}>{t.reviewAdded}</div>:<><h4 style={{margin:"0 0 8px",fontSize:13,fontWeight:600}}>✏️ {t.leaveReview}</h4><div style={{display:"flex",gap:3,marginBottom:8}}>{[1,2,3,4,5].map(star=><button key={star} onClick={()=>setNr(r=>({...r,rating:star}))} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",opacity:star<=nr.rating?1:0.3,padding:0}}>⭐</button>)}</div><textarea value={nr.text} onChange={e=>setNr(r=>({...r,text:e.target.value}))} placeholder={t.placeholder} style={{width:"100%",padding:10,borderRadius:10,border:"1px solid #e5e7eb",fontSize:14,resize:"none",height:75,boxSizing:"border-box",fontFamily:"inherit",outline:"none"}}/><button onClick={()=>addRev(s.id)} style={{...btnG,marginTop:8,fontSize:14}}>{t.submit}</button></>}</div></div></div><BottomNav/><Popup/></div>);
   }
 
-  if(screen==="profile")return(
-    <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}>
-      <div style={{background:GREEN,padding:"36px 20px 56px",textAlign:"center",color:"white"}}>
-        <div style={{fontSize:44,background:"rgba(255,255,255,.15)",borderRadius:"50%",width:70,height:70,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 10px"}}>👤</div>
-        <h2 style={{margin:"0 0 4px",fontSize:18,fontWeight:800}}>{user?.name}</h2>
-        <p style={{margin:0,fontSize:13,opacity:.85}}>{user?.email}</p>
-        {premium&&<span style={{display:"inline-block",marginTop:10,background:"#f59e0b",padding:"4px 12px",borderRadius:15,fontSize:13,fontWeight:700}}>⭐ Premium</span>}
-      </div>
-      <div style={{padding:"0 16px",marginTop:-18}}>
-        <div style={card}>
-          {premium?<div style={{background:"#d1fae5",borderRadius:12,padding:14}}><p style={{margin:"0 0 4px",fontWeight:700,color:"#065f46"}}>⭐ {t.premiumPlan}</p><p style={{margin:0,fontSize:13,color:"#047857"}}>{t.features}</p></div>
-          :<><div style={{background:"#f9fafb",borderRadius:12,padding:12,marginBottom:10}}><p style={{margin:"0 0 8px",fontSize:13,color:"#6b7280"}}>{lang==="it"?"8 ricerche/mese · illimitate con Premium":"8 searches/month · unlimited with Premium"}</p><div style={{background:"#e5e7eb",borderRadius:10,height:6,overflow:"hidden",marginBottom:4}}><div style={{background:cnt>=FREE_LIMIT?"#ef4444":"#1a5c3a",height:"100%",width:`${Math.min((cnt/FREE_LIMIT)*100,100)}%`}}/></div><p style={{margin:0,fontSize:11,color:"#6b7280"}}>{getSearchCount()}/{FREE_LIMIT} {t.searchesUsed.toLowerCase()} · reset 30gg</p></div><button onClick={()=>setShowUp(true)} style={btnG}>⭐ {t.upgradeNow}</button></>}
-        </div>
-        <div style={card}>
-          <button onClick={tl} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>🌐 {lang==="it"?"Switch to English":"Passa all'italiano"}</button>
-          <button onClick={()=>go("policy")} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>⚖️ {lang==="it"?"Policy & Termini":"Policy & Terms"}</button>
-          {user?.email===ADMIN_EMAIL&&<button onClick={()=>go("admin")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",textAlign:"left",marginBottom:8,fontWeight:700}}>⚙️ Pannello Admin</button>}
-          <button onClick={async()=>{await sb.auth.signOut();setUser(null);setScreen("welcome");setPremium(false);setCnt(0);setTab("home");}} style={{width:"100%",background:"#fef2f2",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#ef4444",textAlign:"left"}}>🚪 {t.logout}</button>
-        </div>
-      </div>
-      <BottomNav/>{showUp&&<UpgradeModal/>}
-    </div>
-  );
+  if(screen==="profile")return(<div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}><div style={{background:GREEN,padding:"36px 20px 56px",textAlign:"center",color:"white"}}><div style={{fontSize:44,background:"rgba(255,255,255,.15)",borderRadius:"50%",width:70,height:70,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 10px"}}>👤</div><h2 style={{margin:"0 0 4px",fontSize:18,fontWeight:800}}>{user?.name}</h2><p style={{margin:0,fontSize:13,opacity:.85}}>{user?.email}</p></div><div style={{padding:"0 16px",marginTop:-18}}><div style={card}><div style={{background:"#d1fae5",borderRadius:12,padding:14}}><p style={{margin:"0 0 4px",fontWeight:700,color:"#065f46"}}>🌿 Beta gratuita</p><p style={{margin:0,fontSize:13,color:"#047857"}}>{lang==="it"?"Tutte le funzionalità sono gratuite durante la fase beta":"All features are free during the beta phase"}</p></div></div><div style={card}><button onClick={tl} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>🌐 {lang==="it"?"Switch to English":"Passa all italiano"}</button><button onClick={()=>go("policy")} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>⚖️ {lang==="it"?"Policy & Termini":"Policy & Terms"}</button>{user?.email===ADMIN_EMAIL&&<button onClick={()=>go("admin")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",textAlign:"left",marginBottom:8,fontWeight:700}}>⚙️ Pannello Admin</button>}<button onClick={async()=>{await sb.auth.signOut();setUser(null);setScreen("welcome");setCnt(0);setTab("home");}} style={{width:"100%",background:"#fef2f2",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#ef4444",textAlign:"left"}}>🚪 {t.logout}</button></div></div><BottomNav/></div>);
 
   return null;
 }
 
-ReactDOM.render(<App/>, document.getElementById('root'));
+ReactDOM.render(<App/>, document.getElementById("root"));
 </script>
 </body>
 </html>
