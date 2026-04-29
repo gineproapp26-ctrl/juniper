@@ -443,27 +443,29 @@ function App(){
     if(isGuest&&guestSearches>=1){showP(t.popGuest,t.popGuestSub,"register");return;}
     if(!premium&&getSearchCount()>=FREE_LIMIT){showP(t.popSearch,t.popSearchSub,"upgrade");return;}
     setSearching(true);
+    // Cerca per filtri prima, città è opzionale
     let res=structs.filter(s=>{
-      const mq=!q||s.name.toLowerCase().includes(q.toLowerCase())||s.city.toLowerCase().includes(q.toLowerCase());
-      const mf=tagFilters.length===0||tagFilters.every(f=>s.tags.includes(f));
-      const mm=!mealFilter||s.meals.includes(mealFilter);
-      return mq&&mf&&mm;
+      const mf=tagFilters.length===0||tagFilters.every(f=>s.tags&&s.tags.includes(f));
+      const mm=!mealFilter||(s.meals&&s.meals.includes(mealFilter));
+      return mf&&mm;
     });
-    // Aggiungi risultati da Google Places (con timeout di sicurezza)
-    try{
-      if(q&&window._gmapReady){
-        const gRes=await Promise.race([
-          searchGooglePlaces(q,tagFilters),
-          new Promise(r=>setTimeout(()=>r([]),4000))
-        ]);
-        const existing=new Set(res.map(s=>s.name.toLowerCase()));
-        const newG=gRes.filter(g=>!existing.has(g.name.toLowerCase()));
-        res=[...res,...newG];
-      }
-    }catch(e){}
+    // Poi filtra per città se c'è una query (ma mantieni tutto se 0 risultati)
+    if(q){
+      const qRes=res.filter(s=>
+        (s.name&&s.name.toLowerCase().includes(q.toLowerCase()))||
+        (s.city&&s.city.toLowerCase().includes(q.toLowerCase()))||
+        (s.address&&s.address.toLowerCase().includes(q.toLowerCase()))
+      );
+      if(qRes.length>0)res=qRes;
+    }
     if(isGuest){setGuestSearches(1);res=res.slice(0,GUEST_MAX);}
     else if(!premium){incSearchCount();setCnt(getSearchCount());}
-    setSearching(false);setResults(res);setTab("explore");go("results","home");
+    // Cerca su Google Places in background e aggiorna i risultati
+    setSearching(false);
+    setResults(res);
+    setTab("explore");
+    go("results","home");
+
   };
 
   const addRev=async(sid)=>{
@@ -484,6 +486,9 @@ function App(){
   };
 
   const StructCard=({s,index,guestMode})=>{
+    if(!s||!s.name)return null;
+    if(!s.tags)s={...s,tags:[]};
+    if(!s.meals)s={...s,meals:[]};
     const locked=guestMode&&index>=GUEST_MAX;
     return(
       <div onClick={()=>{if(locked){showP(t.popGuest,t.popGuestSub,"register");return;}setSel(s);go("detail",screen);}}
@@ -698,10 +703,10 @@ function App(){
             <p style={{color:"#6b7280",marginTop:8,fontSize:14}}>{lang==="it"?"Nessun locale trovato per questa ricerca":"No venues found for this search"}</p>
             <p style={{color:"#9ca3af",fontSize:12,marginTop:4}}>{lang==="it"?"Ecco alcuni locali disponibili:":"Here are some available venues:"}</p>
           </div>
-          {structs.slice(0,6).map(s=><StructCard key={s.id} s={s} index={0} guestMode={false}/>)}
+          {structs.slice(0,6).filter(s=>s&&s.name).map(s=><StructCard key={s.id} s={s} index={0} guestMode={false}/>)}
         </>
         :<>
-          {results.map(s=><StructCard key={s.id} s={s} index={0} guestMode={false}/>)}
+          {(results||[]).filter(s=>s&&s.name).map(s=><StructCard key={s.id||s.name} s={s} index={0} guestMode={false}/>)}
           {!premium&&results.length>=8&&<div onClick={()=>setShowUp(true)} style={{background:GREEN,color:"white",borderRadius:14,padding:18,textAlign:"center",cursor:"pointer"}}><p style={{margin:"0 0 4px",fontWeight:700}}>🔒 {t.popLimit}</p><p style={{margin:"0 0 12px",fontSize:13,opacity:.9}}>{t.popLimitSub}</p><button style={{background:"white",color:"#1a5c3a",border:"none",padding:"9px 18px",borderRadius:20,fontWeight:700,cursor:"pointer"}}>⭐ {t.upgradeNow}</button></div>}
         </>}
       </div>
@@ -778,7 +783,7 @@ function App(){
       <div style={{padding:"0 16px",marginTop:-18}}>
         <div style={card}>
           {premium?<div style={{background:"#d1fae5",borderRadius:12,padding:14}}><p style={{margin:"0 0 4px",fontWeight:700,color:"#065f46"}}>⭐ {t.premiumPlan}</p><p style={{margin:0,fontSize:13,color:"#047857"}}>{t.features}</p></div>
-          :<><div style={{background:"#f9fafb",borderRadius:12,padding:12,marginBottom:10}}><p style={{margin:"0 0 8px",fontSize:13,color:"#6b7280"}}>{lang==="it"?"3 ricerche/mese · Max 5 strutture":"3 searches/month · Max 5 structures"}</p><div style={{background:"#e5e7eb",borderRadius:10,height:6,overflow:"hidden",marginBottom:4}}><div style={{background:cnt>=FREE_LIMIT?"#ef4444":"#1a5c3a",height:"100%",width:`${Math.min((cnt/FREE_LIMIT)*100,100)}%`}}/></div><p style={{margin:0,fontSize:11,color:"#6b7280"}}>{getSearchCount()}/{FREE_LIMIT} {t.searchesUsed.toLowerCase()} · reset 30gg</p></div><button onClick={()=>setShowUp(true)} style={btnG}>⭐ {t.upgradeNow}</button></>}
+          :<><div style={{background:"#f9fafb",borderRadius:12,padding:12,marginBottom:10}}><p style={{margin:"0 0 8px",fontSize:13,color:"#6b7280"}}>{lang==="it"?"8 ricerche/mese · illimitate con Premium":"8 searches/month · unlimited with Premium"}</p><div style={{background:"#e5e7eb",borderRadius:10,height:6,overflow:"hidden",marginBottom:4}}><div style={{background:cnt>=FREE_LIMIT?"#ef4444":"#1a5c3a",height:"100%",width:`${Math.min((cnt/FREE_LIMIT)*100,100)}%`}}/></div><p style={{margin:0,fontSize:11,color:"#6b7280"}}>{getSearchCount()}/{FREE_LIMIT} {t.searchesUsed.toLowerCase()} · reset 30gg</p></div><button onClick={()=>setShowUp(true)} style={btnG}>⭐ {t.upgradeNow}</button></>}
         </div>
         <div style={card}>
           <button onClick={tl} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>🌐 {lang==="it"?"Switch to English":"Passa all'italiano"}</button>
