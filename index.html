@@ -310,7 +310,7 @@ function App(){
   const [loadingData,setLoadingData]=React.useState(true);
   const [searching,setSearching]=React.useState(false);
   const isGuest=!user;
-  const FREE_LIMIT=8,GUEST_MAX=2;
+  const FREE_LIMIT=8,FREE_STRUCTS=20,GUEST_MAX=2;
   // Traccia ricerche mensili in localStorage
   const getSearchData=()=>{
     try{
@@ -686,12 +686,23 @@ function App(){
       <div style={{background:GREEN,padding:"20px",color:"white"}}>
         <button onClick={()=>{go("home");setTab("home");}} style={{...ghost,marginBottom:10,display:"block"}}>← {t.back}</button>
         <h2 style={{margin:"0 0 4px",fontSize:17,fontWeight:800}}>🔍 {t.results}</h2>
-        <p style={{margin:0,fontSize:13,opacity:.85}}>{results.length} {t.found}</p>
+        <p style={{margin:0,fontSize:13,opacity:.85}}>
+          {results.length>0?`${results.length} ${t.found}`:(lang==="it"?"Mostriamo i locali disponibili":"Showing available venues")}
+        </p>
       </div>
       <div style={{padding:16}}>
-        {results.length===0?<div style={{textAlign:"center",padding:"60px 20px"}}><div style={{fontSize:48}}>😕</div><h3 style={{color:"#6b7280",marginTop:12}}>{t.noResults}</h3></div>
-        :<>{results.map(s=><StructCard key={s.id} s={s} index={0} guestMode={false}/>)}
-          {!premium&&results.length>=FREE_STRUCTS&&<div onClick={()=>setShowUp(true)} style={{background:GREEN,color:"white",borderRadius:14,padding:18,textAlign:"center",cursor:"pointer"}}><p style={{margin:"0 0 4px",fontWeight:700}}>🔒 {t.popLimit}</p><p style={{margin:"0 0 12px",fontSize:13,opacity:.9}}>{t.popLimitSub}</p><button style={{background:"white",color:"#1a5c3a",border:"none",padding:"9px 18px",borderRadius:20,fontWeight:700,cursor:"pointer"}}>⭐ {t.upgradeNow}</button></div>}
+        {results.length===0
+        ?<>
+          <div style={{textAlign:"center",padding:"30px 20px 16px"}}>
+            <div style={{fontSize:40}}>🔍</div>
+            <p style={{color:"#6b7280",marginTop:8,fontSize:14}}>{lang==="it"?"Nessun locale trovato per questa ricerca":"No venues found for this search"}</p>
+            <p style={{color:"#9ca3af",fontSize:12,marginTop:4}}>{lang==="it"?"Ecco alcuni locali disponibili:":"Here are some available venues:"}</p>
+          </div>
+          {structs.slice(0,6).map(s=><StructCard key={s.id} s={s} index={0} guestMode={false}/>)}
+        </>
+        :<>
+          {results.map(s=><StructCard key={s.id} s={s} index={0} guestMode={false}/>)}
+          {!premium&&results.length>=8&&<div onClick={()=>setShowUp(true)} style={{background:GREEN,color:"white",borderRadius:14,padding:18,textAlign:"center",cursor:"pointer"}}><p style={{margin:"0 0 4px",fontWeight:700}}>🔒 {t.popLimit}</p><p style={{margin:"0 0 12px",fontSize:13,opacity:.9}}>{t.popLimitSub}</p><button style={{background:"white",color:"#1a5c3a",border:"none",padding:"9px 18px",borderRadius:20,fontWeight:700,cursor:"pointer"}}>⭐ {t.upgradeNow}</button></div>}
         </>}
       </div>
       <BottomNav/>{showUp&&<UpgradeModal/>}<Popup/>
