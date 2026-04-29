@@ -346,7 +346,7 @@ function App(){
   const [screen,setScreen]=React.useState("welcome");
   const [authMode,setAuthMode]=React.useState("login");
   const [user,setUser]=React.useState(null);
-  const [premium,setPremium]=React.useState(false);
+  const [premium,setPremium]=React.useState(true); // tutto gratis in fase beta
   const [q,setQ]=React.useState("");
   const [tagFilters,setTagFilters]=React.useState([]);
   const [mealFilter,setMealFilter]=React.useState(null);
@@ -429,7 +429,7 @@ function App(){
           "X-Goog-FieldMask":"reviews,editorialSummary"
         }
       }).then(r=>r.json()).then(data=>{
-        const gRevs=(data.reviews||[]).map((r,i)=>({
+        const gRevs=(data.reviews||[]).slice(0,40).map((r,i)=>({
           id:"gr_"+i,
           user:r.authorAttribution?.displayName||"Utente Google",
           rating:r.rating||5,
@@ -541,7 +541,7 @@ function App(){
   };
 
   const doSearch=async()=>{
-    if(isGuest&&guestSearches>=1){showP(t.popGuest,t.popGuestSub,"register");return;}
+    if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
     setSearching(true);
     // 1. Risultati da Supabase
     let res=structs.filter(s=>{
@@ -721,7 +721,7 @@ function App(){
       <div style={{display:"flex",flexDirection:"column",gap:10,width:"100%",maxWidth:300}}>
         <button onClick={()=>{setAuthMode("register");go("auth");}} style={{background:"white",color:"#1a5c3a",border:"none",padding:14,borderRadius:12,fontWeight:700,fontSize:16,cursor:"pointer"}}>🌿 {t.register}</button>
         <button onClick={()=>{setAuthMode("login");go("auth");}} style={{background:"rgba(255,255,255,.15)",color:"white",border:"2px solid white",padding:14,borderRadius:12,fontWeight:700,fontSize:16,cursor:"pointer"}}>{t.login}</button>
-        <button onClick={()=>go("home")} style={{background:"transparent",color:"rgba(255,255,255,.8)",border:"none",padding:10,fontSize:14,cursor:"pointer",textDecoration:"underline"}}>👀 {lang==="it"?"Esplora senza registrarti":"Explore without signing up"}</button>
+
       </div>
       <div style={{marginTop:20,width:"100%",maxWidth:300,borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:14,textAlign:"center"}}>
         <p style={{margin:"0 0 8px",fontSize:13,opacity:.8}}>{lang==="it"?"Sei un'azienda?":"Are you a business?"}</p>
@@ -770,7 +770,7 @@ function App(){
           <div style={{display:"flex",gap:7}}>
             <button onClick={tl} style={ghost}>{lang==="it"?"🇬🇧":"🇮🇹"}</button>
             {isGuest&&<button onClick={()=>{setAuthMode("register");go("auth");}} style={{background:"white",color:"#1a5c3a",border:"none",padding:"6px 11px",borderRadius:15,cursor:"pointer",fontSize:12,fontWeight:700}}>{t.register}</button>}
-            {!isGuest&&!premium&&<button onClick={()=>setShowUp(true)} style={{background:"#f59e0b",border:"none",color:"white",padding:"6px 11px",borderRadius:15,cursor:"pointer",fontSize:12,fontWeight:700}}>⭐ {t.upgrade}</button>}
+
             {!isGuest&&premium&&<span style={{...ghost,fontWeight:700}}>⭐</span>}
           </div>
         </div>
@@ -780,12 +780,24 @@ function App(){
           <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📍 {t.whereLabel}</p>
           <div style={{display:"flex",gap:8}}>
             <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={t.wherePh} style={{...inp,flex:1,fontSize:14}}/>
-            <button onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):!premium?showP(t.popGPS,t.popGPSSub,"upgrade"):null} style={{background:premium?"#1a5c3a":"#f3f4f6",color:premium?"white":"#9ca3af",border:"none",padding:"10px 12px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>📍{!premium&&" ⭐"}</button>
+            <button onClick={()=>{
+              if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
+              if(!navigator.geolocation){alert(lang==="it"?"GPS non disponibile su questo dispositivo":"GPS not available on this device");return;}
+              navigator.geolocation.getCurrentPosition(pos=>{
+                const lat=pos.coords.latitude.toFixed(4);
+                const lon=pos.coords.longitude.toFixed(4);
+                setQ(lang==="it"?`Vicino a me (${lat}, ${lon})`:`Near me (${lat}, ${lon})`);
+                // Cerca locali vicino alle coordinate
+                searchGooglePlaces(`ristorante vicino ${lat},${lon}`,[]).then(res=>{
+                  if(res&&res.length>0){setResults(res);setTab("explore");go("results","home");}
+                });
+              },()=>{alert(lang==="it"?"Impossibile ottenere la posizione. Controlla i permessi GPS.":"Could not get location. Check GPS permissions.");});
+            }} style={{background:"#1a5c3a",color:"white",border:"none",padding:"10px 12px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>📍</button>
           </div>
         </div>
         <FilterPanel/>
-        {isGuest&&<div style={{background:"#fef3c7",borderRadius:12,padding:"9px 14px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:12,color:"#92400e"}}>👀 {lang==="it"?"Ospite: solo 2 strutture visibili":"Guest: only 2 structures visible"}</span><span onClick={()=>{setAuthMode("register");go("auth");}} style={{fontSize:12,color:"#d97706",cursor:"pointer",fontWeight:700}}>{t.regFree} →</span></div>}
-        {!isGuest&&!premium&&<div style={{background:"#fef3c7",borderRadius:12,padding:"9px 14px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}><span style={{fontSize:12,color:"#92400e"}}>🔍 {t.freeBanner} ({cnt}/{FREE_LIMIT})</span><span onClick={()=>setShowUp(true)} style={{fontSize:12,color:"#d97706",cursor:"pointer",fontWeight:700}}>{t.upgrade} →</span></div>}
+        {isGuest&&<div style={{background:"#f0fdf4",borderRadius:12,padding:"9px 14px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center",border:"1px solid #bbf7d0"}}><span style={{fontSize:12,color:"#1a5c3a"}}>🌿 {lang==="it"?"Beta gratuita — registrati per salvare i preferiti!":"Free beta — sign up to save favourites!"}</span><span onClick={()=>{setAuthMode("register");go("auth");}} style={{fontSize:12,color:"#1a5c3a",cursor:"pointer",fontWeight:700}}>{t.regFree} →</span></div>}
+
         {loadingData&&<div style={{textAlign:"center",padding:"20px",color:"#6b7280",fontSize:14}}>🔄 {lang==="it"?"Caricamento locali...":"Loading venues..."}</div>}
         <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"4px 0 10px"}}>📢 {t.featured}</h3>
         {structs.filter(s=>s.sponsored).map((s,i)=><StructCard key={s.id} s={s} index={i} guestMode={isGuest}/>)}
@@ -824,7 +836,7 @@ function App(){
         </>
         :<>
           {(results||[]).filter(s=>s&&s.name).map(s=><StructCard key={s.id||s.name} s={s} index={0} guestMode={false}/>)}
-          {!premium&&results.length>=8&&<div onClick={()=>setShowUp(true)} style={{background:GREEN,color:"white",borderRadius:14,padding:18,textAlign:"center",cursor:"pointer"}}><p style={{margin:"0 0 4px",fontWeight:700}}>🔒 {t.popLimit}</p><p style={{margin:"0 0 12px",fontSize:13,opacity:.9}}>{t.popLimitSub}</p><button style={{background:"white",color:"#1a5c3a",border:"none",padding:"9px 18px",borderRadius:20,fontWeight:700,cursor:"pointer"}}>⭐ {t.upgradeNow}</button></div>}
+
         </>}
       </div>
       <BottomNav/>{showUp&&<UpgradeModal/>}<Popup/>
