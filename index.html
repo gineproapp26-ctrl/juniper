@@ -263,8 +263,14 @@ function App(){
   const FREE_LIMIT=3,FREE_STRUCTS=5,GUEST_MAX=2;
 
   React.useEffect(()=>{
-    sb.auth.getSession().then(({data:{session}})=>{
-      if(session) setUser({name:session.user.user_metadata?.name||session.user.email.split("@")[0],email:session.user.email,id:session.user.id});
+    // Ascolta i cambi di stato auth — funziona per login E registrazione
+    const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
+      if((event==="SIGNED_IN"||event==="INITIAL_SESSION")&&session?.user){
+        setUser({name:session.user.user_metadata?.name||session.user.email.split("@")[0],email:session.user.email,id:session.user.id});
+        setALoading(false);
+        setScreen("home");
+      }
+      if(event==="SIGNED_OUT"){setUser(null);setScreen("welcome");}
     });
     sb.from("structures").select("*").eq("pending",false).then(({data})=>{
       if(data&&data.length>0){
@@ -278,6 +284,7 @@ function App(){
       }
       setLoadingData(false);
     }).catch(()=>setLoadingData(false));
+    return()=>subscription.unsubscribe();
   },[]);
 
   React.useEffect(()=>{
@@ -301,32 +308,30 @@ function App(){
   const ghost={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const btnG={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
 
-  // ── AUTH ──
+  // ── AUTH — onAuthStateChange gestisce il redirect ──
   const doAuth=async()=>{
     if(!aEmail||!aPass||aLoading)return;
     setAErr("");setALoading(true);
     const nome=aName||aEmail.split("@")[0];
     if(authMode==="register"){
       const {data,error}=await sb.auth.signUp({email:aEmail,password:aPass,options:{data:{name:nome}}}).catch(e=>({data:null,error:e}));
-      setALoading(false);
       if(error){
+        setALoading(false);
         const m=(error.message||"").toLowerCase();
         if(m.includes("already")){setAErr("📧 Email già registrata. Vai su Accedi.");return;}
         if(m.includes("rate")){setAErr("⏳ Troppi tentativi. Aspetta qualche minuto.");return;}
         setAErr("❌ "+error.message);return;
       }
       sb.from("profiles").insert({id:data?.user?.id||"",name:nome,email:aEmail}).catch(()=>{});
-      setUser({name:nome,email:aEmail,id:data?.user?.id||""});
-      setAName("");setAEmail("");setAPass("");
-      setScreen("home");
+      // onAuthStateChange farà il redirect automaticamente
       return;
     }
     const {data,error}=await sb.auth.signInWithPassword({email:aEmail,password:aPass}).catch(e=>({data:null,error:e}));
-    setALoading(false);
-    if(error||!data?.user){setAErr("❌ Email o password errati");return;}
-    setUser({name:data.user.user_metadata?.name||aEmail.split("@")[0],email:aEmail,id:data.user.id});
-    setAName("");setAEmail("");setAPass("");
-    setScreen("home");
+    if(error||!data?.user){
+      setALoading(false);
+      setAErr("❌ Email o password errati");return;
+    }
+    // onAuthStateChange farà il redirect automaticamente
   };
 
   const doSearch=()=>{
