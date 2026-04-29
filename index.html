@@ -494,7 +494,20 @@ function App() {
           </div>
         </div>
       </div>
-      <div style={{marginTop:8,padding:"0 16px 8px"}}><FilterPanel/></div>
+      {/* LUOGO — fuori dal FilterPanel per evitare perdita focus */}
+      <div style={{...card,marginBottom:8}}>
+        <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📍 {lang==="it"?"Dove vuoi andare?":"Where do you want to go?"}</p>
+        <div style={{display:"flex",gap:8}}>
+          <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()}
+            placeholder={lang==="it"?"Città, zona o nome locale...":"City, area or place name..."}
+            style={{...inpStyle,flex:1,padding:"10px 14px",fontSize:13}}/>
+          <button onClick={()=>isGuest?showPopup(t.popGuestLimit,t.popGuestLimitSub,"register"):!premium?showPopup(t.popGPS,t.popGPSSub,"upgrade"):null}
+            style={{background:premium?"#1a5c3a":"#f3f4f6",color:premium?"white":"#9ca3af",border:"none",padding:"10px 14px",borderRadius:10,cursor:"pointer",fontSize:13,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>
+            📍{!premium&&" ⭐"}
+          </button>
+        </div>
+      </div>
+      <div style={{padding:"0 0 8px"}}><FilterPanel/></div>
       {isGuest&&<div style={{margin:"0 16px 10px",background:"#fef3c7",borderRadius:12,padding:"9px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
         <span style={{fontSize:12,color:"#92400e"}}>👀 {t.guestBanner}</span>
         <span onClick={()=>{setAuthMode("register");go("auth");}} style={{fontSize:12,color:"#d97706",cursor:"pointer",fontWeight:700}}>{t.registerFree} →</span>
