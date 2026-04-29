@@ -7,6 +7,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:system-ui,-apple-system,sans-serif;background:#f9fafb}
@@ -16,6 +17,10 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#f9fafb}
 <body>
 <div id="root"></div>
 <script type="text/babel">
+
+const SUPA_URL = "https://krxqmvkillgqpdlhvfxv.supabase.co";
+const SUPA_KEY = "sb_publishable_Lv2i4My4sJSy3n_ZRoNFMg_K4UxqnEv";
+const supabase = window.supabase.createClient(SUPA_URL, SUPA_KEY);
 
 const GREEN="linear-gradient(135deg,#1a5c3a,#0f3d26)";
 const TAGS={
@@ -106,11 +111,11 @@ function BusinessScreen({lang,go,GREEN,sorted}){
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const btnG2={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
 
-  const [step,setStep]=React.useState("search");
+  const [sent,setSent]=React.useState(false);
   const [q,setQ]=React.useState("");
   const [found,setFound]=React.useState([]);
   const [sel,setSel]=React.useState(null);
-  const [sent,setSent]=React.useState(false);
+  const [disclaimer,setDisclaimer]=React.useState(false);
   const [form,setForm]=React.useState({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
 
   const doSearch=()=>{
@@ -134,7 +139,7 @@ function BusinessScreen({lang,go,GREEN,sorted}){
     setStep("form");
   };
 
-  const toggleTag=k=>setForm(f=>({...f,tags:f.tags.includes(k)?f.tags.filter(x=>x!==k):[...f.tags,k]}));
+  const [step,setStep]=React.useState("search");
   const toggleMeal=k=>setForm(f=>({...f,meals:f.meals.includes(k)?f.meals.filter(x=>x!==k):[...f.meals,k]}));
   const setCross=k=>setForm(f=>({...f,cross:f.cross===k?"":k}));
 
@@ -304,7 +309,27 @@ function BusinessScreen({lang,go,GREEN,sorted}){
           </div>
         </div>
 
-        <button onClick={()=>form.email&&setSent(true)} style={{...btnG2,opacity:form.email?1:0.5,fontSize:16,padding:"15px"}}>
+        {/* DISCLAIMER LEGALE */}
+        <div style={{background:"#fef9ec",borderRadius:14,padding:16,marginBottom:14,border:"1.5px solid #fed7aa"}}>
+          <p style={{margin:"0 0 10px",fontSize:12,fontWeight:700,color:"#92400e"}}>⚖️ {lang==="it"?"Dichiarazione di responsabilità":"Liability Declaration"}</p>
+          <p style={{margin:"0 0 12px",fontSize:12,color:"#374151",lineHeight:1.6}}>
+            {lang==="it"
+              ?"Il titolare dichiara sotto la propria responsabilità che le informazioni inserite (caratteristiche alimentari, allergeni, sicurezza della cucina) sono veritiere e aggiornate. Juniper non è responsabile per eventuali inesattezze nelle informazioni fornite dall'attività. L'utente finale è sempre invitato a confermare direttamente con il locale prima di consumare."
+              :"The owner declares under their own responsibility that the information provided (dietary features, allergens, kitchen safety) is truthful and up to date. Juniper is not liable for any inaccuracies in the information provided by the business. End users are always encouraged to confirm directly with the venue before consuming."}
+          </p>
+          <label style={{display:"flex",gap:10,alignItems:"flex-start",cursor:"pointer"}}>
+            <input type="checkbox" checked={disclaimer} onChange={e=>setDisclaimer(e.target.checked)}
+              style={{marginTop:2,accentColor:"#1a5c3a",width:16,height:16,flexShrink:0}}/>
+            <span style={{fontSize:12,color:"#374151",fontWeight:600,lineHeight:1.5}}>
+              {lang==="it"
+                ?"✅ Ho letto e accetto. Confermo che le informazioni inserite sono veritiere e mi assumo la piena responsabilità dei contenuti pubblicati."
+                :"✅ I have read and agree. I confirm that the information provided is truthful and I take full responsibility for the published content."}
+            </span>
+          </label>
+        </div>
+
+        <button onClick={()=>form.email&&disclaimer&&setSent(true)}
+          style={{...btnG2,opacity:(form.email&&disclaimer)?1:0.5,fontSize:16,padding:"15px"}}>
           🌿 {tx.send}
         </button>
         <p style={{textAlign:"center",fontSize:11,color:"#9ca3af",marginTop:8}}>{tx.reply}</p>
@@ -421,19 +446,37 @@ function App(){
     setResults(res);setTab("explore");go("results","home");
   };
 
-  const doAuth=()=>{
+  const doAuth=async()=>{
     if(!aEmail||!aPass)return;
-    setUser({name:authMode==="register"?(aName||aEmail.split("@")[0]):aEmail.split("@")[0],email:aEmail});
+    setAuthError("");
+    if(authMode==="register"){
+      const {data,error}=await supabase.auth.signUp({email:aEmail,password:aPass,options:{data:{name:aName||aEmail.split("@")[0]}}});
+      if(error){setAuthError(error.message);return;}
+      if(data.user){
+        await supabase.from("profiles").insert({id:data.user.id,name:aName||aEmail.split("@")[0],email:aEmail});
+        setUser({name:aName||aEmail.split("@")[0],email:aEmail,id:data.user.id});
+      }
+    } else {
+      const {data,error}=await supabase.auth.signInWithPassword({email:aEmail,password:aPass});
+      if(error){setAuthError(lang==="it"?"Email o password errati":"Wrong email or password");return;}
+      if(data.user) setUser({name:data.user.user_metadata?.name||aEmail.split("@")[0],email:aEmail,id:data.user.id});
+    }
     setAName("");setAEmail("");setAPass("");closeP();go("home");
   };
 
-  const addRev=sid=>{
+  const addRev=async(sid)=>{
     if(isGuest){showP(t.popReview,t.popReviewSub,"register");return;}
     if(!nr.text.trim())return;
-    const r={id:Date.now(),user:user.name,rating:nr.rating,text:nr.text,date:new Date().toISOString().split("T")[0]};
-    setRevs(rv=>({...rv,[sid]:[...(rv[sid]||[]),r]}));
-    setNr({rating:5,text:""});setRevOk(true);
-    setTimeout(()=>setRevOk(false),2500);
+    const {data,error}=await supabase.from("reviews").insert({
+      structure_id:sid, user_id:user.id, user_name:user.name,
+      rating:nr.rating, text:nr.text
+    }).select();
+    if(!error){
+      await supabase.from("structures").update({review_count:((sel?.reviewCount||0)+1)}).eq("id",sid);
+      setNr({rating:5,text:""});setRevOk(true);
+      await loadReviews(sid);
+      setTimeout(()=>setRevOk(false),2500);
+    }
   };
 
   const SrcBadge=({source})=>{
@@ -603,6 +646,7 @@ function App(){
           <input type="password" value={aPass} onChange={e=>setAPass(e.target.value)} style={inp} placeholder="••••••••"/>
         </div>
         <button onClick={doAuth} style={btnG}>{authMode==="login"?t.login:t.register}</button>
+        {authError&&<p style={{margin:"8px 0 0",fontSize:13,color:"#ef4444",textAlign:"center"}}>❌ {authError}</p>}
         <p style={{textAlign:"center",marginTop:14,fontSize:13,color:"#6b7280",margin:0}}>
           {authMode==="login"?(lang==="it"?"Non hai un account?":"No account?"):(lang==="it"?"Hai già un account?":"Have an account?")}{" "}
           <span onClick={()=>setAuthMode(m=>m==="login"?"register":"login")} style={{color:"#1a5c3a",cursor:"pointer",fontWeight:600}}>{authMode==="login"?t.register:t.login}</span>
@@ -731,6 +775,7 @@ function App(){
 
   // DETAIL
   if(screen==="detail"&&sel){
+    React.useEffect(()=>{loadReviews(sel.id);},[sel.id]);
     const s=sel,sRevs=revs[s.id]||[];
     return(
       <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}>
@@ -833,7 +878,7 @@ function App(){
           <button onClick={tl} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>
             🌐 {lang==="it"?"Switch to English":"Passa all'italiano"}
           </button>
-          <button onClick={()=>{setUser(null);setScreen("welcome");setPremium(false);setCnt(0);setTab("home");}} style={{width:"100%",background:"#fef2f2",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#ef4444",textAlign:"left"}}>
+          <button onClick={async()=>{await supabase.auth.signOut();setUser(null);setScreen("welcome");setPremium(false);setCnt(0);setTab("home");}} style={{width:"100%",background:"#fef2f2",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#ef4444",textAlign:"left"}}>
             🚪 {t.logout}
           </button>
         </div>
