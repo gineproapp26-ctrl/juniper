@@ -287,6 +287,11 @@ function App() {
         ))}
       </div>
       <p style={{margin:"4px 0 0",fontSize:10,color:"#9ca3af"}}>{t.crossLegend}</p>
+      {(tagFilters.length>0||mealFilter)&&(
+        <button onClick={doSearch} style={{width:"100%",background:GREEN,color:"white",border:"none",padding:"11px",borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",marginTop:14}}>
+          🔍 {t.searchBtn} {tagFilters.length>0||mealFilter?`(${[...tagFilters,mealFilter].filter(Boolean).length} ${lang==="it"?"filtri attivi":"active filters"})`:""} 
+        </button>
+      )}
     </div>
   );
 
