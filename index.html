@@ -21,7 +21,7 @@ body{font-family:system-ui,-apple-system,sans-serif;background:#f9fafb}
 // ── SUPABASE ──
 const sb = window.supabase.createClient(
   "https://krxqmvkillgqpdlhvfxv.supabase.co",
-  "sb_publishable_Lv2i4My4sJSy3n_ZRoNFMg_K4UxqnEv"
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtyeHFtdmtpbGxncXBkbGh2Znh2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc0Njk2MjYsImV4cCI6MjA5MzA0NTYyNn0.Ceb4fljxIclKX6D3luzlOfjpzcaEnF2cYkJM0qxOoFo"
 );
 
 // ── COSTANTI ──
@@ -331,10 +331,12 @@ function App(){
             name:aName||aEmail.split("@")[0],
             email:aEmail
           }).catch(()=>{});
-          setUser({name:aName||aEmail.split("@")[0],email:aEmail,id:data.user.id});
+          // Auto login subito dopo registrazione
+          const {data:loginData}=await sb.auth.signInWithPassword({email:aEmail,password:aPass});
+          const u=loginData?.user||data.user;
+          setUser({name:aName||aEmail.split("@")[0],email:aEmail,id:u.id});
           setAName("");setAEmail("");setAPass("");closeP();go("home");
         } else {
-          // Email confirmation attiva — utente deve confermare email
           setAErr(lang==="it"
             ?"📬 Controlla la tua email per confermare la registrazione, poi torna qui ad accedere!"
             :"📬 Check your email to confirm registration, then come back to sign in!");
