@@ -428,13 +428,18 @@ function App(){
       const mm=!mealFilter||s.meals.includes(mealFilter);
       return mq&&mf&&mm;
     });
-    // Aggiungi risultati da Google Places
-    if(q&&window._gmapReady){
-      const gRes=await searchGooglePlaces(q,tagFilters);
-      const existing=new Set(res.map(s=>s.name.toLowerCase()));
-      const newG=gRes.filter(g=>!existing.has(g.name.toLowerCase()));
-      res=[...res,...newG];
-    }
+    // Aggiungi risultati da Google Places (con timeout di sicurezza)
+    try{
+      if(q&&window._gmapReady){
+        const gRes=await Promise.race([
+          searchGooglePlaces(q,tagFilters),
+          new Promise(r=>setTimeout(()=>r([]),4000))
+        ]);
+        const existing=new Set(res.map(s=>s.name.toLowerCase()));
+        const newG=gRes.filter(g=>!existing.has(g.name.toLowerCase()));
+        res=[...res,...newG];
+      }
+    }catch(e){}
     if(isGuest){setGuestSearches(1);res=res.slice(0,GUEST_MAX);}
     else if(!premium){setCnt(c=>c+1);}
     setResults(res);setTab("explore");go("results","home");
