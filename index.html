@@ -119,16 +119,11 @@ function BusinessScreen({lang,go}){
         const addr=p.shortFormattedAddress||p.formattedAddress||"";
         const parts=(p.formattedAddress||"").split(",");
         const city=parts.length>2?parts[parts.length-3]?.trim()||"Italia":"Italia";
-        const nl=name.toLowerCase(),ql=textQuery.toLowerCase();
-        const ptags=[];
-        if(nl.includes("gluten")||nl.includes("celiach")||ql.includes("gluten"))ptags.push("gluten_free");
-        if(nl.includes("vegan")||ql.includes("vegan"))ptags.push("vegan");
-        if(nl.includes("vegetar")||ql.includes("vegetar"))ptags.push("vegetarian");
         return{
           id:"g_"+(p.id||Math.random().toString(36)),
           name,type,city,country:"Italia",address:addr,phone:"",
           description:type+" · "+city,emoji,
-          tags:ptags, // solo tag dichiarati esplicitamente nel nome
+          tags:[], // nessun tag automatico — vengono dalle recensioni
           meals:type==="bar"?["breakfast","aperitivo"]:["lunch","dinner"],
           source:"google",certified:false,sponsored:false,
           rating:p.rating||null,reviewCount:p.userRatingCount||0,
@@ -428,7 +423,7 @@ function App(){
     // Recensioni Google Places per locali non verificati
     if(sel.source==="google"&&sel.id.startsWith("g_")){
       const placeId=sel.id.replace("g_","");
-      fetch(`https://places.googleapis.com/v1/places/${placeId}?fields=reviews,editorialSummary`,{
+      fetch(`https://places.googleapis.com/v1/places/${placeId}`,{
         headers:{
           "X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck",
           "X-Goog-FieldMask":"reviews,editorialSummary"
@@ -443,6 +438,18 @@ function App(){
           source:"google"
         })).filter(r=>r.text);
         if(gRevs.length>0){
+          // Scansiona le recensioni per tag dietetici
+          const allText=gRevs.map(r=>r.text.toLowerCase()).join(" ");
+          const revTags=[];
+          if(allText.includes("gluten")||allText.includes("celiach")||allText.includes("senza glutine"))revTags.push("gluten_free");
+          if(allText.includes("vegan")||allText.includes("vegano")||allText.includes("vegana"))revTags.push("vegan");
+          if(allText.includes("vegetar"))revTags.push("vegetarian");
+          if(allText.includes("lattosio")||allText.includes("lactose")||allText.includes("senza latte"))revTags.push("lactose_free");
+          if(allText.includes("pet")||allText.includes("cane")||allText.includes("animali"))revTags.push("pet_friendly");
+          // Aggiorna il locale con i tag trovati nelle recensioni
+          if(revTags.length>0){
+            setSel(prev=>({...prev,reviewTags:revTags}));
+          }
           setRevs(r=>({...r,[sel.id]:[...(r[sel.id]||[]),...gRevs]}));
         }
       }).catch(()=>{});
@@ -519,16 +526,11 @@ function App(){
         const addr=p.shortFormattedAddress||p.formattedAddress||"";
         const parts=(p.formattedAddress||"").split(",");
         const city=parts.length>2?parts[parts.length-3]?.trim()||"Italia":"Italia";
-        const nl=name.toLowerCase(),ql=textQuery.toLowerCase();
-        const ptags=[];
-        if(nl.includes("gluten")||nl.includes("celiach")||ql.includes("gluten"))ptags.push("gluten_free");
-        if(nl.includes("vegan")||ql.includes("vegan"))ptags.push("vegan");
-        if(nl.includes("vegetar")||ql.includes("vegetar"))ptags.push("vegetarian");
         return{
           id:"g_"+(p.id||Math.random().toString(36)),
           name,type,city,country:"Italia",address:addr,phone:"",
           description:type+" · "+city,emoji,
-          tags:ptags, // solo tag dichiarati esplicitamente nel nome
+          tags:[], // nessun tag automatico — vengono dalle recensioni
           meals:type==="bar"?["breakfast","aperitivo"]:["lunch","dinner"],
           source:"google",certified:false,sponsored:false,
           rating:p.rating||null,reviewCount:p.userRatingCount||0,
@@ -850,7 +852,16 @@ function App(){
         <div style={{padding:"0 16px",marginTop:-14}}>
           <div style={card}>
             <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>{s.meals.map(m=><span key={m} style={{background:"#fef9ec",color:"#d97706",fontSize:13,padding:"5px 11px",borderRadius:20,fontWeight:600}}>{MEALS[m]?.icon} {MEALS[m]?.[lang]}</span>)}</div>
-            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{s.tags.map(k=><span key={k} style={{background:TAGS[k]?.color+"22",color:TAGS[k]?.color,fontSize:12,padding:"4px 10px",borderRadius:20,fontWeight:600}}>{TAGS[k]?.icon} {TAGS[k]?.[lang]}</span>)}</div>
+            <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+              {s.tags.map(k=><span key={k} style={{background:TAGS[k]?.color+"22",color:TAGS[k]?.color,fontSize:12,padding:"4px 10px",borderRadius:20,fontWeight:600}}>{TAGS[k]?.icon} {TAGS[k]?.[lang]}</span>)}
+            </div>
+            {s.reviewTags&&s.reviewTags.length>0&&<div style={{marginTop:8}}>
+              <p style={{margin:"0 0 6px",fontSize:11,color:"#6b7280",fontWeight:700}}>💬 {lang==="it"?"Segnalato nelle recensioni:":"Mentioned in reviews:"}</p>
+              <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
+                {s.reviewTags.map(k=><span key={k} style={{background:"#fef9ec",color:"#92400e",fontSize:11,padding:"3px 8px",borderRadius:20,border:"1px dashed #fcd34d"}}>💬 {TAGS[k]?.[lang]}</span>)}
+              </div>
+              <p style={{margin:"6px 0 0",fontSize:10,color:"#9ca3af"}}>{lang==="it"?"Basato sulle recensioni degli utenti, non verificato da Juniper":"Based on user reviews, not verified by Juniper"}</p>
+            </div>}
           </div>
           <div style={card}>
             <p style={{margin:"0 0 10px",fontSize:14,color:"#374151",lineHeight:1.6}}>{s.description}</p>
