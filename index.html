@@ -8,9 +8,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <style>
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, -apple-system, sans-serif; background: #f9fafb; }
-  #root { max-width: 480px; margin: 0 auto; min-height: 100vh; }
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, -apple-system, sans-serif; background: #f9fafb; }
+#root { max-width: 480px; margin: 0 auto; min-height: 100vh; }
 </style>
 </head>
 <body>
@@ -20,15 +20,15 @@
 const GREEN = "linear-gradient(135deg,#1a5c3a,#0f3d26)";
 
 const TAGS = {
-  gluten_free:  { it:"Gluten Free",   en:"Gluten Free",   icon:"🌾", color:"#f59e0b" },
-  lactose_free: { it:"Lactose Free",  en:"Lactose Free",  icon:"🥛", color:"#3b82f6" },
-  combo_free:   { it:"Glutine & Lattosio Free", en:"Gluten & Lactose Free", icon:"✨", color:"#e05c1a" },
-  vegan:        { it:"Vegano",        en:"Vegan",         icon:"🌱", color:"#10b981" },
-  vegetarian:   { it:"Vegetariano",   en:"Vegetarian",    icon:"🥗", color:"#84cc16" },
-  pet_friendly: { it:"Pet Friendly",  en:"Pet Friendly",  icon:"🐾", color:"#8b5cf6" },
-  no_cross:     { it:"Cucina Dedicata", en:"Dedicated Kitchen", icon:"✅", color:"#065f46" },
-  low_cross:    { it:"Attenzione Max",  en:"Extra Care",        icon:"⚠️", color:"#d97706" },
-  high_cross:   { it:"Cucina Condivisa",en:"Shared Kitchen",    icon:"❌", color:"#dc2626" },
+  gluten_free:  { it:"Gluten Free",             en:"Gluten Free",           icon:"🌾", color:"#f59e0b" },
+  lactose_free: { it:"Lactose Free",             en:"Lactose Free",          icon:"🥛", color:"#3b82f6" },
+  combo_free:   { it:"Glutine & Lattosio Free",  en:"Gluten & Lactose Free", icon:"✨", color:"#e05c1a" },
+  vegan:        { it:"Vegano",                   en:"Vegan",                 icon:"🌱", color:"#10b981" },
+  vegetarian:   { it:"Vegetariano",              en:"Vegetarian",            icon:"🥗", color:"#84cc16" },
+  pet_friendly: { it:"Pet Friendly",             en:"Pet Friendly",          icon:"🐾", color:"#8b5cf6" },
+  no_cross:     { it:"Cucina Dedicata",          en:"Dedicated Kitchen",     icon:"✅", color:"#065f46" },
+  low_cross:    { it:"Attenzione Massima",       en:"Extra Care",            icon:"⚠️", color:"#d97706" },
+  high_cross:   { it:"Cucina Condivisa",         en:"Shared Kitchen",        icon:"❌", color:"#dc2626" },
 };
 
 const MEALS = {
@@ -56,10 +56,8 @@ const SOURCES = {
 };
 
 const T = {
-  it:{ appName:"Juniper", tagline:"Trova il posto perfetto per le tue esigenze",
-    guest:"Esplora senza registrarti", login:"Accedi", register:"Registrati",
-    search:"Cerca città, zona o struttura...", filters:"Caratteristiche",
-    mealFilter:"Tipo di pasto", allMeals:"Tutti i pasti",
+  it:{ appName:"Juniper", hi:"Ciao", guest:"Ospite", login:"Accedi", register:"Registrati",
+    mealFilter:"Tipo di pasto", allMeals:"Tutti i pasti", filters:"Caratteristiche",
     certified:"Certificato", sponsored:"In evidenza", reviews:"recensioni",
     upgradeNow:"Passa a Premium", monthlyPlan:"Piano Mensile", yearlyPlan:"Piano Annuale",
     perMonth:"/mese", perYear:"/anno", yearSave:"Risparmia 6€",
@@ -67,13 +65,20 @@ const T = {
     leaveReview:"Lascia una recensione", placeholder:"Scrivi la tua recensione...",
     submit:"Invia", home:"Home", explore:"Esplora", profile:"Profilo",
     results:"Risultati", noResults:"Nessun risultato", found:"trovate",
-    hi:"Ciao", featured:"In evidenza", nearby:"Strutture in Italia",
+    featured:"In evidenza", nearby:"Strutture in Italia",
     freePlan:"Piano Gratuito", premiumPlan:"Piano Premium",
     searchesUsed:"Ricerche usate", of:"di",
     selectPlan:"Scegli il piano", cancel:"Annulla", logout:"Esci", back:"Indietro",
     upgrade:"Upgrade", reviewAdded:"Recensione aggiunta! ✅",
     ristorante:"Ristorante", bar:"Bar & Café", noRev:"Nessuna recensione ancora",
-    searchBtn:"Cerca", nearMe:"Dintorni", popGPS:"Funzione Premium 📍",
+    searchBtn:"Cerca",
+    whereLabel:"Dove vuoi andare?",
+    wherePlaceholder:"Città, zona o nome locale...",
+    nearMe:"Vicino a me",
+    kitchenSafety:"🔬 Sicurezza in cucina",
+    kitchenSub:"Il locale garantisce assenza di contaminazione crociata?",
+    kitchenLegend:"✅ cucina separata · ⚠️ non garantisce · ❌ cucina condivisa",
+    popGPS:"Funzione Premium 📍",
     popGPSSub:"Attiva la posizione per trovare strutture vicino a te. Disponibile con Premium.",
     popGuestLimit:"Contenuto riservato 🌿",
     popGuestLimitSub:"Registrati gratis per sbloccare più strutture!",
@@ -84,17 +89,10 @@ const T = {
     popSearch:"Ricerche esaurite 🔍",
     popSearchSub:"Con Premium cerchi senza limiti.",
     registerFree:"Registrati gratis", goPremium:"Vai a Premium", orLogin:"Hai già un account?",
-    guestBanner:"Ospite: solo 2 strutture visibili",
-    freeBanner:"Piano gratuito",
-    locating:"Ricerca in corso...", nearbyResults:"Vicino a te",
-    crossSection:"Contaminazione crociata",
-    crossLegend:"✅ cucina separata · ⚠️ attenzione · ❌ cucina condivisa",
-    bizBtn:"Registra la tua attività",
+    freeBanner:"Piano gratuito", bizBtn:"Registra la tua attività",
   },
-  en:{ appName:"Juniper", tagline:"Find the perfect place for your needs",
-    guest:"Explore without signing up", login:"Sign In", register:"Register",
-    search:"Search city, area or place...", filters:"Features",
-    mealFilter:"Meal type", allMeals:"All meals",
+  en:{ appName:"Juniper", hi:"Hi", guest:"Guest", login:"Sign In", register:"Register",
+    mealFilter:"Meal type", allMeals:"All meals", filters:"Features",
     certified:"Certified", sponsored:"Featured", reviews:"reviews",
     upgradeNow:"Go Premium", monthlyPlan:"Monthly Plan", yearlyPlan:"Yearly Plan",
     perMonth:"/month", perYear:"/year", yearSave:"Save €6",
@@ -102,13 +100,20 @@ const T = {
     leaveReview:"Leave a review", placeholder:"Write your review...",
     submit:"Submit", home:"Home", explore:"Explore", profile:"Profile",
     results:"Results", noResults:"No results", found:"found",
-    hi:"Hi", featured:"Featured", nearby:"Structures in Italy",
+    featured:"Featured", nearby:"Structures in Italy",
     freePlan:"Free Plan", premiumPlan:"Premium Plan",
     searchesUsed:"Searches used", of:"of",
     selectPlan:"Choose your plan", cancel:"Cancel", logout:"Sign Out", back:"Back",
     upgrade:"Upgrade", reviewAdded:"Review added! ✅",
     ristorante:"Restaurant", bar:"Bar & Café", noRev:"No reviews yet",
-    searchBtn:"Search", nearMe:"Nearby", popGPS:"Premium Feature 📍",
+    searchBtn:"Search",
+    whereLabel:"Where do you want to go?",
+    wherePlaceholder:"City, area or place name...",
+    nearMe:"Near me",
+    kitchenSafety:"🔬 Kitchen Safety",
+    kitchenSub:"Does the venue guarantee no cross-contamination?",
+    kitchenLegend:"✅ separate kitchen · ⚠️ not guaranteed · ❌ shared kitchen",
+    popGPS:"Premium Feature 📍",
     popGPSSub:"Enable location to find structures near you. Available with Premium.",
     popGuestLimit:"Members only 🌿",
     popGuestLimitSub:"Sign up free to unlock more structures!",
@@ -119,17 +124,12 @@ const T = {
     popSearch:"Searches used up 🔍",
     popSearchSub:"With Premium you can search without limits.",
     registerFree:"Sign up free", goPremium:"Go Premium", orLogin:"Already have an account?",
-    guestBanner:"Guest: only 2 structures visible",
-    freeBanner:"Free plan",
-    locating:"Searching...", nearbyResults:"Near you",
-    crossSection:"Cross Contamination",
-    crossLegend:"✅ separate kitchen · ⚠️ extra care · ❌ shared kitchen",
-    bizBtn:"Register your business",
+    freeBanner:"Free plan", bizBtn:"Register your business",
   }
 };
 
 const GUEST_STRUCTS=2, FREE_LIMIT=3, FREE_STRUCTS=5;
-const inpStyle={width:"100%",padding:12,borderRadius:10,border:"1.5px solid #e5e7eb",fontSize:15,boxSizing:"border-box",fontFamily:"inherit",outline:"none"};
+const S = { input:{width:"100%",padding:"10px 14px",borderRadius:10,border:"1.5px solid #e5e7eb",fontSize:14,fontFamily:"inherit",outline:"none",boxSizing:"border-box"}, card:{background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:10} };
 
 function App() {
   const [lang,setLang]=React.useState("it");
@@ -146,7 +146,7 @@ function App() {
   const [cnt,setCnt]=React.useState(0);
   const [popup,setPopup]=React.useState(null);
   const [showUp,setShowUp]=React.useState(false);
-  const [revs,setRevs]=React.useState({1:[{id:1,user:"Marco R.",rating:5,text:"Ottimo! Molto attenti alle intolleranze.",date:"2024-03-15"}]});
+  const [revs,setRevs]=React.useState({1:[{id:1,user:"Marco R.",rating:5,text:"Ottimo! Molto attenti alle intolleranze.",date:"2024-03-15"}],4:[{id:1,user:"Lucia V.",rating:5,text:"Finalmente un posto sicuro per chi è intollerante a glutine e lattosio!",date:"2024-04-01"}]});
   const [nr,setNr]=React.useState({rating:5,text:""});
   const [revOk,setRevOk]=React.useState(false);
   const [tab,setTab]=React.useState("home");
@@ -164,18 +164,18 @@ function App() {
   const showPopup=(title,sub,type)=>setPopup({title,sub,type});
   const closePopup=()=>setPopup(null);
 
-  const sortedStructures = [...STRUCTURES].sort((a,b)=>{
+  const sorted=[...STRUCTURES].sort((a,b)=>{
     const r={registered:3,verified:2,google:1};
-    return (r[b.source]||0)-(r[a.source]||0) || Number(b.sponsored)-Number(a.sponsored);
+    return(r[b.source]||0)-(r[a.source]||0)||Number(b.sponsored)-Number(a.sponsored);
   });
 
   const doSearch=()=>{
     if(isGuest&&guestSearches>=1){showPopup(t.popGuestLimit,t.popGuestLimitSub,"register");return;}
     if(!premium&&cnt>=FREE_LIMIT){showPopup(t.popSearch,t.popSearchSub,"upgrade");return;}
-    let res=sortedStructures.filter(s=>{
+    let res=sorted.filter(s=>{
       const mq=!q||s.name.toLowerCase().includes(q.toLowerCase())||s.city.toLowerCase().includes(q.toLowerCase());
       const mf=tagFilters.length===0||tagFilters.every(f=>s.tags.includes(f));
-      const mm=!mealFilter||s.meals.includes(mealFilter);
+      const mm=!mealFilter||(s.meals&&s.meals.includes(mealFilter));
       return mq&&mf&&mm;
     });
     if(isGuest){setGuestSearches(1);res=res.slice(0,GUEST_STRUCTS);}
@@ -199,29 +199,29 @@ function App() {
   };
 
   const ghost={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
-  const btnG={background:GREEN,color:"white",border:"none",padding:"13px 20px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
-  const card={background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:12};
+  const btnG={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
 
-  const LogoSVG=({size=22,white=true})=>(
-    <svg width={size} height={size*1.6} viewBox="0 0 40 64" style={{display:"block",flexShrink:0}}>
+  const Logo=({size=18,white=true})=>(
+    <svg width={size} height={size*1.7} viewBox="0 0 40 68" style={{display:"block",flexShrink:0}}>
       <circle cx="20" cy="12" r="12" fill={white?"white":"#1a5c3a"}/>
-      <circle cx="14" cy="7" r="3.5" fill={white?"#1a5c3a":"white"} opacity="0.4"/>
-      <path d="M20,24 L20,50 Q20,62 6,62" fill="none" stroke={white?"white":"#1a5c3a"} strokeWidth="7" strokeLinecap="round" strokeLinejoin="round"/>
+      <circle cx="14" cy="7" r="3" fill={white?"#1a5c3a":"white"} opacity="0.35"/>
+      <path d="M20,24 L20,52 Q20,66 6,66" fill="none" stroke={white?"white":"#1a5c3a"} strokeWidth="7" strokeLinecap="round" strokeLinejoin="round"/>
     </svg>
   );
 
-  const SourceBadge=({source})=>{
-    const s=SOURCES[source];
-    if(!s)return null;
+  const SrcBadge=({source})=>{
+    const s=SOURCES[source]; if(!s)return null;
     return <span style={{background:s.bg,color:s.color,fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:10,whiteSpace:"nowrap"}}>{s.icon} {s[lang]}</span>;
   };
 
-  const StructCard=({s,index,guestMode})=>{
+  const Card=({s,index,guestMode})=>{
     const locked=guestMode&&index>=GUEST_STRUCTS;
+    const dietTags=Object.keys(TAGS).filter(k=>!["no_cross","low_cross","high_cross"].includes(k));
+    const crossTags=["no_cross","low_cross","high_cross"];
     return(
       <div onClick={()=>{if(locked){showPopup(t.popGuestLimit,t.popGuestLimitSub,"register");return;}setSel(s);go("detail",screen);}}
-        style={{...card,border:s.sponsored?"2px solid #f59e0b":"2px solid transparent",cursor:"pointer",marginBottom:10,position:"relative",filter:locked?"blur(3px)":"none"}}>
-        {locked&&<div style={{position:"absolute",inset:0,background:"rgba(255,255,255,0.55)",borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",zIndex:2,flexDirection:"column",gap:5}}>
+        style={{...S.card,border:s.sponsored?"2px solid #f59e0b":"2px solid transparent",cursor:"pointer",position:"relative",filter:locked?"blur(3px)":"none"}}>
+        {locked&&<div style={{position:"absolute",inset:0,background:"rgba(255,255,255,0.6)",borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",zIndex:2,flexDirection:"column",gap:5}}>
           <span style={{fontSize:26}}>🔒</span>
           <span style={{fontSize:11,color:"#1a5c3a",fontWeight:700,background:"#d1fae5",padding:"3px 10px",borderRadius:10}}>{t.registerFree}</span>
         </div>}
@@ -230,20 +230,19 @@ function App() {
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:"flex",justifyContent:"space-between",gap:4,marginBottom:3}}>
               <h4 style={{margin:0,fontSize:14,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</h4>
-              <div style={{display:"flex",gap:3,flexShrink:0,flexWrap:"wrap",justifyContent:"flex-end"}}>
+              <div style={{display:"flex",gap:3,flexShrink:0}}>
                 {s.sponsored&&<span style={{background:"#fef3c7",color:"#d97706",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:10}}>📢</span>}
                 {s.certified&&<span style={{background:"#d1fae5",color:"#065f46",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:10}}>✅</span>}
-                <SourceBadge source={s.source}/>
+                <SrcBadge source={s.source}/>
               </div>
             </div>
             <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280"}}>📍 {s.city}, {s.country}</p>
             <div style={{display:"flex",gap:3,flexWrap:"wrap",marginBottom:3}}>
-              {s.meals.map(m=><span key={m} style={{background:"#fef9ec",color:"#d97706",fontSize:10,padding:"2px 6px",borderRadius:10}}>{MEALS[m]?.icon} {MEALS[m]?.[lang]}</span>)}
+              {(s.meals||[]).map(m=><span key={m} style={{background:"#fef9ec",color:"#d97706",fontSize:10,padding:"2px 6px",borderRadius:10}}>{MEALS[m]?.icon} {MEALS[m]?.[lang]}</span>)}
             </div>
             <div style={{display:"flex",gap:3,flexWrap:"wrap",marginBottom:3}}>
-              {s.tags.filter(tg=>TAGS[tg]?.color!=="#dc2626"&&TAGS[tg]?.color!=="#d97706"&&TAGS[tg]?.color!=="#065f46").map(tg=>(
-                <span key={tg} style={{background:TAGS[tg]?.color+"22",color:TAGS[tg]?.color,fontSize:10,padding:"2px 6px",borderRadius:10}}>{TAGS[tg]?.icon} {TAGS[tg]?.[lang]}</span>
-              ))}
+              {s.tags.filter(k=>dietTags.includes(k)).map(k=><span key={k} style={{background:TAGS[k]?.color+"22",color:TAGS[k]?.color,fontSize:10,padding:"2px 6px",borderRadius:10}}>{TAGS[k]?.icon} {TAGS[k]?.[lang]}</span>)}
+              {s.tags.filter(k=>crossTags.includes(k)).map(k=><span key={k} style={{background:TAGS[k]?.color+"22",color:TAGS[k]?.color,fontSize:10,padding:"2px 6px",borderRadius:10}}>{TAGS[k]?.icon}</span>)}
             </div>
             {s.rating&&<div style={{display:"flex",alignItems:"center",gap:4}}>
               <span style={{color:"#f59e0b",fontSize:11}}>⭐</span>
@@ -255,68 +254,6 @@ function App() {
       </div>
     );
   };
-
-  const FilterPanel=()=>(
-    <div style={card}>
-      {/* LUOGO */}
-      <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📍 {lang==="it"?"Dove vuoi andare?":"Where do you want to go?"}</p>
-      <div style={{display:"flex",gap:8,marginBottom:14}}>
-        <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()}
-          placeholder={lang==="it"?"Città, zona o nome locale...":"City, area or place name..."}
-          style={{...inpStyle,flex:1,padding:"10px 14px",fontSize:13}}/>
-        <button onClick={()=>isGuest?showPopup(t.popGuestLimit,t.popGuestLimitSub,"register"):!premium?showPopup(t.popGPS,t.popGPSSub,"upgrade"):null}
-          style={{background:premium?"#1a5c3a":"#f3f4f6",color:premium?"white":"#9ca3af",border:"none",padding:"10px 14px",borderRadius:10,cursor:"pointer",fontSize:13,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>
-          📍 {lang==="it"?"Vicino a me":"Near me"}{!premium&&" ⭐"}
-        </button>
-      </div>
-
-      {/* TIPO PASTO */}
-      <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.mealFilter}</p>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
-        <button onClick={()=>setMealFilter(null)} style={{background:!mealFilter?"#1f2937":"#f3f4f6",color:!mealFilter?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:!mealFilter?700:400}}>🍽️ {t.allMeals}</button>
-        {Object.entries(MEALS).map(([k,m])=>(
-          <button key={k} onClick={()=>isGuest?showPopup(t.popGuestLimit,t.popGuestLimitSub,"register"):setMealFilter(mealFilter===k?null:k)}
-            style={{background:mealFilter===k?"#1f2937":"#f3f4f6",color:mealFilter===k?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:mealFilter===k?700:400}}>
-            {m.icon} {m[lang]}
-          </button>
-        ))}
-      </div>
-
-      {/* CARATTERISTICHE */}
-      <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.filters}</p>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
-        {Object.entries(TAGS).filter(([,tg])=>!["#065f46","#d97706","#dc2626"].includes(tg.color)).map(([k,tg])=>(
-          <button key={k} onClick={()=>isGuest?showPopup(t.popGuestLimit,t.popGuestLimitSub,"register"):toggleTag(k)}
-            style={{background:tagFilters.includes(k)?tg.color:"#f3f4f6",color:tagFilters.includes(k)?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:tagFilters.includes(k)?700:400}}>
-            {tg.icon} {tg[lang]}
-          </button>
-        ))}
-      </div>
-
-      {/* CONTAMINAZIONE */}
-      <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>
-        {lang==="it"?"🔬 Sicurezza in cucina":"🔬 Kitchen Safety"}
-      </p>
-      <p style={{margin:"0 0 8px",fontSize:11,color:"#9ca3af"}}>{lang==="it"?"Il locale garantisce assenza di contaminazione crociata?":"Does the venue guarantee no cross-contamination?"}</p>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:4}}>
-        {Object.entries(TAGS).filter(([,tg])=>["#065f46","#d97706","#dc2626"].includes(tg.color)).map(([k,tg])=>(
-          <button key={k} onClick={()=>isGuest?showPopup(t.popGuestLimit,t.popGuestLimitSub,"register"):toggleTag(k)}
-            style={{background:tagFilters.includes(k)?tg.color:"#f3f4f6",color:tagFilters.includes(k)?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:tagFilters.includes(k)?700:400}}>
-            {tg.icon} {tg[lang]}
-          </button>
-        ))}
-      </div>
-      <p style={{margin:"6px 0 14px",fontSize:10,color:"#9ca3af"}}>✅ {lang==="it"?"cucina separata":"separate kitchen"} · ⚠️ {lang==="it"?"non garantisce":"not guaranteed"} · ❌ {lang==="it"?"cucina condivisa":"shared kitchen"}</p>
-
-      {/* BOTTONE CERCA GRANDE */}
-      <button onClick={doSearch} style={{width:"100%",background:GREEN,color:"white",border:"none",padding:"14px",borderRadius:12,fontWeight:700,fontSize:16,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:8}}>
-        🔍 {t.searchBtn}
-        {(tagFilters.length>0||mealFilter||q)&&<span style={{background:"rgba(255,255,255,0.25)",fontSize:12,padding:"2px 8px",borderRadius:10}}>
-          {[q&&"1",...tagFilters,mealFilter].filter(Boolean).length} {lang==="it"?"filtri":"filters"}
-        </span>}
-      </button>
-    </div>
-  );
 
   const BottomNav=()=>(
     <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"space-around",padding:"8px 0 10px",zIndex:100,boxShadow:"0 -4px 15px rgba(0,0,0,.06)"}}>
@@ -338,7 +275,7 @@ function App() {
       <div style={{background:"white",width:"100%",maxWidth:480,borderRadius:"24px 24px 0 0",padding:"28px 24px 36px"}}>
         <div style={{textAlign:"center",marginBottom:20}}>
           <div style={{fontSize:44}}>⭐</div>
-          <h2 style={{margin:"8px 0 6px",fontSize:21,fontWeight:800}}>{t.selectPlan}</h2>
+          <h2 style={{margin:"8px 0 6px",fontSize:20,fontWeight:800}}>{t.selectPlan}</h2>
           <p style={{margin:0,fontSize:14,color:"#6b7280"}}>{t.features}</p>
         </div>
         {[{lbl:t.yearlyPlan,price:"30€",sub:t.yearSave,best:true},{lbl:t.monthlyPlan,price:"3€",sub:t.perMonth,best:false}].map((p,i)=>(
@@ -351,7 +288,7 @@ function App() {
             {p.best&&<span style={{position:"absolute",top:-10,right:12,background:"#1a5c3a",color:"white",fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:10}}>BEST</span>}
           </div>
         ))}
-        <button onClick={()=>{setShowUp(false);closePopup();}} style={{width:"100%",background:"#f9fafb",border:"none",padding:13,borderRadius:12,fontSize:14,color:"#6b7280",cursor:"pointer"}}>{t.cancel}</button>
+        <button onClick={()=>{setShowUp(false);closePopup();}} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:12,fontSize:14,color:"#6b7280",cursor:"pointer"}}>{t.cancel}</button>
       </div>
     </div>
   );
@@ -362,14 +299,14 @@ function App() {
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20}}>
         <div style={{background:"white",width:"100%",maxWidth:340,borderRadius:20,padding:28,textAlign:"center"}}>
           <div style={{fontSize:44,marginBottom:10}}>{popup.type==="register"?"🌿":popup.type==="upgrade"?"⭐":"📍"}</div>
-          <h3 style={{margin:"0 0 8px",fontSize:17,fontWeight:800,color:"#1f2937"}}>{popup.title}</h3>
+          <h3 style={{margin:"0 0 8px",fontSize:17,fontWeight:800}}>{popup.title}</h3>
           <p style={{margin:"0 0 20px",fontSize:14,color:"#6b7280",lineHeight:1.5}}>{popup.sub}</p>
           {popup.type==="register"&&<>
-            <button onClick={()=>{closePopup();setAuthMode("register");go("auth");}} style={{...btnG,marginBottom:10,fontSize:14,padding:13}}>🌿 {t.registerFree}</button>
+            <button onClick={()=>{closePopup();setAuthMode("register");go("auth");}} style={{...btnG,marginBottom:10,fontSize:14}}>🌿 {t.registerFree}</button>
             <p style={{margin:"0 0 8px",fontSize:13,color:"#9ca3af"}}>{t.orLogin}</p>
             <button onClick={()=>{closePopup();setAuthMode("login");go("auth");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer"}}>{t.login}</button>
           </>}
-          {popup.type==="upgrade"&&<button onClick={()=>{closePopup();setShowUp(true);}} style={{...btnG,marginBottom:10,fontSize:14,padding:13}}>⭐ {t.goPremium}</button>}
+          {popup.type==="upgrade"&&<button onClick={()=>{closePopup();setShowUp(true);}} style={{...btnG,marginBottom:10,fontSize:14}}>⭐ {t.goPremium}</button>}
           <button onClick={closePopup} style={{width:"100%",background:"none",border:"none",padding:8,fontSize:13,color:"#9ca3af",cursor:"pointer",marginTop:4}}>{t.cancel}</button>
         </div>
       </div>
@@ -383,87 +320,71 @@ function App() {
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:2000,padding:24}}>
         <div style={{background:"white",width:"100%",maxWidth:340,borderRadius:20,overflow:"hidden"}}>
           <div style={{background:isApple?"#000":"#fff",padding:"20px 24px 16px",textAlign:"center",borderBottom:"1px solid #e5e7eb"}}>
-            <div style={{fontSize:36,marginBottom:6}}>{isApple?"":"🌐"}</div>
-            <h3 style={{margin:"0 0 4px",fontSize:16,fontWeight:700,color:isApple?"white":"#1f2937"}}>{isApple?"Sign in with Apple":"Sign in with Google"}</h3>
+            <div style={{fontSize:32,marginBottom:4}}>{isApple?"":"🌐"}</div>
+            <h3 style={{margin:0,fontSize:16,fontWeight:700,color:isApple?"white":"#1f2937"}}>{isApple?"Sign in with Apple":"Sign in with Google"}</h3>
           </div>
-          <div style={{padding:"16px 24px",borderBottom:"1px solid #e5e7eb"}}>
-            <div style={{display:"flex",alignItems:"center",gap:12,background:"#f9fafb",borderRadius:12,padding:"12px 14px"}}>
-              <div style={{width:40,height:40,borderRadius:"50%",background:isApple?"#1f2937":"#4285f4",display:"flex",alignItems:"center",justifyContent:"center",color:"white",fontWeight:700,fontSize:16,flexShrink:0}}>G</div>
-              <div>
-                <p style={{margin:"0 0 2px",fontWeight:600,fontSize:14}}>Ginevra</p>
-                <p style={{margin:0,fontSize:12,color:"#6b7280"}}>{isApple?"ginevra@icloud.com":"juniper.app26@gmail.com"}</p>
-              </div>
-            </div>
-          </div>
-          <div style={{padding:"14px 24px 20px",display:"flex",flexDirection:"column",gap:8}}>
+          <div style={{padding:"16px 24px 20px",display:"flex",flexDirection:"column",gap:8}}>
             <button onClick={()=>{setUser({name:"Ginevra",email:isApple?"ginevra@icloud.com":"juniper.app26@gmail.com"});setSocialPopup(null);go("home");}}
-              style={{width:"100%",background:isApple?"#000":"#4285f4",color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer"}}>
+              style={{width:"100%",background:isApple?"#000":"#4285f4",color:"white",border:"none",padding:13,borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer"}}>
               Continua
             </button>
-            <button onClick={()=>setSocialPopup(null)} style={{width:"100%",background:"none",border:"none",padding:"10px",fontSize:14,color:"#6b7280",cursor:"pointer"}}>{t.cancel}</button>
+            <button onClick={()=>setSocialPopup(null)} style={{width:"100%",background:"none",border:"none",padding:8,fontSize:14,color:"#6b7280",cursor:"pointer"}}>{t.cancel}</button>
           </div>
         </div>
       </div>
     );
   };
 
-  // WELCOME
+  // ── WELCOME ──
   if(screen==="welcome")return(
-    <div style={{minHeight:"100vh",background:GREEN,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,color:"white",fontFamily:"inherit",position:"relative"}}>
+    <div style={{minHeight:"100vh",background:GREEN,display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:24,color:"white",position:"relative"}}>
       <button onClick={tl} style={{...ghost,position:"absolute",top:16,right:16}}>{lang==="it"?"🇬🇧 EN":"🇮🇹 IT"}</button>
-      <LogoSVG size={52}/>
+      <Logo size={54}/>
       <h1 style={{fontSize:32,fontWeight:200,margin:"12px 0 6px",letterSpacing:8}}>{t.appName}</h1>
-      <p style={{fontSize:14,opacity:.9,textAlign:"center",marginBottom:40,maxWidth:280}}>{t.tagline}</p>
+      <p style={{fontSize:14,opacity:.9,textAlign:"center",marginBottom:36,maxWidth:280}}>{lang==="it"?"Trova il posto perfetto per le tue esigenze":"Find the perfect place for your needs"}</p>
       <div style={{display:"flex",flexDirection:"column",gap:10,width:"100%",maxWidth:300}}>
         <button onClick={()=>{setAuthMode("register");go("auth");}} style={{background:"white",color:"#1a5c3a",border:"none",padding:14,borderRadius:12,fontWeight:700,fontSize:16,cursor:"pointer"}}>🌿 {t.register}</button>
         <button onClick={()=>{setAuthMode("login");go("auth");}} style={{background:"rgba(255,255,255,.15)",color:"white",border:"2px solid white",padding:14,borderRadius:12,fontWeight:700,fontSize:16,cursor:"pointer"}}>{t.login}</button>
-        <button onClick={()=>go("home")} style={{background:"transparent",color:"rgba(255,255,255,.8)",border:"none",padding:10,fontSize:14,cursor:"pointer",textDecoration:"underline"}}>👀 {t.guest}</button>
+        <button onClick={()=>go("home")} style={{background:"transparent",color:"rgba(255,255,255,.8)",border:"none",padding:10,fontSize:14,cursor:"pointer",textDecoration:"underline"}}>👀 {lang==="it"?"Esplora senza registrarti":"Explore without signing up"}</button>
       </div>
-      <div style={{marginTop:24,width:"100%",maxWidth:300,borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:16,textAlign:"center"}}>
+      <div style={{marginTop:20,width:"100%",maxWidth:300,borderTop:"1px solid rgba(255,255,255,.2)",paddingTop:14,textAlign:"center"}}>
         <p style={{margin:"0 0 8px",fontSize:13,opacity:.8}}>{lang==="it"?"Sei un'azienda?":"Are you a business?"}</p>
-        <button onClick={()=>go("business")} style={{background:"rgba(255,255,255,.15)",color:"white",border:"1px solid rgba(255,255,255,.4)",padding:"10px 20px",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer"}}>🏢 {t.bizBtn}</button>
-      </div>
-      <div style={{marginTop:20,display:"flex",gap:8,flexWrap:"wrap",justifyContent:"center"}}>
-        {Object.entries(TAGS).slice(0,5).map(([k,tg])=><span key={k} style={{background:"rgba(255,255,255,.15)",borderRadius:20,padding:"5px 11px",fontSize:12}}>{tg.icon} {tg[lang]}</span>)}
+        <button onClick={()=>go("business")} style={{background:"rgba(255,255,255,.15)",color:"white",border:"1px solid rgba(255,255,255,.4)",padding:"9px 20px",borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer"}}>🏢 {t.bizBtn}</button>
       </div>
     </div>
   );
 
-  // AUTH
+  // ── AUTH ──
   if(screen==="auth")return(
-    <div style={{minHeight:"100vh",background:"#f9fafb",fontFamily:"inherit"}}>
-      <div style={{background:GREEN,padding:"24px 20px 56px",textAlign:"center",color:"white",position:"relative"}}>
+    <div style={{minHeight:"100vh",background:"#f9fafb"}}>
+      <div style={{background:GREEN,padding:"24px 20px 52px",textAlign:"center",color:"white",position:"relative"}}>
         <button onClick={()=>go("welcome")} style={{...ghost,position:"absolute",top:16,left:16}}>←</button>
         <button onClick={tl} style={{...ghost,position:"absolute",top:16,right:16}}>{lang==="it"?"🇬🇧":"🇮🇹"}</button>
-        <LogoSVG size={36}/>
-        <h2 style={{margin:"8px 0 0",fontSize:22,fontWeight:800}}>{authMode==="login"?t.login:t.register}</h2>
+        <Logo size={34}/>
+        <h2 style={{margin:"8px 0 0",fontSize:21,fontWeight:800}}>{authMode==="login"?t.login:t.register}</h2>
       </div>
-      <div style={{margin:"0 16px",background:"white",borderRadius:16,padding:24,marginTop:-24,boxShadow:"0 4px 20px rgba(0,0,0,.1)"}}>
+      <div style={{margin:"0 16px",background:"white",borderRadius:16,padding:24,marginTop:-22,boxShadow:"0 4px 20px rgba(0,0,0,.1)"}}>
         {authMode==="register"&&<div style={{marginBottom:14}}>
           <label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Nome</label>
-          <input value={aName} onChange={e=>setAName(e.target.value)} style={inpStyle} placeholder="Mario Rossi"/>
+          <input value={aName} onChange={e=>setAName(e.target.value)} style={S.input} placeholder="Mario Rossi"/>
         </div>}
         <div style={{marginBottom:14}}>
-          <label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>{t.email||"Email"}</label>
-          <input type="email" value={aEmail} onChange={e=>setAEmail(e.target.value)} style={inpStyle} placeholder="mario@esempio.it"/>
+          <label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Email</label>
+          <input type="email" value={aEmail} onChange={e=>setAEmail(e.target.value)} style={S.input} placeholder="mario@esempio.it"/>
         </div>
-        <div style={{marginBottom:22}}>
+        <div style={{marginBottom:20}}>
           <label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Password</label>
-          <input type="password" value={aPass} onChange={e=>setAPass(e.target.value)} style={inpStyle} placeholder="••••••••"/>
+          <input type="password" value={aPass} onChange={e=>setAPass(e.target.value)} style={S.input} placeholder="••••••••"/>
         </div>
         <button onClick={doAuth} style={btnG}>{authMode==="login"?t.login:t.register}</button>
-        <div style={{display:"flex",alignItems:"center",gap:10,margin:"16px 0"}}>
+        <div style={{display:"flex",alignItems:"center",gap:10,margin:"14px 0"}}>
           <div style={{flex:1,height:1,background:"#e5e7eb"}}/>
           <span style={{fontSize:12,color:"#9ca3af"}}>{lang==="it"?"oppure":"or"}</span>
           <div style={{flex:1,height:1,background:"#e5e7eb"}}/>
         </div>
-        <div style={{display:"flex",flexDirection:"column",gap:10,marginBottom:14}}>
-          <button onClick={()=>setSocialPopup("apple")} style={{width:"100%",background:"#000",color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:600,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
-             {lang==="it"?"Accedi con Apple":"Sign in with Apple"}
-          </button>
-          <button onClick={()=>setSocialPopup("google")} style={{width:"100%",background:"white",color:"#374151",border:"2px solid #e5e7eb",padding:"13px",borderRadius:12,fontWeight:600,fontSize:15,cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",gap:10}}>
-            🌐 {lang==="it"?"Accedi con Google":"Sign in with Google"}
-          </button>
+        <div style={{display:"flex",flexDirection:"column",gap:8,marginBottom:14}}>
+          <button onClick={()=>setSocialPopup("apple")} style={{width:"100%",background:"#000",color:"white",border:"none",padding:13,borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer"}}>🍎 {lang==="it"?"Accedi con Apple":"Sign in with Apple"}</button>
+          <button onClick={()=>setSocialPopup("google")} style={{width:"100%",background:"white",color:"#374151",border:"2px solid #e5e7eb",padding:13,borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer"}}>🌐 {lang==="it"?"Accedi con Google":"Sign in with Google"}</button>
         </div>
         <p style={{textAlign:"center",fontSize:13,color:"#6b7280",margin:0}}>
           {authMode==="login"?(lang==="it"?"Non hai un account?":"No account?"):(lang==="it"?"Hai già un account?":"Have an account?")}{" "}
@@ -474,16 +395,17 @@ function App() {
     </div>
   );
 
-  // HOME
+  // ── HOME ──
   if(screen==="home")return(
-    <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80,fontFamily:"inherit"}}>
-      <div style={{background:GREEN,padding:"20px 20px 24px",color:"white"}}>
+    <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}>
+      {/* HEADER */}
+      <div style={{background:GREEN,padding:"18px 20px 20px",color:"white"}}>
         <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div>
-            <p style={{margin:0,fontSize:13,opacity:.85}}>{isGuest?(lang==="it"?"Ospite 👀":"Guest 👀"):`${t.hi}, ${user?.name?.split(" ")[0]} 👋`}</p>
-            <div style={{display:"flex",alignItems:"center",gap:8,marginTop:2}}>
-              <LogoSVG size={16}/>
-              <h2 style={{margin:0,fontSize:20,fontWeight:200,letterSpacing:6}}>{t.appName}</h2>
+          <div style={{display:"flex",alignItems:"center",gap:10}}>
+            <Logo size={16}/>
+            <div>
+              <p style={{margin:0,fontSize:12,opacity:.8}}>{isGuest?(lang==="it"?"Ospite 👀":"Guest 👀"):`${t.hi}, ${user?.name?.split(" ")[0]} 👋`}</p>
+              <h2 style={{margin:0,fontSize:18,fontWeight:200,letterSpacing:6}}>{t.appName}</h2>
             </div>
           </div>
           <div style={{display:"flex",gap:7}}>
@@ -494,26 +416,92 @@ function App() {
           </div>
         </div>
       </div>
-      {/* LUOGO — fuori dal FilterPanel per evitare perdita focus */}
-      <div style={{...card,marginBottom:8}}>
-        <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📍 {lang==="it"?"Dove vuoi andare?":"Where do you want to go?"}</p>
-        <div style={{display:"flex",gap:8}}>
-          <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()}
-            placeholder={lang==="it"?"Città, zona o nome locale...":"City, area or place name..."}
-            style={{...inpStyle,flex:1,padding:"10px 14px",fontSize:13}}/>
-          <button onClick={()=>isGuest?showPopup(t.popGuestLimit,t.popGuestLimitSub,"register"):!premium?showPopup(t.popGPS,t.popGPSSub,"upgrade"):null}
-            style={{background:premium?"#1a5c3a":"#f3f4f6",color:premium?"white":"#9ca3af",border:"none",padding:"10px 14px",borderRadius:10,cursor:"pointer",fontSize:13,fontWeight:700,whiteSpace:"nowrap",flexShrink:0}}>
-            📍{!premium&&" ⭐"}
+
+      <div style={{padding:"12px 16px 0"}}>
+        {/* CAMPO LUOGO — separato per evitare perdita focus */}
+        <div style={S.card}>
+          <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📍 {t.whereLabel}</p>
+          <div style={{display:"flex",gap:8}}>
+            <input
+              value={q}
+              onChange={e=>setQ(e.target.value)}
+              onKeyDown={e=>e.key==="Enter"&&doSearch()}
+              placeholder={t.wherePlaceholder}
+              style={{...S.input,flex:1,fontSize:14}}
+            />
+            <button
+              onClick={()=>isGuest?showPopup(t.popGuestLimit,t.popGuestLimitSub,"register"):!premium?showPopup(t.popGPS,t.popGPSSub,"upgrade"):null}
+              style={{background:premium?"#1a5c3a":"#f3f4f6",color:premium?"white":"#9ca3af",border:"none",padding:"10px 12px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>
+              📍{!premium&&" ⭐"}
+            </button>
+          </div>
+        </div>
+
+        {/* FILTRI */}
+        <div style={S.card}>
+          {/* Pasti */}
+          <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.mealFilter}</p>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+            <button onClick={()=>setMealFilter(null)} style={{background:!mealFilter?"#1f2937":"#f3f4f6",color:!mealFilter?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:!mealFilter?700:400}}>🍽️ {t.allMeals}</button>
+            {Object.entries(MEALS).map(([k,m])=>(
+              <button key={k} onClick={()=>isGuest?showPopup(t.popGuestLimit,t.popGuestLimitSub,"register"):setMealFilter(mealFilter===k?null:k)}
+                style={{background:mealFilter===k?"#1f2937":"#f3f4f6",color:mealFilter===k?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:mealFilter===k?700:400}}>
+                {m.icon} {m[lang]}
+              </button>
+            ))}
+          </div>
+
+          {/* Caratteristiche */}
+          <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.filters}</p>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+            {Object.entries(TAGS).filter(([k])=>!["no_cross","low_cross","high_cross"].includes(k)).map(([k,tg])=>(
+              <button key={k} onClick={()=>isGuest?showPopup(t.popGuestLimit,t.popGuestLimitSub,"register"):toggleTag(k)}
+                style={{background:tagFilters.includes(k)?tg.color:"#f3f4f6",color:tagFilters.includes(k)?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:tagFilters.includes(k)?700:400}}>
+                {tg.icon} {tg[lang]}
+              </button>
+            ))}
+          </div>
+
+          {/* Sicurezza cucina */}
+          <p style={{margin:"0 0 3px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.kitchenSafety}</p>
+          <p style={{margin:"0 0 8px",fontSize:11,color:"#9ca3af"}}>{t.kitchenSub}</p>
+          <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:5}}>
+            {["no_cross","low_cross","high_cross"].map(k=>(
+              <button key={k} onClick={()=>isGuest?showPopup(t.popGuestLimit,t.popGuestLimitSub,"register"):toggleTag(k)}
+                style={{background:tagFilters.includes(k)?TAGS[k].color:"#f3f4f6",color:tagFilters.includes(k)?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:tagFilters.includes(k)?700:400}}>
+                {TAGS[k].icon} {TAGS[k][lang]}
+              </button>
+            ))}
+          </div>
+          <p style={{margin:"0 0 14px",fontSize:10,color:"#9ca3af"}}>{t.kitchenLegend}</p>
+
+          {/* CERCA */}
+          <button onClick={doSearch} style={{...btnG,display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:16,padding:"14px"}}>
+            🔍 {t.searchBtn}
+            {(tagFilters.length>0||mealFilter||q)&&(
+              <span style={{background:"rgba(255,255,255,0.25)",fontSize:12,padding:"2px 9px",borderRadius:10}}>
+                {[q&&1,...tagFilters,mealFilter].filter(Boolean).length} {lang==="it"?"filtri":"filters"}
+              </span>
+            )}
           </button>
         </div>
-      </div>
-      <div style={{padding:"0 0 8px"}}><FilterPanel/></div>
-      <div style={{padding:"0 16px"}}>
-        <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"4px 0 12px"}}>📢 {t.featured}</h3>
-        {sortedStructures.filter(s=>s.sponsored).map((s,i)=><StructCard key={s.id} s={s} index={i} guestMode={isGuest}/>)}
-        <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"16px 0 12px"}}>🇮🇹 {t.nearby}</h3>
-        {sortedStructures.filter(s=>s.country==="Italia"&&!s.sponsored).slice(0,5).map((s,i)=><StructCard key={s.id} s={s} index={i+2} guestMode={isGuest}/>)}
-        {isGuest&&<div onClick={()=>{setAuthMode("register");go("auth");}} style={{background:GREEN,color:"white",borderRadius:14,padding:18,textAlign:"center",cursor:"pointer"}}>
+
+        {/* Banner */}
+        {isGuest&&<div style={{background:"#fef3c7",borderRadius:12,padding:"9px 14px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{fontSize:12,color:"#92400e"}}>👀 {lang==="it"?"Ospite: solo 2 strutture visibili":"Guest: only 2 structures visible"}</span>
+          <span onClick={()=>{setAuthMode("register");go("auth");}} style={{fontSize:12,color:"#d97706",cursor:"pointer",fontWeight:700}}>{t.registerFree} →</span>
+        </div>}
+        {!isGuest&&!premium&&<div style={{background:"#fef3c7",borderRadius:12,padding:"9px 14px",marginBottom:10,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <span style={{fontSize:12,color:"#92400e"}}>🔍 {t.freeBanner} ({cnt}/{FREE_LIMIT})</span>
+          <span onClick={()=>setShowUp(true)} style={{fontSize:12,color:"#d97706",cursor:"pointer",fontWeight:700}}>{t.upgrade} →</span>
+        </div>}
+
+        {/* Featured */}
+        <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"4px 0 10px"}}>📢 {t.featured}</h3>
+        {sorted.filter(s=>s.sponsored).map((s,i)=><Card key={s.id} s={s} index={i} guestMode={isGuest}/>)}
+        <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"14px 0 10px"}}>🇮🇹 {t.nearby}</h3>
+        {sorted.filter(s=>s.country==="Italia"&&!s.sponsored).slice(0,5).map((s,i)=><Card key={s.id} s={s} index={i+2} guestMode={isGuest}/>)}
+        {isGuest&&<div onClick={()=>{setAuthMode("register");go("auth");}} style={{background:GREEN,color:"white",borderRadius:14,padding:18,textAlign:"center",cursor:"pointer",marginBottom:10}}>
           <p style={{margin:"0 0 4px",fontWeight:700,fontSize:14}}>🌿 {t.popGuestLimit}</p>
           <p style={{margin:"0 0 12px",fontSize:13,opacity:.9}}>{t.popGuestLimitSub}</p>
           <button style={{background:"white",color:"#1a5c3a",border:"none",padding:"9px 18px",borderRadius:20,fontWeight:700,cursor:"pointer",fontSize:13}}>{t.registerFree}</button>
@@ -523,61 +511,62 @@ function App() {
     </div>
   );
 
-  // RESULTS
+  // ── RESULTS ──
   if(screen==="results")return(
-    <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80,fontFamily:"inherit"}}>
-      <div style={{background:GREEN,padding:"24px 20px",color:"white"}}>
+    <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}>
+      <div style={{background:GREEN,padding:"20px",color:"white"}}>
         <button onClick={()=>{go("home");setTab("home");}} style={{...ghost,marginBottom:10,display:"block"}}>← {t.back}</button>
         <h2 style={{margin:"0 0 4px",fontSize:17,fontWeight:800}}>🔍 {t.results}</h2>
         <p style={{margin:0,fontSize:13,opacity:.85}}>{results.length} {t.found}</p>
       </div>
       <div style={{padding:16}}>
-        {results.length===0?<div style={{textAlign:"center",padding:"60px 20px"}}>
-          <div style={{fontSize:48}}>😕</div><h3 style={{color:"#6b7280"}}>{t.noResults}</h3>
-        </div>:<>
-          {results.map(s=><StructCard key={s.id} s={s} index={0} guestMode={false}/>)}
-          {!premium&&results.length>=FREE_STRUCTS&&<div onClick={()=>setShowUp(true)} style={{background:GREEN,color:"white",borderRadius:14,padding:18,textAlign:"center",cursor:"pointer"}}>
-            <p style={{margin:"0 0 4px",fontWeight:700}}>🔒 {t.popFreeLimit}</p>
-            <p style={{margin:"0 0 12px",fontSize:13,opacity:.9}}>{t.popFreeLimitSub}</p>
-            <button style={{background:"white",color:"#1a5c3a",border:"none",padding:"9px 18px",borderRadius:20,fontWeight:700,cursor:"pointer"}}>⭐ {t.upgradeNow}</button>
-          </div>}
-        </>}
+        {results.length===0
+          ?<div style={{textAlign:"center",padding:"60px 20px"}}><div style={{fontSize:48}}>😕</div><h3 style={{color:"#6b7280",marginTop:12}}>{t.noResults}</h3></div>
+          :<>
+            {results.map(s=><Card key={s.id} s={s} index={0} guestMode={false}/>)}
+            {!premium&&results.length>=FREE_STRUCTS&&<div onClick={()=>setShowUp(true)} style={{background:GREEN,color:"white",borderRadius:14,padding:18,textAlign:"center",cursor:"pointer"}}>
+              <p style={{margin:"0 0 4px",fontWeight:700}}>🔒 {t.popFreeLimit}</p>
+              <p style={{margin:"0 0 12px",fontSize:13,opacity:.9}}>{t.popFreeLimitSub}</p>
+              <button style={{background:"white",color:"#1a5c3a",border:"none",padding:"9px 18px",borderRadius:20,fontWeight:700,cursor:"pointer"}}>⭐ {t.upgradeNow}</button>
+            </div>}
+          </>
+        }
       </div>
       <BottomNav/>{showUp&&<UpgradeModal/>}<Popup/>
     </div>
   );
 
-  // DETAIL
+  // ── DETAIL ──
   if(screen==="detail"&&sel){
-    const s=sel, sRevs=revs[s.id]||[];
+    const s=sel,sRevs=revs[s.id]||[];
     return(
-      <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80,fontFamily:"inherit"}}>
-        <div style={{background:GREEN,padding:"24px 20px 40px",color:"white"}}>
+      <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}>
+        <div style={{background:GREEN,padding:"20px 20px 36px",color:"white"}}>
           <button onClick={()=>go(prevScr)} style={{...ghost,marginBottom:12,display:"block"}}>← {t.back}</button>
           <div style={{display:"flex",gap:14,alignItems:"center"}}>
-            <div style={{fontSize:42,background:"rgba(255,255,255,.15)",borderRadius:16,width:70,height:70,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{s.emoji}</div>
+            <div style={{fontSize:40,background:"rgba(255,255,255,.15)",borderRadius:16,width:68,height:68,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{s.emoji}</div>
             <div>
               <h2 style={{margin:"0 0 4px",fontSize:18,fontWeight:800}}>{s.name}</h2>
               <p style={{margin:"0 0 6px",fontSize:13,opacity:.85}}>📍 {s.city}, {s.country}</p>
               <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                <SourceBadge source={s.source}/>
+                <SrcBadge source={s.source}/>
                 {s.certified&&<span style={{background:"rgba(255,255,255,.25)",color:"white",fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:10}}>✅ {t.certified}</span>}
               </div>
             </div>
           </div>
         </div>
-        <div style={{padding:"0 16px",marginTop:-16}}>
-          <div style={card}>
+        <div style={{padding:"0 16px",marginTop:-14}}>
+          <div style={S.card}>
             <div style={{display:"flex",gap:5,flexWrap:"wrap",marginBottom:8}}>
-              {s.meals.map(m=><span key={m} style={{background:"#fef9ec",color:"#d97706",fontSize:13,padding:"5px 12px",borderRadius:20,fontWeight:600}}>{MEALS[m]?.icon} {MEALS[m]?.[lang]}</span>)}
+              {(s.meals||[]).map(m=><span key={m} style={{background:"#fef9ec",color:"#d97706",fontSize:13,padding:"5px 11px",borderRadius:20,fontWeight:600}}>{MEALS[m]?.icon} {MEALS[m]?.[lang]}</span>)}
             </div>
             <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-              {s.tags.map(tg=><span key={tg} style={{background:TAGS[tg]?.color+"22",color:TAGS[tg]?.color,fontSize:13,padding:"5px 12px",borderRadius:20,fontWeight:600}}>{TAGS[tg]?.icon} {TAGS[tg]?.[lang]}</span>)}
+              {s.tags.map(k=><span key={k} style={{background:TAGS[k]?.color+"22",color:TAGS[k]?.color,fontSize:12,padding:"4px 10px",borderRadius:20,fontWeight:600}}>{TAGS[k]?.icon} {TAGS[k]?.[lang]}</span>)}
             </div>
           </div>
-          <div style={card}>
-            <p style={{margin:"0 0 12px",fontSize:14,color:"#374151",lineHeight:1.6}}>{s.description}</p>
-            <div style={{borderTop:"1px solid #f3f4f6",paddingTop:10,display:"flex",flexDirection:"column",gap:6}}>
+          <div style={S.card}>
+            <p style={{margin:"0 0 10px",fontSize:14,color:"#374151",lineHeight:1.6}}>{s.description}</p>
+            <div style={{borderTop:"1px solid #f3f4f6",paddingTop:10,display:"flex",flexDirection:"column",gap:5}}>
               <p style={{margin:0,fontSize:13,color:"#6b7280"}}>📍 {s.address}</p>
               {s.phone&&<p style={{margin:0,fontSize:13,color:"#6b7280"}}>📞 {s.phone}</p>}
               {s.rating&&<div style={{display:"flex",alignItems:"center",gap:5}}>
@@ -587,9 +576,9 @@ function App() {
               </div>}
             </div>
           </div>
-          <div style={card}>
+          <div style={S.card}>
             <h3 style={{margin:"0 0 12px",fontSize:14,fontWeight:700}}>💬 {t.reviews} ({sRevs.length})</h3>
-            {sRevs.length===0?<p style={{color:"#9ca3af",fontSize:14,textAlign:"center"}}>{t.noRev}</p>
+            {sRevs.length===0?<p style={{color:"#9ca3af",fontSize:14,textAlign:"center",padding:"8px 0"}}>{t.noRev}</p>
               :sRevs.map((r,i)=>(
                 <div key={r.id} style={{borderBottom:i<sRevs.length-1?"1px solid #f3f4f6":"none",paddingBottom:10,marginBottom:10}}>
                   <div style={{display:"flex",justifyContent:"space-between",marginBottom:2}}>
@@ -605,14 +594,14 @@ function App() {
               {isGuest?<div onClick={()=>showPopup(t.popReview,t.popReviewSub,"register")} style={{background:"#f0fdf4",borderRadius:12,padding:14,textAlign:"center",cursor:"pointer",border:"2px dashed #a7f3d0"}}>
                 <p style={{margin:"0 0 4px",fontWeight:600,color:"#1a5c3a",fontSize:13}}>💬 {t.popReview}</p>
                 <p style={{margin:0,fontSize:12,color:"#6b7280"}}>{t.popReviewSub}</p>
-              </div>:revOk?<div style={{background:"#d1fae5",color:"#065f46",padding:"10px",borderRadius:10,fontSize:14,fontWeight:600,textAlign:"center"}}>{t.reviewAdded}</div>:<>
+              </div>:revOk?<div style={{background:"#d1fae5",color:"#065f46",padding:10,borderRadius:10,fontSize:14,fontWeight:600,textAlign:"center"}}>{t.reviewAdded}</div>:<>
                 <h4 style={{margin:"0 0 8px",fontSize:13,fontWeight:600}}>✏️ {t.leaveReview}</h4>
                 <div style={{display:"flex",gap:3,marginBottom:8}}>
                   {[1,2,3,4,5].map(star=><button key={star} onClick={()=>setNr(r=>({...r,rating:star}))} style={{background:"none",border:"none",fontSize:22,cursor:"pointer",opacity:star<=nr.rating?1:0.3,padding:0}}>⭐</button>)}
                 </div>
                 <textarea value={nr.text} onChange={e=>setNr(r=>({...r,text:e.target.value}))} placeholder={t.placeholder}
                   style={{width:"100%",padding:10,borderRadius:10,border:"1px solid #e5e7eb",fontSize:14,resize:"none",height:75,boxSizing:"border-box",fontFamily:"inherit",outline:"none"}}/>
-                <button onClick={()=>addRev(s.id)} style={{...btnG,marginTop:8,padding:"11px",fontSize:14}}>{t.submit}</button>
+                <button onClick={()=>addRev(s.id)} style={{...btnG,marginTop:8,fontSize:14}}>{t.submit}</button>
               </>}
             </div>
           </div>
@@ -622,17 +611,17 @@ function App() {
     );
   }
 
-  // PROFILE
+  // ── PROFILE ──
   if(screen==="profile")return(
-    <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80,fontFamily:"inherit"}}>
-      <div style={{background:GREEN,padding:"40px 20px 60px",textAlign:"center",color:"white"}}>
-        <div style={{fontSize:46,background:"rgba(255,255,255,.15)",borderRadius:"50%",width:72,height:72,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 10px"}}>👤</div>
-        <h2 style={{margin:"0 0 4px",fontSize:19,fontWeight:800}}>{user?.name}</h2>
+    <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}>
+      <div style={{background:GREEN,padding:"36px 20px 56px",textAlign:"center",color:"white"}}>
+        <div style={{fontSize:44,background:"rgba(255,255,255,.15)",borderRadius:"50%",width:70,height:70,display:"flex",alignItems:"center",justifyContent:"center",margin:"0 auto 10px"}}>👤</div>
+        <h2 style={{margin:"0 0 4px",fontSize:18,fontWeight:800}}>{user?.name}</h2>
         <p style={{margin:0,fontSize:13,opacity:.85}}>{user?.email}</p>
         {premium&&<span style={{display:"inline-block",marginTop:10,background:"#f59e0b",padding:"4px 12px",borderRadius:15,fontSize:13,fontWeight:700}}>⭐ Premium</span>}
       </div>
-      <div style={{padding:"0 16px",marginTop:-20}}>
-        <div style={card}>
+      <div style={{padding:"0 16px",marginTop:-18}}>
+        <div style={S.card}>
           {premium?<div style={{background:"#d1fae5",borderRadius:12,padding:14}}>
             <p style={{margin:"0 0 4px",fontWeight:700,color:"#065f46"}}>⭐ {t.premiumPlan}</p>
             <p style={{margin:0,fontSize:13,color:"#047857"}}>{t.features}</p>
@@ -647,7 +636,7 @@ function App() {
             <button onClick={()=>setShowUp(true)} style={btnG}>⭐ {t.upgradeNow}</button>
           </>}
         </div>
-        <div style={card}>
+        <div style={S.card}>
           <button onClick={tl} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>
             🌐 {lang==="it"?"Switch to English":"Passa all'italiano"}
           </button>
@@ -660,17 +649,16 @@ function App() {
     </div>
   );
 
-  // BUSINESS
+  // ── BUSINESS ──
   if(screen==="business")return(
-    <div style={{minHeight:"100vh",background:"#f9fafb",fontFamily:"inherit"}}>
-      <div style={{background:GREEN,padding:"24px 20px 32px",color:"white",textAlign:"center"}}>
-        <button onClick={()=>go("welcome")} style={{...ghost,position:"absolute",top:16,left:16}}>←</button>
-        <LogoSVG size={32}/>
-        <h2 style={{margin:"8px 0 4px",fontSize:18,fontWeight:700}}>🏢 {t.bizBtn}</h2>
-        <p style={{margin:0,fontSize:13,opacity:.85}}>{lang==="it"?"Raggiungi chi ti cerca":"Reach those who need you"}</p>
+    <div style={{minHeight:"100vh",background:"#f9fafb"}}>
+      <div style={{background:GREEN,padding:"20px 20px 28px",color:"white",position:"relative"}}>
+        <button onClick={()=>go("welcome")} style={{...ghost,marginBottom:10,display:"block"}}>←</button>
+        <Logo size={28}/>
+        <h2 style={{margin:"8px 0 4px",fontSize:17,fontWeight:700}}>🏢 {t.bizBtn}</h2>
       </div>
       <div style={{padding:16}}>
-        <div style={card}>
+        <div style={S.card}>
           <p style={{fontSize:14,color:"#6b7280",marginBottom:16,lineHeight:1.6}}>{lang==="it"?"Registra la tua attività su Juniper e raggiungi utenti con intolleranze e scelte alimentari specifiche.":"Register your business on Juniper and reach users with specific dietary needs."}</p>
           <button onClick={()=>{setAuthMode("register");go("auth");}} style={btnG}>🌿 {t.registerFree}</button>
         </div>
