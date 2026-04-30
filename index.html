@@ -26,6 +26,14 @@ const sb = window.supabase.createClient(
 );
 
 const GREEN = "linear-gradient(135deg,#1a5c3a,#0f3d26)";
+
+// ── STRIPE PAYMENT LINKS ──
+const STRIPE_LINKS = {
+  user_monthly:  "https://buy.stripe.com/8x2bJ3dxe3N78Q3gVK7bW04",  // €3/mese utenti
+  user_yearly:   "https://buy.stripe.com/6oU7sN8cUabvfer34U7bW03",  // €30/anno utenti
+  biz_monthly:   "https://buy.stripe.com/bJe7sN2SA3N7d6jeNC7bW02",  // €10/mese business
+  biz_yearly:    "https://buy.stripe.com/6oU4gBfFmabvc2f0WM7bW01",  // €110/anno business
+};
 const VENUE_TYPES = [
   {id:"ristorante",label:"Ristorante",icon:"🍽️"},
   {id:"bar",label:"Bar / Caffè",icon:"☕"},
@@ -454,7 +462,9 @@ function App(){
   const [screen,setScreen]=React.useState("welcome");
   const [authMode,setAuthMode]=React.useState("login");
   const [user,setUser]=React.useState(null);
-  const [premium,setPremium]=React.useState(true);
+  const [premium,setPremium]=React.useState(false);
+  const [subPlan,setSubPlan]=React.useState(null); // 'user_monthly','user_yearly'
+  const [subStatus,setSubStatus]=React.useState(null); // 'active','pending'
   const [q,setQ]=React.useState("");
   const [tagFilters,setTagFilters]=React.useState([]);
   const [mealFilter,setMealFilter]=React.useState(null);
@@ -492,6 +502,14 @@ function App(){
         setScreen(prev=>prev==="welcome"||prev==="auth"||prev==="policy"?"home":prev);
       }
       if(event==="SIGNED_OUT"){setUser(null);setScreen("welcome");}
+    });
+    // Carica abbonamento utente
+    sb.auth.getSession().then(({data:{session}})=>{
+      if(session?.user){
+        sb.from("subscriptions").select("*").eq("user_id",session.user.id).eq("status","active").maybeSingle().then(({data})=>{
+          if(data){setPremium(true);setSubPlan(data.plan);setSubStatus(data.status);}
+        }).catch(()=>{});
+      }
     });
     sb.from("structures").select("*").eq("pending",false).then(({data})=>{
       if(data&&data.length>0){
@@ -861,6 +879,38 @@ function App(){
   );
 
   if(screen==="business")return <BusinessScreen lang={lang} go={go}/>;
+  if(screen==="business_premium")return(
+    <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
+      <div style={{background:GREEN,padding:"20px",color:"white"}}>
+        <button onClick={()=>go("profile")} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13,marginBottom:10,display:"block"}}>← {lang==="it"?"Indietro":"Back"}</button>
+        <Logo size={22}/>
+        <h2 style={{margin:"8px 0 2px",fontSize:17,fontWeight:700}}>🏢 {lang==="it"?"Piani per Attività":"Business Plans"}</h2>
+        <p style={{margin:0,fontSize:12,opacity:.8}}>{lang==="it"?"Badge verificato · Priorità nei risultati":"Verified badge · Priority in results"}</p>
+      </div>
+      <div style={{padding:16}}>
+        <div style={{background:"#d1fae5",borderRadius:12,padding:14,marginBottom:14,border:"1px solid #a7f3d0"}}>
+          <p style={{margin:"0 0 6px",fontWeight:700,color:"#065f46"}}>✅ {lang==="it"?"Cosa include il piano Business:":"What's included in Business plan:"}</p>
+          {["Badge 🌿 Verificato da Juniper","Priorità nei risultati di ricerca","Scheda completa con foto e descrizione","Statistiche visite","Supporto prioritario"].map((f,i)=><p key={i} style={{margin:"0 0 3px",fontSize:13,color:"#047857"}}>· {f}</p>)}
+        </div>
+        {[
+          {key:"biz_yearly",lbl:lang==="it"?"Piano Annuale":"Yearly Plan",price:"110€",sub:lang==="it"?"9,17€/mese · Risparmi 10€":"€9.17/month · Save €10",best:true},
+          {key:"biz_monthly",lbl:lang==="it"?"Piano Mensile":"Monthly Plan",price:"10€",sub:lang==="it"?"/mese":"/month"},
+        ].map((p)=>(
+          <div key={p.key} onClick={()=>window.open(STRIPE_LINKS[p.key]+"?prefilled_email="+encodeURIComponent(user?.email||""),"_blank")} style={{border:"2px solid "+(p.best?"#1a5c3a":"#e5e7eb"),borderRadius:14,padding:16,cursor:"pointer",marginBottom:10,position:"relative",background:p.best?"#f0fdf4":"white"}}>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+              <div><p style={{margin:"0 0 2px",fontWeight:700,fontSize:16}}>{p.lbl}</p><p style={{margin:0,fontSize:12,color:p.best?"#1a5c3a":"#6b7280"}}>{p.sub}</p></div>
+              <p style={{margin:0,fontSize:24,fontWeight:800,color:p.best?"#1a5c3a":"#374151"}}>{p.price}</p>
+            </div>
+            {p.best&&<span style={{position:"absolute",top:-10,right:12,background:"#1a5c3a",color:"white",fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:10}}>BEST</span>}
+          </div>
+        ))}
+        <div style={{background:"#fef9ec",borderRadius:12,padding:12,border:"1px solid #fcd34d"}}>
+          <p style={{margin:"0 0 4px",fontSize:12,fontWeight:700,color:"#92400e"}}>ℹ️ {lang==="it"?"Dopo il pagamento":"After payment"}</p>
+          <p style={{margin:0,fontSize:12,color:"#374151"}}>{lang==="it"?"Scrivi a help@juniperapp.eu con il tuo numero d'ordine. Attiviamo il badge entro 24h.":"Write to help@juniperapp.eu with your order number. We'll activate within 24h."}</p>
+        </div>
+      </div>
+    </div>
+  );
   if(screen==="admin"){if(user?.email!==ADMIN_EMAIL){go("home");return null;}return <AdminScreen user={user} lang={lang} go={go} sb={sb}/>;}
   if(screen==="policy")return <PolicyScreen lang={lang} go={go}/>;
 
@@ -919,6 +969,7 @@ function App(){
           <div style={{display:"flex",gap:7}}>
             <button onClick={tl} style={ghost}>{lang==="it"?"🇬🇧":"🇮🇹"}</button>
             {isGuest&&<button onClick={()=>{setAuthMode("register");go("auth");}} style={{background:"white",color:"#1a5c3a",border:"none",padding:"6px 11px",borderRadius:15,cursor:"pointer",fontSize:12,fontWeight:700}}>{t.register}</button>}
+            {!isGuest&&!premium&&<button onClick={()=>setShowUp(true)} style={{background:"#f59e0b",border:"none",color:"white",padding:"6px 11px",borderRadius:15,cursor:"pointer",fontSize:12,fontWeight:700}}>⭐ Premium</button>}
           </div>
         </div>
       </div>
