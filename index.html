@@ -57,6 +57,10 @@ const SOURCES = {
   verified:  {it:"Verificata",en:"Verified",icon:"🌿",color:"#2563eb",bg:"#dbeafe"},
   google:    {it:"Non Verificato",en:"Not Verified",icon:"⚠️",color:"#b45309",bg:"#fef3c7"},
 };
+// Badge speciale per locali con tag approvati da Juniper
+const JuniperApprovedBadge=({lang})=>(
+  <span style={{background:"#d1fae5",color:"#065f46",fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:10,whiteSpace:"nowrap"}}>✅ {lang==="it"?"Approvato da Juniper":"Approved by Juniper"}</span>
+);
 const DIET_TAGS  = ["gluten_free","lactose_free","combo_free","vegan","vegetarian","pet_friendly"];
 const CROSS_TAGS = ["no_cross","low_cross","high_cross"];
 const CROSS_DESC = {
@@ -143,10 +147,12 @@ function AdminScreen({user,lang,go,sb}){
     setLoading(false);
   };
   const approveTag=async(suggestion)=>{
-    // Aggiorna o crea il tag in community_tags
-    await sb.from("community_tags").upsert({structure_id:suggestion.structure_id,tag:suggestion.tag,count:1},{onConflict:"structure_id,tag"});
+    // Leggi count attuale e incrementa
+    const {data:existing}=await sb.from("community_tags").select("count").eq("structure_id",suggestion.structure_id).eq("tag",suggestion.tag).single().catch(()=>({data:null}));
+    const newCount=(existing?.count||0)+1;
+    await sb.from("community_tags").upsert({structure_id:suggestion.structure_id,tag:suggestion.tag,count:newCount},{onConflict:"structure_id,tag"});
     await sb.from("tag_suggestions").update({status:"approved"}).eq("id",suggestion.id);
-    showMsg("✅ Tag approvato e pubblicato!");load();
+    showMsg("✅ Tag approvato e pubblicato! Il badge apparirà nel locale.");load();
   };
   const rejectTag=async(id)=>{
     await sb.from("tag_suggestions").update({status:"rejected"}).eq("id",id);
@@ -938,7 +944,10 @@ function App(){
               <h2 style={{margin:"0 0 4px",fontSize:18,fontWeight:800}}>{s.name}</h2>
               <p style={{margin:"0 0 6px",fontSize:13,opacity:.85}}>📍 {s.city}, {s.country}</p>
               <div style={{display:"flex",gap:5,flexWrap:"wrap"}}>
-                <SrcBadge source={s.source}/>
+                {communityTags[s.id]&&DIET_TAGS.some(k=>communityTags[s.id]?.[k]?.count>0)
+                  ?<span style={{background:"rgba(255,255,255,.25)",color:"white",fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:10}}>✅ {lang==="it"?"Approvato da Juniper":"Approved by Juniper"}</span>
+                  :<SrcBadge source={s.source}/>
+                }
                 {s.certified&&<span style={{background:"rgba(255,255,255,.25)",color:"white",fontSize:10,fontWeight:700,padding:"2px 7px",borderRadius:10}}>✅ {t.certified}</span>}
               </div>
             </div>
