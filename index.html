@@ -635,6 +635,8 @@ function App(){
       }
     }catch(e){}
     setSearching(false);setResults(res);setTab("explore");go("results","home");
+    // Carica community tags per tutti i risultati in background
+    res.forEach(r=>loadCommunityTags(r.id));
     // Scansiona recensioni in background per i locali Google
     const googleRes=res.filter(r=>r.source==="google"&&r.id.startsWith("g_"));
     googleRes.forEach(async(venue)=>{
@@ -692,11 +694,9 @@ function App(){
 
   const loadCommunityTags=async(structId)=>{
     const {data}=await sb.from("community_tags").select("*").eq("structure_id",structId).catch(()=>({data:[]}));
-    if(data&&data.length>0){
-      const tagMap={};
-      data.forEach(row=>{tagMap[row.tag]={count:row.count||0,users:[]};});
-      setCommunityTags(prev=>({...prev,[structId]:tagMap}));
-    }
+    const tagMap={};
+    (data||[]).forEach(row=>{if(row.count>0)tagMap[row.tag]={count:row.count,users:[]};});
+    setCommunityTags(prev=>({...prev,[structId]:{...(prev[structId]||{}),pending:(prev[structId]?.pending||[]),...tagMap}}));
   };
 
   const SrcBadge=({source})=>{
