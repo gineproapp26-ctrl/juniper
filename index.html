@@ -362,8 +362,8 @@ function BusinessScreen({lang,go}){
       </div>
     </div>
   );
-  const types=["ristorante","bar","pizzeria","pasticceria","agriturismo","hotel","altro"];
-  const typeEmojis={ristorante:"🍽️",bar:"☕",pizzeria:"🍕",pasticceria:"🧁",agriturismo:"🌾",hotel:"🏨",altro:"🏪"};
+  const types=["ristorante","bar","pizzeria","pasticceria","gelateria","agriturismo","hotel","altro"];
+  const typeEmojis={ristorante:"🍽️",bar:"☕",pizzeria:"🍕",pasticceria:"🧁",gelateria:"🍦",agriturismo:"🌾",hotel:"🏨",altro:"🏪"};
   return(
     <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
       <div style={{background:GREEN,padding:"20px",color:"white"}}>
@@ -552,29 +552,39 @@ function App(){
 
   const GKEY="AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck";
   const searchGooglePlaces=async(query,tags)=>{
+    const tagWords=(tags||[]).map(k=>TAGS[k]?.it||"").filter(Boolean).join(" ");
+    const loc=(query||"Maremma Grosseto")+(tagWords?" "+tagWords:"")+" Italia";
+    const hasFood=query&&["ristorante","bar","pizzeria","agriturismo"].some(w=>query.toLowerCase().includes(w));
+    const queries=hasFood?[query+" "+loc]:["ristorante "+loc,"bar caffè "+loc,"pizzeria trattoria osteria agriturismo "+loc,"gelateria pasticceria "+loc];
+    const mapPlace=(p)=>{
+      const pt=p.primaryType||"";
+      let type="ristorante",emoji="🍽️";
+      if(pt.includes("bar")||pt.includes("cafe")){type="bar";emoji="☕";}
+      else if(pt.includes("bakery")||pt.includes("pastry")){type="pasticceria";emoji="🧁";}
+      else if(pt.includes("lodging")||pt.includes("hotel")){type="hotel";emoji="🏨";}
+      else if(pt.includes("farm")||pt.includes("campground")){type="agriturismo";emoji="🌾";}
+      else if(pt.includes("pizza")){type="pizzeria";emoji="🍕";}
+      else if(pt.includes("ice_cream")||pt.includes("gelat")){type="gelateria";emoji="🍦";}
+      const name=(p.displayName?.text||p.displayName||"Locale");
+      const nl=name.toLowerCase();
+      if(nl.includes("gelat")||nl.includes("gelateria")){type="gelateria";emoji="🍦";}
+      const addr=p.shortFormattedAddress||p.formattedAddress||"";
+      const parts=(p.formattedAddress||"").split(",");
+      const city=parts.length>2?parts[parts.length-3]?.trim()||"Italia":"Italia";
+      return{id:"g_"+(p.id||Math.random().toString(36)),name,type,city,country:"Italia",address:addr,phone:"",description:type+" · "+city,emoji,tags:[],lat:p.location?.latitude||null,lng:p.location?.longitude||null,meals:type==="bar"?["breakfast","aperitivo"]:type==="gelateria"||type==="pasticceria"?["breakfast","lunch","aperitivo"]:["lunch","dinner"],source:"google",certified:false,sponsored:false,rating:p.rating||null,reviewCount:p.userRatingCount||0,unverified:true};
+    };
     try{
-      const tagWords=(tags||[]).map(k=>TAGS[k]?.it||"").filter(Boolean).join(" ");
-      const hasFood=query&&["ristorante","bar","pizzeria","agriturismo"].some(w=>query.toLowerCase().includes(w));
-      const textQuery=(hasFood?"":"ristorante ")+(query||"Maremma Grosseto")+(tagWords?" "+tagWords:"")+" Toscana Italia";
-      const resp=await fetch("https://places.googleapis.com/v1/places:searchText",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryType,places.shortFormattedAddress,places.location"},
-        body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:15})
-      });
-      if(!resp.ok)return[];
-      const data=await resp.json();
-      return (data.places||[]).map(p=>{
-        const pt=p.primaryType||"";
-        let type="ristorante",emoji="🍽️";
-        if(pt.includes("bar")||pt.includes("cafe")){type="bar";emoji="☕";}
-        else if(pt.includes("bakery")||pt.includes("pastry")){type="pasticceria";emoji="🧁";}
-        else if(pt.includes("lodging")||pt.includes("hotel")){type="hotel";emoji="🏨";}
-        else if(pt.includes("farm")||pt.includes("campground")){type="agriturismo";emoji="🌾";}
-        const name=p.displayName?.text||p.displayName||"Locale";
-        const addr=p.shortFormattedAddress||p.formattedAddress||"";
-        const parts=(p.formattedAddress||"").split(",");
-        const city=parts.length>2?parts[parts.length-3]?.trim()||"Italia":"Italia";
-        return{id:"g_"+(p.id||Math.random().toString(36)),name,type,city,country:"Italia",address:addr,phone:"",description:type+" · "+city,emoji,tags:[],meals:type==="bar"?["breakfast","aperitivo"]:["lunch","dinner"],source:"google",certified:false,sponsored:false,rating:p.rating||null,reviewCount:p.userRatingCount||0,unverified:true};
+      const results=await Promise.all(queries.map(textQuery=>
+        fetch("https://places.googleapis.com/v1/places:searchText",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryType,places.shortFormattedAddress,places.location"},
+          body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:20})
+        }).then(r=>r.ok?r.json():{places:[]}).then(d=>(d.places||[]).map(mapPlace)).catch(()=>[])
+      ));
+      const seen=new Set();
+      return results.flat().filter(p=>{
+        if(seen.has(p.name.toLowerCase()))return false;
+        seen.add(p.name.toLowerCase());return true;
       });
     }catch(e){return[];}
   };
