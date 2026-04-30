@@ -421,6 +421,7 @@ function App(){
   const [aPass,setAPass]=React.useState("");
   const [aErr,setAErr]=React.useState("");
   const [aLoading,setALoading]=React.useState(false);
+  const [showPass,setShowPass]=React.useState(false);
   const [structs,setStructs]=React.useState(DEMO);
   const [loadingData,setLoadingData]=React.useState(true);
   const [searching,setSearching]=React.useState(false);
@@ -432,7 +433,7 @@ function App(){
       if((event==="SIGNED_IN"||event==="INITIAL_SESSION")&&session?.user){
         setUser({name:session.user.user_metadata?.name||session.user.email.split("@")[0],email:session.user.email,id:session.user.id});
         setALoading(false);
-        setScreen("home");
+        setScreen(prev=>prev==="welcome"||prev==="auth"||prev==="policy"?"home":prev);
       }
       if(event==="SIGNED_OUT"){setUser(null);setScreen("welcome");}
     });
@@ -453,34 +454,33 @@ function App(){
 
   React.useEffect(()=>{
     if(!sel)return;
+    let mounted=true;
     sb.from("reviews").select("*").eq("structure_id",sel.id).order("created_at",{ascending:false}).limit(40).then(({data})=>{
+      if(!mounted)return;
       if(data) setRevs(r=>({...r,[sel.id]:data.map(r=>({id:r.id,user:r.user_name,rating:r.rating,text:r.text,date:r.created_at?.split("T")[0]}))}));
     });
-    loadCommunityTags(sel.id);
     if(sel.source==="google"&&sel.id.startsWith("g_")){
       const placeId=sel.id.replace("g_","");
-      fetch(`https://places.googleapis.com/v1/places/${placeId}`,{
-        headers:{"X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"reviews,editorialSummary"}
-      }).then(r=>r.json()).then(data=>{
-        const gRevs=(data.reviews||[]).slice(0,40).map((r,i)=>({
-          id:"gr_"+i,user:r.authorAttribution?.displayName||"Utente Google",
-          rating:r.rating||5,text:r.text?.text||r.originalText?.text||"",
-          date:r.publishTime?.split("T")[0]||"",source:"google"
-        })).filter(r=>r.text);
-        if(gRevs.length>0){
-          const allText=gRevs.map(r=>r.text.toLowerCase()).join(" ");
-          const revTags=[];
-          if(allText.includes("gluten")||allText.includes("celiach")||allText.includes("senza glutine"))revTags.push("gluten_free");
-          if(allText.includes("vegan")||allText.includes("vegano")||allText.includes("vegana"))revTags.push("vegan");
-          if(allText.includes("vegetar"))revTags.push("vegetarian");
-          if(allText.includes("lattosio")||allText.includes("lactose")||allText.includes("senza latte"))revTags.push("lactose_free");
-          if(allText.includes("pet")||allText.includes("cane")||allText.includes("animali"))revTags.push("pet_friendly");
-          if(revTags.length>0) setSel(prev=>({...prev,reviewTags:revTags}));
-          setRevs(r=>({...r,[sel.id]:[...(r[sel.id]||[]),...gRevs]}));
-        }
-      }).catch(()=>{});
+      fetch(`https://places.googleapis.com/v1/places/${placeId}`,{headers:{"X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"reviews,editorialSummary"}})
+        .then(r=>r.json()).then(data=>{
+          if(!mounted)return;
+          const gRevs=(data.reviews||[]).slice(0,40).map((r,i)=>({id:"gr_"+i,user:r.authorAttribution?.displayName||"Utente Google",rating:r.rating||5,text:r.text?.text||r.originalText?.text||"",date:r.publishTime?.split("T")[0]||"",source:"google"})).filter(r=>r.text);
+          if(gRevs.length>0){
+            const allText=gRevs.map(r=>r.text.toLowerCase()).join(" ");
+            const revTags=[];
+            if(allText.includes("gluten")||allText.includes("celiach")||allText.includes("senza glutine"))revTags.push("gluten_free");
+            if(allText.includes("vegan")||allText.includes("vegano")||allText.includes("vegana"))revTags.push("vegan");
+            if(allText.includes("vegetar"))revTags.push("vegetarian");
+            if(allText.includes("lattosio")||allText.includes("lactose")||allText.includes("senza latte"))revTags.push("lactose_free");
+            if(allText.includes("pet")||allText.includes("cane")||allText.includes("animali"))revTags.push("pet_friendly");
+            if(revTags.length>0)setSel(prev=>prev?.id===sel.id?{...prev,reviewTags:revTags}:prev);
+            setRevs(r=>({...r,[sel.id]:[...(r[sel.id]||[]),...gRevs]}));
+          }
+        }).catch(()=>{});
     }
-  },[sel]);
+    loadCommunityTags(sel.id);
+    return()=>{mounted=false;};
+  },[sel?.id]);
 
   const T={
     it:{appName:"Juniper",hi:"Ciao",login:"Accedi",register:"Registrati",mealFilter:"Tipo di pasto",allMeals:"Tutti i pasti",filters:"Caratteristiche",certified:"Certificato",reviews:"recensioni",leaveReview:"Lascia una recensione",placeholder:"Scrivi la tua recensione...",submit:"Invia",home:"Home",explore:"Esplora",profile:"Profilo",results:"Risultati",found:"trovate",featured:"In evidenza",nearby:"Strutture in Italia",premiumPlan:"Piano Premium",features:"Strutture illimitate · Ricerche illimitate · GPS",cancel:"Annulla",logout:"Esci",back:"Indietro",reviewAdded:"Recensione aggiunta! ✅",noRev:"Nessuna recensione ancora",searchBtn:"Cerca",whereLabel:"Dove vuoi andare?",wherePh:"Città, zona o nome locale...",kitchenTitle:"🔬 Sicurezza in cucina",kitchenSub:"Il locale garantisce assenza di contaminazione crociata?",kitchenLegend:"✅ cucina separata · ⚠️ non garantisce · ❌ cucina condivisa",tagItLabel:"Segnala caratteristica",popGuest:"Contenuto riservato 🌿",popGuestSub:"Registrati gratis per sbloccare Juniper!",popReview:"Vuoi lasciare una recensione? 💬",popReviewSub:"Registrati gratis!",regFree:"Registrati gratis",orLogin:"Hai già un account?",bizBtn:"Registra la tua attività"},
@@ -749,7 +749,7 @@ function App(){
       <div style={{margin:"0 16px",background:"white",borderRadius:16,padding:24,marginTop:-22,boxShadow:"0 4px 20px rgba(0,0,0,.1)"}}>
         {authMode==="register"&&<div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Nome</label><input value={aName} onChange={e=>setAName(e.target.value)} style={inp} placeholder="Mario Rossi"/></div>}
         <div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Email</label><input type="email" value={aEmail} onChange={e=>setAEmail(e.target.value)} style={inp} placeholder="mario@esempio.it"/></div>
-        <div style={{marginBottom:18}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Password</label><input type="password" value={aPass} onChange={e=>setAPass(e.target.value)} style={inp} placeholder="••••••••"/></div>
+        <div style={{marginBottom:18}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Password</label><div style={{position:"relative"}}><input type={showPass?"text":"password"} value={aPass} onChange={e=>setAPass(e.target.value)} style={{...inp,paddingRight:44}} placeholder="••••••••"/><button onClick={()=>setShowPass(p=>!p)} type="button" style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#9ca3af"}}>{showPass?"🙈":"👁️"}</button></div></div>
         {aErr&&<p style={{margin:"0 0 12px",fontSize:13,color:"#ef4444",textAlign:"center",lineHeight:1.5}}>{aErr}</p>}
         <button onClick={doAuth} disabled={aLoading} style={{...btnG,opacity:aLoading?0.7:1}}>{aLoading?"⏳ Attendere...":(authMode==="login"?t.login:t.register)}</button>
         <p style={{textAlign:"center",marginTop:14,fontSize:13,color:"#6b7280",margin:"14px 0 0"}}>
