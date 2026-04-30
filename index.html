@@ -509,10 +509,12 @@ function App(){
   React.useEffect(()=>{
     if(!sel)return;
     let mounted=true;
-    sb.from("reviews").select("*").eq("structure_id",sel.id).order("created_at",{ascending:false}).limit(40).then(({data})=>{
-      if(!mounted)return;
-      if(data) setRevs(r=>({...r,[sel.id]:data.map(r=>({id:r.id,user:r.user_name,rating:r.rating,text:r.text,date:r.created_at?.split("T")[0]}))}));
-    });
+    if(!sel.id.startsWith("g_")){
+      sb.from("reviews").select("*").eq("structure_id",sel.id).order("created_at",{ascending:false}).limit(40).then(({data})=>{
+        if(!mounted)return;
+        if(data) setRevs(r=>({...r,[sel.id]:data.map(r=>({id:r.id,user:r.user_name,rating:r.rating,text:r.text,date:r.created_at?.split("T")[0]}))}));
+      });
+    }
     if(sel.source==="google"&&sel.id.startsWith("g_")){
       const placeId=sel.id.replace("g_","");
       fetch(`https://places.googleapis.com/v1/places/${placeId}`,{headers:{"X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"reviews,editorialSummary"}})
@@ -693,10 +695,13 @@ function App(){
   };
 
   const loadCommunityTags=async(structId)=>{
-    const {data}=await sb.from("community_tags").select("*").eq("structure_id",structId).catch(()=>({data:[]}));
-    const tagMap={};
-    (data||[]).forEach(row=>{if(row.count>0)tagMap[row.tag]={count:row.count,users:[]};});
-    setCommunityTags(prev=>({...prev,[structId]:{...(prev[structId]||{}),pending:(prev[structId]?.pending||[]),...tagMap}}));
+    try{
+      const {data,error}=await sb.from("community_tags").select("*").eq("structure_id",structId);
+      if(error||!data)return;
+      const tagMap={};
+      data.forEach(row=>{if(row.count>0)tagMap[row.tag]={count:row.count,users:[]};});
+      setCommunityTags(prev=>({...prev,[structId]:{...(prev[structId]||{}),pending:(prev[structId]?.pending||[]),...tagMap}}));
+    }catch(e){}
   };
 
   const SrcBadge=({source})=>{
@@ -966,7 +971,7 @@ function App(){
             </div>
             {s.reviewTags&&s.reviewTags.length>0&&<div style={{marginTop:8}}><p style={{margin:"0 0 6px",fontSize:11,color:"#6b7280",fontWeight:700}}>💬 {lang==="it"?"Segnalato nelle recensioni:":"Mentioned in reviews:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{s.reviewTags.map(k=><span key={k} style={{background:"#fef9ec",color:"#92400e",fontSize:11,padding:"3px 8px",borderRadius:20,border:"1px dashed #fcd34d"}}>💬 {TAGS[k]?.[lang]}</span>)}</div><p style={{margin:"6px 0 0",fontSize:10,color:"#9ca3af"}}>{lang==="it"?"Dalle recensioni Google, non verificato":"From Google reviews, not verified"}</p></div>}
             {communityTags[s.id]&&Object.keys(communityTags[s.id]).filter(k=>communityTags[s.id][k].count>0).length>0&&<div style={{marginTop:8,background:"#f0fdf4",borderRadius:10,padding:"8px 10px",border:"1px solid #bbf7d0"}}><p style={{margin:"0 0 6px",fontSize:11,color:"#1a5c3a",fontWeight:700}}>👥 {lang==="it"?"Segnalato dalla community:":"Reported by community:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{Object.entries(communityTags[s.id]).filter(([k,v])=>v.count>0).map(([k,v])=><span key={k} style={{background:"white",color:"#1a5c3a",fontSize:11,padding:"3px 8px",borderRadius:20,border:"1px solid #bbf7d0",fontWeight:600}}>{TAGS[k]?.icon} {TAGS[k]?.[lang]} · {v.count}</span>)}</div><p style={{margin:"6px 0 0",fontSize:10,color:"#6b7280"}}>{lang==="it"?"Segnalato dagli utenti, non garantito":"Reported by users, not guaranteed"}</p></div>}
-            <div style={{marginTop:8}}><p style={{margin:"0 0 6px",fontSize:11,color:"#9ca3af"}}>{lang==="it"?"+ Segnala una caratteristica:":"+ Report a feature:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{DIET_TAGS.map(k=>{const ct=communityTags[s.id]?.[k];const hasVoted=ct?.users?.includes(user?.id);return <button key={k} onClick={()=>addCommunityTag(s.id,s.name,k)} style={{background:hasVoted?"#fef3c7":"#f9fafb",color:hasVoted?"#92400e":"#9ca3af",border:`1px solid ${hasVoted?"#fcd34d":"#e5e7eb"}`,padding:"4px 10px",borderRadius:20,fontSize:11,cursor:"pointer"}}>{TAGS[k].icon} {TAGS[k]?.[lang]}{ct?.count>0?` (${ct.count})`:""}</button>;})} </div></div>}
+            <div style={{marginTop:8}}><p style={{margin:"0 0 6px",fontSize:11,color:"#9ca3af"}}>{lang==="it"?"+ Segnala una caratteristica:":"+ Report a feature:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{DIET_TAGS.map(k=>{const ct=communityTags[s.id]?.[k];const hasVoted=ct?.users?.includes(user?.id);return <button key={k} onClick={()=>addCommunityTag(s.id,s.name,k)} style={{background:hasVoted?"#fef3c7":"#f9fafb",color:hasVoted?"#92400e":"#9ca3af",border:`1px solid ${hasVoted?"#fcd34d":"#e5e7eb"}`,padding:"4px 10px",borderRadius:20,fontSize:11,cursor:"pointer"}}>{TAGS[k].icon} {TAGS[k]?.[lang]}{ct?.count>0?` (${ct.count})`:""}</button>;})} </div></div>
           </div>
           <div style={card}>
             <p style={{margin:"0 0 10px",fontSize:14,color:"#374151",lineHeight:1.6}}>{s.description}</p>
