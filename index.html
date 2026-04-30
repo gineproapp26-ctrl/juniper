@@ -121,15 +121,28 @@ function AdminScreen({user,lang,go,sb}){
   const [msg,setMsg]=React.useState("");
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const card2={background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:10};
+  const [tagSuggestions,setTagSuggestions]=React.useState([]);
   const load=async()=>{
     setLoading(true);
-    const [rReq,rStr]=await Promise.all([
+    const [rReq,rStr,rTags]=await Promise.all([
       sb.from("business_requests").select("*").order("created_at",{ascending:false}),
       sb.from("structures").select("*").order("created_at",{ascending:false}),
+      sb.from("tag_suggestions").select("*").order("created_at",{ascending:false}),
     ]);
     if(rReq.data)setRequests(rReq.data);
     if(rStr.data)setStructures(rStr.data);
+    if(rTags.data)setTagSuggestions(rTags.data);
     setLoading(false);
+  };
+  const approveTag=async(suggestion)=>{
+    // Aggiorna o crea il tag in community_tags
+    await sb.from("community_tags").upsert({structure_id:suggestion.structure_id,tag:suggestion.tag,count:1},{onConflict:"structure_id,tag"});
+    await sb.from("tag_suggestions").update({status:"approved"}).eq("id",suggestion.id);
+    showMsg("✅ Tag approvato e pubblicato!");load();
+  };
+  const rejectTag=async(id)=>{
+    await sb.from("tag_suggestions").update({status:"rejected"}).eq("id",id);
+    showMsg("❌ Tag rifiutato");load();
   };
   React.useEffect(()=>{load();},[tab]);
   const showMsg=(m)=>{setMsg(m);setTimeout(()=>setMsg(""),3000);};
@@ -166,7 +179,7 @@ function AdminScreen({user,lang,go,sb}){
     await sb.from("structures").delete().eq("id",id);
     showMsg("🗑️ Locale eliminato");load();
   };
-  const tabs=[{id:"requests",label:"📋 Richieste"},{id:"structures",label:"🏢 Locali"},{id:"stats",label:"📊 Stats"}];
+  const tabs=[{id:"requests",label:"📋 Richieste"},{id:"structures",label:"🏢 Locali"},{id:"tags",label:"🏷️ Tag"},{id:"stats",label:"📊 Stats"}];
   return(
     <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
       <div style={{background:GREEN,padding:"20px",color:"white"}}>
@@ -232,6 +245,27 @@ function AdminScreen({user,lang,go,sb}){
             </div>
           ))}
           {structures.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessun locale</div>}
+        </>}
+        {!loading&&tab==="tags"&&<>
+          <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{tagSuggestions.filter(t=>t.status==="pending").length} segnalazioni in attesa</p>
+          {tagSuggestions.map(s=>(
+            <div key={s.id} style={{...card2,borderLeft:`4px solid ${s.status==="pending"?"#f59e0b":s.status==="approved"?"#10b981":"#ef4444"}`}}>
+              <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
+                <div>
+                  <p style={{margin:"0 0 2px",fontWeight:700,fontSize:14}}>{TAGS[s.tag]?.icon} {TAGS[s.tag]?.it} per <em>{s.structure_name||s.structure_id}</em></p>
+                  <p style={{margin:"0 0 2px",fontSize:12,color:"#6b7280"}}>👤 {s.user_name} · {s.created_at?.split("T")[0]}</p>
+                </div>
+                <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:s.status==="pending"?"#fef3c7":s.status==="approved"?"#d1fae5":"#fee2e2",color:s.status==="pending"?"#92400e":s.status==="approved"?"#065f46":"#dc2626"}}>
+                  {s.status==="pending"?"⏳ Attesa":s.status==="approved"?"✅ Approvato":"❌ Rifiutato"}
+                </span>
+              </div>
+              {s.status==="pending"&&<div style={{display:"flex",gap:8}}>
+                <button onClick={()=>approveTag(s)} style={{flex:1,background:"#1a5c3a",color:"white",border:"none",padding:"8px",borderRadius:10,cursor:"pointer",fontWeight:700,fontSize:13}}>✅ Approva e pubblica</button>
+                <button onClick={()=>rejectTag(s.id)} style={{flex:1,background:"#fee2e2",color:"#dc2626",border:"none",padding:"8px",borderRadius:10,cursor:"pointer",fontWeight:700,fontSize:13}}>❌ Rifiuta</button>
+              </div>}
+            </div>
+          ))}
+          {tagSuggestions.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessuna segnalazione</div>}
         </>}
         {!loading&&tab==="stats"&&<>
           {[
@@ -578,17 +612,22 @@ function App(){
     }catch(e){}
   };
 
-  const addCommunityTag=(structId,tag)=>{
+  const addCommunityTag=async(structId,structName,tag)=>{
     if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
-    setCommunityTags(prev=>{
-      const existing=prev[structId]||{};
-      const tagData=existing[tag]||{count:0,users:[]};
-      if(tagData.users.includes(user.id)) return prev; // già votato
-      const updated={...existing,[tag]:{count:tagData.count+1,users:[...tagData.users,user.id]}};
-      // Salva su Supabase
-      sb.from("community_tags").upsert({structure_id:structId,tag,count:updated[tag].count},{onConflict:"structure_id,tag"}).catch(()=>{});
-      return {...prev,[structId]:updated};
+    const alreadySent=communityTags[structId]?.pending?.includes(user.id+"_"+tag);
+    if(alreadySent){
+      alert(lang==="it"?"Hai già inviato questa segnalazione, in attesa di approvazione.":"You already sent this report, pending approval.");
+      return;
+    }
+    const {error}=await sb.from("tag_suggestions").insert({
+      structure_id:structId,structure_name:structName||"",
+      tag,user_id:user.id,user_name:user.name,status:"pending"
     });
+    if(error){alert(lang==="it"?"Errore. Riprova.":"Error. Try again.");return;}
+    setCommunityTags(prev=>({
+      ...prev,[structId]:{...(prev[structId]||{}),pending:[...((prev[structId]||{}).pending||[]),user.id+"_"+tag]}
+    }));
+    alert(lang==="it"?"✅ Segnalazione inviata! L'admin la valuterà presto.":"✅ Report sent! Admin will review it soon.");
   };
 
   const loadCommunityTags=async(structId)=>{
@@ -640,6 +679,8 @@ function App(){
               {s.tags.filter(k=>CROSS_TAGS.includes(k)).map(k=><span key={k} style={{background:TAGS[k].color+"22",color:TAGS[k].color,fontSize:10,padding:"2px 6px",borderRadius:10}}>{TAGS[k].icon}</span>)}
             </div>
             {s.rating&&<div style={{display:"flex",alignItems:"center",gap:4}}><span style={{color:"#f59e0b",fontSize:11}}>⭐</span><span style={{fontSize:12,fontWeight:600}}>{s.rating}</span><span style={{fontSize:11,color:"#9ca3af"}}>({s.reviewCount})</span></div>}
+            {s.reviewTags&&s.reviewTags.length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap",marginTop:3}}>{s.reviewTags.map(k=><span key={k} style={{background:"#fef9ec",color:"#92400e",fontSize:10,padding:"2px 6px",borderRadius:10,border:"1px dashed #fcd34d"}}>💬 {TAGS[k]?.[lang]}</span>)}</div>}
+            {communityTags[s.id]&&DIET_TAGS.filter(k=>communityTags[s.id]?.[k]?.count>0).length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap",marginTop:3}}>{DIET_TAGS.filter(k=>communityTags[s.id]?.[k]?.count>0).map(k=><span key={k} style={{background:"#f0fdf4",color:"#1a5c3a",fontSize:10,padding:"2px 6px",borderRadius:10,border:"1px solid #bbf7d0"}}>👥 {TAGS[k]?.[lang]}</span>)}</div>}
             {communityTags[s.id]&&Object.keys(communityTags[s.id]).filter(k=>communityTags[s.id][k].count>0).length>0&&(
               <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:4}}>
                 {DIET_TAGS.filter(k=>communityTags[s.id]?.[k]?.count>0).map(k=>(
@@ -855,7 +896,7 @@ function App(){
             </div>
             {s.reviewTags&&s.reviewTags.length>0&&<div style={{marginTop:8}}><p style={{margin:"0 0 6px",fontSize:11,color:"#6b7280",fontWeight:700}}>💬 {lang==="it"?"Segnalato nelle recensioni:":"Mentioned in reviews:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{s.reviewTags.map(k=><span key={k} style={{background:"#fef9ec",color:"#92400e",fontSize:11,padding:"3px 8px",borderRadius:20,border:"1px dashed #fcd34d"}}>💬 {TAGS[k]?.[lang]}</span>)}</div><p style={{margin:"6px 0 0",fontSize:10,color:"#9ca3af"}}>{lang==="it"?"Dalle recensioni Google, non verificato":"From Google reviews, not verified"}</p></div>}
             {communityTags[s.id]&&Object.keys(communityTags[s.id]).filter(k=>communityTags[s.id][k].count>0).length>0&&<div style={{marginTop:8,background:"#f0fdf4",borderRadius:10,padding:"8px 10px",border:"1px solid #bbf7d0"}}><p style={{margin:"0 0 6px",fontSize:11,color:"#1a5c3a",fontWeight:700}}>👥 {lang==="it"?"Segnalato dalla community:":"Reported by community:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{Object.entries(communityTags[s.id]).filter(([k,v])=>v.count>0).map(([k,v])=><span key={k} style={{background:"white",color:"#1a5c3a",fontSize:11,padding:"3px 8px",borderRadius:20,border:"1px solid #bbf7d0",fontWeight:600}}>{TAGS[k]?.icon} {TAGS[k]?.[lang]} · {v.count}</span>)}</div><p style={{margin:"6px 0 0",fontSize:10,color:"#6b7280"}}>{lang==="it"?"Segnalato dagli utenti, non garantito":"Reported by users, not guaranteed"}</p></div>}
-            <div style={{marginTop:8}}><p style={{margin:"0 0 6px",fontSize:11,color:"#9ca3af"}}>{lang==="it"?"+ Segnala una caratteristica:":"+ Report a feature:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{DIET_TAGS.map(k=>{const ct=communityTags[s.id]?.[k];const hasVoted=ct?.users?.includes(user?.id);return <button key={k} onClick={()=>addCommunityTag(s.id,k)} style={{background:hasVoted?"#fef3c7":"#f9fafb",color:hasVoted?"#92400e":"#9ca3af",border:`1px solid ${hasVoted?"#fcd34d":"#e5e7eb"}`,padding:"4px 10px",borderRadius:20,fontSize:11,cursor:"pointer"}}>{TAGS[k].icon} {TAGS[k]?.[lang]}{ct?.count>0?` (${ct.count})`:""}</button>;})} </div></div>}
+            <div style={{marginTop:8}}><p style={{margin:"0 0 6px",fontSize:11,color:"#9ca3af"}}>{lang==="it"?"+ Segnala una caratteristica:":"+ Report a feature:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{DIET_TAGS.map(k=>{const ct=communityTags[s.id]?.[k];const hasVoted=ct?.users?.includes(user?.id);return <button key={k} onClick={()=>addCommunityTag(s.id,s.name,k)} style={{background:hasVoted?"#fef3c7":"#f9fafb",color:hasVoted?"#92400e":"#9ca3af",border:`1px solid ${hasVoted?"#fcd34d":"#e5e7eb"}`,padding:"4px 10px",borderRadius:20,fontSize:11,cursor:"pointer"}}>{TAGS[k].icon} {TAGS[k]?.[lang]}{ct?.count>0?` (${ct.count})`:""}</button>;})} </div></div>}
           </div>
           <div style={card}>
             <p style={{margin:"0 0 10px",fontSize:14,color:"#374151",lineHeight:1.6}}>{s.description}</p>
