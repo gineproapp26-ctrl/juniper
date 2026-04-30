@@ -560,8 +560,8 @@ function App(){
   },[sel?.id]);
 
   const T={
-    it:{appName:"Juniper",hi:"Ciao",login:"Accedi",register:"Registrati",mealFilter:"Tipo di pasto",allMeals:"Tutti i pasti",filters:"Caratteristiche",certified:"Certificato",reviews:"recensioni",leaveReview:"Lascia una recensione",placeholder:"Scrivi la tua recensione...",submit:"Invia",home:"Home",explore:"Esplora",profile:"Profilo",results:"Risultati",found:"trovate",featured:"In evidenza",nearby:"Strutture in Italia",premiumPlan:"Piano Premium",features:"Strutture illimitate · Ricerche illimitate · GPS",cancel:"Annulla",logout:"Esci",back:"Indietro",reviewAdded:"Recensione aggiunta! ✅",noRev:"Nessuna recensione ancora",searchBtn:"Cerca",whereLabel:"Dove vuoi andare?",wherePh:"Città, zona o nome locale...",kitchenTitle:"🔬 Sicurezza in cucina",kitchenSub:"Il locale garantisce assenza di contaminazione crociata?",kitchenLegend:"✅ cucina separata · ⚠️ non garantisce · ❌ cucina condivisa",tagItLabel:"Segnala caratteristica",popGuest:"Contenuto riservato 🌿",popGuestSub:"Registrati gratis per sbloccare Juniper!",popReview:"Vuoi lasciare una recensione? 💬",popReviewSub:"Registrati gratis!",regFree:"Registrati gratis",orLogin:"Hai già un account?",bizBtn:"Registra la tua attività"},
-    en:{appName:"Juniper",hi:"Hi",login:"Sign In",register:"Register",mealFilter:"Meal type",allMeals:"All meals",filters:"Features",certified:"Certified",reviews:"reviews",leaveReview:"Leave a review",placeholder:"Write your review...",submit:"Submit",home:"Home",explore:"Explore",profile:"Profile",results:"Results",found:"found",featured:"Featured",nearby:"Structures in Italy",premiumPlan:"Premium Plan",features:"Unlimited structures · Unlimited searches · GPS",cancel:"Cancel",logout:"Sign Out",back:"Back",reviewAdded:"Review added! ✅",noRev:"No reviews yet",searchBtn:"Search",whereLabel:"Where do you want to go?",wherePh:"City, area or place name...",kitchenTitle:"🔬 Kitchen Safety",kitchenSub:"Does the venue guarantee no cross-contamination?",kitchenLegend:"✅ separate kitchen · ⚠️ not guaranteed · ❌ shared kitchen",popGuest:"Members only 🌿",popGuestSub:"Sign up free to unlock Juniper!",popReview:"Want to leave a review? 💬",popReviewSub:"Sign up free!",regFree:"Sign up free",orLogin:"Already have an account?",bizBtn:"Register your business"},
+    it:{appName:"Juniper",hi:"Ciao",login:"Accedi",register:"Registrati",mealFilter:"Tipo di pasto",allMeals:"Tutti i pasti",filters:"Caratteristiche",certified:"Certificato",reviews:"recensioni",leaveReview:"Lascia una recensione",placeholder:"Scrivi la tua recensione...",submit:"Invia",home:"Home",explore:"Esplora",profile:"Profilo",results:"Risultati",found:"trovate",featured:"In evidenza",nearby:"Strutture in Italia",premiumPlan:"Piano Premium",features:"Strutture illimitate · Ricerche illimitate · GPS",cancel:"Annulla",logout:"Esci",back:"Indietro",reviewAdded:"Recensione aggiunta! ✅",noRev:"Nessuna recensione ancora",searchBtn:"Cerca",whereLabel:"Dove vuoi andare?",wherePh:"Città, zona o nome locale...",kitchenTitle:"🔬 Sicurezza in cucina",kitchenSub:"Il locale garantisce assenza di contaminazione crociata?",kitchenLegend:"✅ cucina separata · ⚠️ non garantisce · ❌ cucina condivisa",tagItLabel:"Segnala caratteristica",popGuest:"Contenuto riservato 🌿",popGuestSub:"Registrati gratis per sbloccare Juniper!",popSearch:"Ricerche esaurite 🔍",popSearchSub:"Passa a Premium per ricerche illimitate.",popReview:"Vuoi lasciare una recensione? 💬",popReviewSub:"Registrati gratis!",regFree:"Registrati gratis",orLogin:"Hai già un account?",bizBtn:"Registra la tua attività"},
+    en:{appName:"Juniper",hi:"Hi",login:"Sign In",register:"Register",mealFilter:"Meal type",allMeals:"All meals",filters:"Features",certified:"Certified",reviews:"reviews",leaveReview:"Leave a review",placeholder:"Write your review...",submit:"Submit",home:"Home",explore:"Explore",profile:"Profile",results:"Results",found:"found",featured:"Featured",nearby:"Structures in Italy",premiumPlan:"Premium Plan",features:"Unlimited structures · Unlimited searches · GPS",cancel:"Cancel",logout:"Sign Out",back:"Back",reviewAdded:"Review added! ✅",noRev:"No reviews yet",searchBtn:"Search",whereLabel:"Where do you want to go?",wherePh:"City, area or place name...",kitchenTitle:"🔬 Kitchen Safety",kitchenSub:"Does the venue guarantee no cross-contamination?",kitchenLegend:"✅ separate kitchen · ⚠️ not guaranteed · ❌ shared kitchen",popGuest:"Members only 🌿",popGuestSub:"Sign up free to unlock Juniper!",popSearch:"Searches used up 🔍",popSearchSub:"Go Premium for unlimited searches.",popReview:"Want to leave a review? 💬",popReviewSub:"Sign up free!",regFree:"Sign up free",orLogin:"Already have an account?",bizBtn:"Register your business"},
   };
   const t=T[lang];
   const go=(s,prev)=>{if(prev)setPrevScr(prev);setScreen(s);};
@@ -649,6 +649,7 @@ function App(){
 
   const doSearch=async()=>{
     if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
+    if(!premium&&getSearchCount()>=FREE_LIMIT){showP(t.popSearch,t.popSearchSub,"upgrade");return;}
     setSearching(true);
     let res=structs.filter(s=>{
       const mf=tagFilters.length===0||tagFilters.every(f=>s.tags&&s.tags.includes(f));
@@ -670,6 +671,8 @@ function App(){
     setSearching(false);setResults(res);setTab("explore");go("results","home");
     // Carica community tags per tutti i risultati in background
     res.forEach(r=>loadCommunityTags(r.id));
+    // Conta ricerca
+    if(!premium)incSearchCount();
     // Scansiona recensioni in background per i locali Google
     const googleRes=res.filter(r=>r.source==="google"&&r.id.startsWith("g_"));
     googleRes.forEach(async(venue)=>{
@@ -689,7 +692,20 @@ function App(){
         if(allText.includes("lattosio")||allText.includes("lactose")||allText.includes("senza latte"))revTags.push("lactose_free");
         if(allText.includes("pet")||allText.includes("cane")||allText.includes("animali"))revTags.push("pet_friendly");
         if(revTags.length>0){
-          setResults(prev=>(prev||[]).map(r=>r.id===venue.id?{...r,reviewTags:revTags}:r));
+          setResults(prev=>{
+            const updated=(prev||[]).map(r=>r.id===venue.id?{...r,reviewTags:revTags}:r);
+            // Se ci sono filtri attivi, rimuovi locali che non matchano dopo aver letto le recensioni
+            if(tagFilters.length>0){
+              const dietFilters=tagFilters.filter(f=>DIET_TAGS.includes(f));
+              if(dietFilters.length>0){
+                return updated.filter(r=>{
+                  if(r.source!=="google")return true; // non filtrare locali registrati
+                  return dietFilters.every(f=>(r.tags&&r.tags.includes(f))||(r.reviewTags&&r.reviewTags.includes(f)));
+                });
+              }
+            }
+            return updated;
+          });
         }
       }catch(e){}
     });
@@ -996,7 +1012,7 @@ function App(){
         <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"14px 0 10px"}}>🇮🇹 {t.nearby}</h3>
         {structs.filter(s=>s.country==="Italia"&&!s.sponsored).slice(0,5).map((s,i)=><StructCard key={s.id} s={s} index={i+2} guestMode={isGuest}/>)}
       </div>
-      <BottomNav/><Popup/>
+      <BottomNav/>{showUp&&<UpgradeModal/>}<Popup/>
       {searching&&<div style={{position:"fixed",inset:0,background:"rgba(255,255,255,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500,gap:14}}>
         <div style={{fontSize:48,animation:"spin 1.5s linear infinite"}}>🌿</div>
         <p style={{fontSize:16,fontWeight:700,color:"#1a5c3a"}}>{lang==="it"?"Sto cercando i locali...":"Finding venues..."}</p>
