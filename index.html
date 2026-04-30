@@ -147,12 +147,17 @@ function AdminScreen({user,lang,go,sb}){
     setLoading(false);
   };
   const approveTag=async(suggestion)=>{
-    // Leggi count attuale e incrementa
-    const {data:existing}=await sb.from("community_tags").select("count").eq("structure_id",suggestion.structure_id).eq("tag",suggestion.tag).single().catch(()=>({data:null}));
-    const newCount=(existing?.count||0)+1;
-    await sb.from("community_tags").upsert({structure_id:suggestion.structure_id,tag:suggestion.tag,count:newCount},{onConflict:"structure_id,tag"});
-    await sb.from("tag_suggestions").update({status:"approved"}).eq("id",suggestion.id);
-    showMsg("✅ Tag approvato e pubblicato! Il badge apparirà nel locale.");load();
+    const r1=await sb.from("community_tags").upsert(
+      {structure_id:suggestion.structure_id,tag:suggestion.tag,count:1},
+      {onConflict:"structure_id,tag",ignoreDuplicates:false}
+    );
+    const r2=await sb.from("tag_suggestions").update({status:"approved"}).eq("id",suggestion.id);
+    if(r1.error||r2.error){
+      showMsg("❌ Errore: "+(r1.error?.message||r2.error?.message));
+    } else {
+      showMsg("✅ Tag approvato e pubblicato!");
+      load();
+    }
   };
   const rejectTag=async(id)=>{
     await sb.from("tag_suggestions").update({status:"rejected"}).eq("id",id);
