@@ -26,6 +26,14 @@ const sb = window.supabase.createClient(
 );
 
 const GREEN = "linear-gradient(135deg,#1a5c3a,#0f3d26)";
+const VENUE_TYPES = [
+  {id:"ristorante",label:"Ristorante",icon:"🍽️"},
+  {id:"bar",label:"Bar / Caffè",icon:"☕"},
+  {id:"pizzeria",label:"Pizzeria",icon:"🍕"},
+  {id:"gelateria",label:"Gelateria",icon:"🍦"},
+  {id:"pasticceria",label:"Pasticceria",icon:"🧁"},
+  {id:"agriturismo",label:"Agriturismo",icon:"🌾"},
+];
 const ADMIN_EMAIL = "help@juniperapp.eu";
 const TAGS = {
   gluten_free: {it:"Gluten Free",en:"Gluten Free",icon:"🌾",color:"#f59e0b"},
@@ -439,6 +447,7 @@ function App(){
   const [q,setQ]=React.useState("");
   const [tagFilters,setTagFilters]=React.useState([]);
   const [mealFilter,setMealFilter]=React.useState(null);
+  const [venueType,setVenueType]=React.useState(null);
   const [results,setResults]=React.useState([]);
   const [sel,setSel]=React.useState(null);
   const [prevScr,setPrevScr]=React.useState("home");
@@ -555,7 +564,10 @@ function App(){
     const tagWords=(tags||[]).map(k=>TAGS[k]?.it||"").filter(Boolean).join(" ");
     const loc=(query||"Maremma Grosseto")+(tagWords?" "+tagWords:"")+" Italia";
     const hasFood=query&&["ristorante","bar","pizzeria","agriturismo"].some(w=>query.toLowerCase().includes(w));
-    const queries=hasFood?[query+" "+loc]:["ristorante "+loc,"bar caffè "+loc,"pizzeria trattoria osteria agriturismo "+loc,"gelateria pasticceria "+loc];
+    // Se c'è un filtro tipo locale, cerca solo quel tipo
+    const queries=venueType
+      ?[venueType+" "+loc]
+      :hasFood?[query+" "+loc]:["ristorante "+loc,"bar caffè "+loc,"pizzeria trattoria osteria agriturismo "+loc,"gelateria pasticceria "+loc];
     const mapPlace=(p)=>{
       const pt=p.primaryType||"";
       let type="ristorante",emoji="🍽️";
@@ -584,7 +596,9 @@ function App(){
       const seen=new Set();
       return results.flat().filter(p=>{
         if(seen.has(p.name.toLowerCase()))return false;
-        seen.add(p.name.toLowerCase());return true;
+        seen.add(p.name.toLowerCase());
+        if(venueType&&p.type!==venueType)return false;
+        return true;
       });
     }catch(e){return[];}
   };
@@ -595,7 +609,8 @@ function App(){
     let res=structs.filter(s=>{
       const mf=tagFilters.length===0||tagFilters.every(f=>s.tags&&s.tags.includes(f));
       const mm=!mealFilter||(s.meals&&s.meals.includes(mealFilter));
-      return mf&&mm;
+      const mt=!venueType||s.type===venueType;
+      return mf&&mm&&mt;
     });
     if(q){
       const qRes=res.filter(s=>(s.name&&s.name.toLowerCase().includes(q.toLowerCase()))||(s.city&&s.city.toLowerCase().includes(q.toLowerCase()))||(s.address&&s.address.toLowerCase().includes(q.toLowerCase())));
@@ -782,10 +797,17 @@ function App(){
         ))}
       </div>
       <p style={{margin:"0 0 14px",fontSize:10,color:"#9ca3af"}}>{t.kitchenLegend}</p>
+      <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{lang==="it"?"Tipo di locale":"Venue type"}</p>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+        <button onClick={()=>setVenueType(null)} style={{background:!venueType?"#1f2937":"#f3f4f6",color:!venueType?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:!venueType?700:400}}>🏪 Tutti</button>
+        {VENUE_TYPES.map(v=>(
+          <button key={v.id} onClick={()=>setVenueType(venueType===v.id?null:v.id)} style={{background:venueType===v.id?"#1f2937":"#f3f4f6",color:venueType===v.id?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:venueType===v.id?700:400}}>{v.icon} {v.label}</button>
+        ))}
+      </div>
       <button onClick={doSearch} disabled={searching} style={{...btnG,display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:16,padding:"14px",opacity:searching?0.85:1}}>
         {searching
           ?<><span style={{display:"inline-block",animation:"spin 1s linear infinite",fontSize:18}}>🌿</span>{lang==="it"?"Sto cercando...":"Searching..."}</>
-          :<>🔍 {t.searchBtn}{(tagFilters.length>0||mealFilter||q)&&<span style={{background:"rgba(255,255,255,0.25)",fontSize:12,padding:"2px 9px",borderRadius:10}}>{[q&&1,...tagFilters,mealFilter].filter(Boolean).length} {lang==="it"?"filtri":"filters"}</span>}</>
+          :<>🔍 {t.searchBtn}{(tagFilters.length>0||mealFilter||q)&&<span style={{background:"rgba(255,255,255,0.25)",fontSize:12,padding:"2px 9px",borderRadius:10}}>{[q&&1,...tagFilters,mealFilter,venueType].filter(Boolean).length} {lang==="it"?"filtri":"filters"}</span>}</>
         }
       </button>
     </div>
