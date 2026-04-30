@@ -857,9 +857,8 @@ function App(){
             {p.best&&<span style={{position:"absolute",top:-10,right:12,background:"#1a5c3a",color:"white",fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:10}}>BEST</span>}
           </div>
         ))}
-        <div style={{background:"#fef9ec",borderRadius:12,padding:12,marginBottom:12,border:"1px solid #fcd34d"}}>
-          <p style={{margin:"0 0 4px",fontSize:12,fontWeight:700,color:"#92400e"}}>ℹ️ {lang==="it"?"Dopo il pagamento":"After payment"}</p>
-          <p style={{margin:0,fontSize:12,color:"#374151"}}>{lang==="it"?"Scrivi a help@juniperapp.eu con il numero d'ordine. Attiviamo entro 24h.":"Write to help@juniperapp.eu with your order number. We activate within 24h."}</p>
+        <div style={{background:"#f0fdf4",borderRadius:12,padding:12,marginBottom:12,border:"1px solid #bbf7d0"}}>
+          <p style={{margin:0,fontSize:12,color:"#065f46"}}>✅ {lang==="it"?"Il piano si attiva automaticamente dopo il pagamento!":"Plan activates automatically after payment!"}</p>
         </div>
         <button onClick={()=>setShowUp(false)} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:12,fontSize:14,color:"#6b7280",cursor:"pointer"}}>{t.cancel}</button>
       </div>
