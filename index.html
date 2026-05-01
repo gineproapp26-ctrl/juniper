@@ -592,6 +592,26 @@ function App(){
     if(error||!data?.user){setALoading(false);setAErr("❌ Email o password errati");return;}
   };
 
+  // ── RICERCHE MENSILI ──
+  const SEARCH_KEY="juniper_searches";
+  const getSearchCount=()=>{
+    try{
+      const data=JSON.parse(localStorage.getItem(SEARCH_KEY)||"{}");
+      const now=new Date();
+      const month=`${now.getFullYear()}-${now.getMonth()}`;
+      return data.month===month?data.count||0:0;
+    }catch(e){return 0;}
+  };
+  const incSearchCount=()=>{
+    try{
+      const now=new Date();
+      const month=`${now.getFullYear()}-${now.getMonth()}`;
+      const data=JSON.parse(localStorage.getItem(SEARCH_KEY)||"{}");
+      const count=data.month===month?(data.count||0)+1:1;
+      localStorage.setItem(SEARCH_KEY,JSON.stringify({month,count}));
+    }catch(e){}
+  };
+
   const doForgotPassword=async()=>{
     if(!aEmail)return;
     setALoading(true);
@@ -820,6 +840,7 @@ function App(){
 
   const Popup=()=>{
     if(!popup)return null;
+    if(popup.type==="upgrade")return <UpgradeModal/>;
     return(
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20}}>
         <div style={{background:"white",width:"100%",maxWidth:340,borderRadius:20,padding:28,textAlign:"center"}}>
@@ -1150,15 +1171,43 @@ function App(){
       </div>
       <div style={{padding:"0 16px",marginTop:-18}}>
         <div style={card}>
-          <div style={{background:"#d1fae5",borderRadius:12,padding:14}}>
-            <p style={{margin:"0 0 4px",fontWeight:700,color:"#065f46"}}>🌿 Beta Gratuita</p>
-            <p style={{margin:0,fontSize:13,color:"#047857"}}>Tutte le funzioni disponibili gratuitamente</p>
-          </div>
+          {premium
+            ?<>
+              <div style={{background:"#d1fae5",borderRadius:12,padding:14,marginBottom:10}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+                  <div><p style={{margin:"0 0 2px",fontWeight:700,color:"#065f46"}}>⭐ Piano Premium Attivo</p><p style={{margin:0,fontSize:12,color:"#047857"}}>{subPlan==="user_yearly"?"Annuale · €30/anno":"Mensile · €3/mese"}</p></div>
+                  <span style={{background:"#10b981",color:"white",fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10}}>✓ Attivo</span>
+                </div>
+              </div>
+              <button onClick={()=>window.open("https://billing.stripe.com","_blank")} style={{width:"100%",background:"#f9fafb",border:"1px solid #e5e7eb",padding:10,borderRadius:10,fontSize:13,cursor:"pointer",color:"#374151",marginBottom:8}}>🔄 {lang==="it"?"Gestisci abbonamento":"Manage subscription"}</button>
+            </>
+            :<>
+              <div style={{background:"#f9fafb",borderRadius:12,padding:14,marginBottom:10,border:"1px solid #e5e7eb"}}>
+                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+                  <p style={{margin:0,fontWeight:700,fontSize:13}}>🌿 {lang==="it"?"Piano Gratuito":"Free Plan"}</p>
+                  <span style={{fontSize:12,color:getSearchCount()>=FREE_LIMIT?"#ef4444":"#6b7280",fontWeight:700}}>{getSearchCount()}/{FREE_LIMIT}</span>
+                </div>
+                <div style={{background:"#e5e7eb",borderRadius:10,height:6,overflow:"hidden",marginBottom:6}}><div style={{background:getSearchCount()>=FREE_LIMIT?"#ef4444":"#10b981",height:"100%",width:`${Math.min((getSearchCount()/FREE_LIMIT)*100,100)}%`,transition:"width 0.3s"}}/></div>
+                <p style={{margin:"0 0 10px",fontSize:11,color:"#6b7280"}}>{lang==="it"?"Ricerche usate questo mese":"Searches used this month"}</p>
+                <button onClick={()=>setShowUp(true)} style={{width:"100%",background:GREEN,color:"white",border:"none",padding:10,borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>⭐ {lang==="it"?"Passa a Premium · da €3/mese":"Go Premium · from €3/month"}</button>
+              </div>
+              <div style={{background:"#f0fdf4",borderRadius:12,padding:12,border:"1px solid #bbf7d0",marginBottom:10}}>
+                <p style={{margin:"0 0 4px",fontWeight:700,fontSize:13,color:"#1a5c3a"}}>🏢 {lang==="it"?"Sei un locale?":"Are you a venue?"}</p>
+                <p style={{margin:"0 0 8px",fontSize:12,color:"#6b7280"}}>{lang==="it"?"Badge verificato + priorità nei risultati":"Verified badge + priority in results"}</p>
+                <button onClick={()=>go("business_premium")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:10,borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>🏢 {lang==="it"?"Piani per attività":"Business plans"}</button>
+              </div>
+            </>
+          }
         </div>
         <div style={card}>
           <button onClick={tl} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>🌐 {lang==="it"?"Switch to English":"Passa all'italiano"}</button>
           <button onClick={()=>go("policy")} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>⚖️ {lang==="it"?"Policy & Termini":"Policy & Terms"}</button>
           {user?.email===ADMIN_EMAIL&&<button onClick={()=>go("admin")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",textAlign:"left",marginBottom:8,fontWeight:700}}>⚙️ Pannello Admin</button>}
+          <div style={{background:"#f0fdf4",borderRadius:12,padding:14,marginBottom:8,border:"1px solid #bbf7d0"}}>
+            <p style={{margin:"0 0 6px",fontWeight:700,fontSize:13,color:"#1a5c3a"}}>💬 {lang==="it"?"Hai bisogno di aiuto?":"Need help?"}</p>
+            <p style={{margin:"0 0 8px",fontSize:12,color:"#6b7280"}}>{lang==="it"?"Scrivici per qualsiasi problema o domanda.":"Write to us for any issue or question."}</p>
+            <a href="mailto:help@juniperapp.eu" style={{display:"block",background:"#1a5c3a",color:"white",padding:"9px 14px",borderRadius:10,fontSize:13,fontWeight:700,textAlign:"center",textDecoration:"none"}}>✉️ help@juniperapp.eu</a>
+          </div>
           <button onClick={async()=>{await sb.auth.signOut();setUser(null);setScreen("welcome");setCnt(0);setTab("home");}} style={{width:"100%",background:"#fef2f2",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#ef4444",textAlign:"left"}}>🚪 {lang==="it"?"Esci":"Sign Out"}</button>
         </div>
       </div>
