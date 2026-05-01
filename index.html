@@ -956,7 +956,7 @@ function App(){
       <div style={{padding:16}}>
         <div style={{background:"#d1fae5",borderRadius:12,padding:14,marginBottom:14,border:"1px solid #a7f3d0"}}>
           <p style={{margin:"0 0 6px",fontWeight:700,color:"#065f46"}}>✅ {lang==="it"?"Cosa include il piano Business:":"What's included in Business plan:"}</p>
-          {["Badge 🌿 Verificato da Juniper","Priorità nei risultati di ricerca","Scheda completa con foto e descrizione","Statistiche visite","Supporto prioritario"].map((f,i)=><p key={i} style={{margin:"0 0 3px",fontSize:13,color:"#047857"}}>· {f}</p>)}
+          {["Badge 🌿 Verificato da Juniper","Priorità nei risultati di ricerca","Supporto prioritario"].map((f,i)=><p key={i} style={{margin:"0 0 3px",fontSize:13,color:"#047857"}}>· {f}</p>)}
         </div>
         {[
           {key:"biz_yearly",lbl:lang==="it"?"Piano Annuale":"Yearly Plan",price:"110€",sub:lang==="it"?"9,17€/mese · Risparmi 10€":"€9.17/month · Save €10",best:true},
@@ -970,9 +970,8 @@ function App(){
             {p.best&&<span style={{position:"absolute",top:-10,right:12,background:"#1a5c3a",color:"white",fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:10}}>BEST</span>}
           </div>
         ))}
-        <div style={{background:"#fef9ec",borderRadius:12,padding:12,border:"1px solid #fcd34d"}}>
-          <p style={{margin:"0 0 4px",fontSize:12,fontWeight:700,color:"#92400e"}}>ℹ️ {lang==="it"?"Dopo il pagamento":"After payment"}</p>
-          <p style={{margin:0,fontSize:12,color:"#374151"}}>{lang==="it"?"Scrivi a help@juniperapp.eu con il tuo numero d'ordine. Attiviamo il badge entro 24h.":"Write to help@juniperapp.eu with your order number. We'll activate within 24h."}</p>
+        <div style={{background:"#f0fdf4",borderRadius:12,padding:12,border:"1px solid #bbf7d0"}}>
+          <p style={{margin:0,fontSize:12,color:"#065f46",fontWeight:600}}>✅ {lang==="it"?"Il badge si attiva automaticamente dopo il pagamento!":"Badge activates automatically after payment!"}</p>
         </div>
       </div>
     </div>
@@ -1212,7 +1211,7 @@ function App(){
           <button onClick={async()=>{await sb.auth.signOut();setUser(null);setScreen("welcome");setCnt(0);setTab("home");}} style={{width:"100%",background:"#fef2f2",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#ef4444",textAlign:"left"}}>🚪 {lang==="it"?"Esci":"Sign Out"}</button>
         </div>
       </div>
-      <BottomNav/>
+      <BottomNav/>{showUp&&<UpgradeModal/>}
     </div>
   );
 
