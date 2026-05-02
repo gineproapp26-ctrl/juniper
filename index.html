@@ -499,18 +499,26 @@ function App(){
   const GUEST_MAX=2;
 
   React.useEffect(()=>{
+    // 🌿 CONTROLLA URL HASH PER RESET PASSWORD (prima di tutto!)
+    const hash = window.location.hash;
+    if(hash.includes('type=recovery')){
+      setResetMode(true);
+      setScreen("auth");
+    }
+
     const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
+      // 🌿 Controlla se siamo in modalità reset password
+      const isRecovery = window.location.hash.includes('type=recovery');
+      
       if((event==="SIGNED_IN"||event==="INITIAL_SESSION")&&session?.user){
         setUser({name:session.user.user_metadata?.name||session.user.email.split("@")[0],email:session.user.email,id:session.user.id});
         setALoading(false);
-        setScreen(prev=>prev==="welcome"||prev==="auth"||prev==="policy"?"home":prev);
+        // 🌿 NON reindirizzare a home se siamo in reset mode!
+        if(!isRecovery){
+          setScreen(prev=>prev==="welcome"||prev==="auth"||prev==="policy"?"home":prev);
+        }
       }
       if(event==="SIGNED_OUT"){setUser(null);setScreen("welcome");}
-      // 🌿 Gestione password reset da email
-      if(event==="PASSWORD_RECOVERY"){
-        setResetMode(true);
-        setScreen("auth");
-      }
     });
     // Carica abbonamento utente
     sb.auth.getSession().then(({data:{session}})=>{
@@ -646,10 +654,14 @@ function App(){
       return;
     }
     setResetSuccess(true);
+    // 🌿 Pulisci l'hash URL
+    window.location.hash = '';
     setTimeout(()=>{
       setResetMode(false);
       setForgotMode(false);
       setNewPassword("");
+      setResetSuccess(false);
+      setAErr("");
       setScreen("home");
     },2000);
   };
