@@ -587,6 +587,37 @@ function App(){
         setAErr("❌ "+error.message);return;
       }
       sb.from("profiles").insert({id:data?.user?.id||"",name:nome,email:aEmail}).catch(()=>{});
+
+      // 🌿 FIX 1: INVIO EMAIL BENVENUTO
+      fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer re_SyKDTDZA_BF3UdqT9Tz3GKyDNQQ6JWATQ"
+        },
+        body: JSON.stringify({
+          from: "Juniper <help@juniperapp.eu>",
+          to: [aEmail],
+          subject: lang === "it" ? "🌿 Benvenuto su Juniper!" : "🌿 Welcome to Juniper!",
+          html: `
+            <div style="font-family:system-ui,sans-serif;max-width:500px;margin:0 auto;padding:20px">
+              <h2 style="color:#1a5c3a">${lang === "it" ? "Ciao" : "Hi"} ${nome}! 👋</h2>
+              <p style="font-size:16px;line-height:1.6;color:#374151">
+                ${lang === "it" 
+                  ? "Benvenuto su Juniper! Siamo felici di averti con noi." 
+                  : "Welcome to Juniper! We're happy to have you with us."}
+              </p>
+              <p style="font-size:16px;line-height:1.6;color:#374151">
+                ${lang === "it"
+                  ? "Inizia a cercare i locali perfetti per le tue esigenze alimentari."
+                  : "Start finding the perfect venues for your dietary needs."}
+              </p>
+              <p style="font-size:14px;color:#6b7280;margin-top:30px">🌿 Team Juniper</p>
+            </div>
+          `
+        })
+      }).catch(() => {}); // Ignora errori per non bloccare la registrazione
+
       return;
     }
     const {data,error}=await sb.auth.signInWithPassword({email:aEmail,password:aPass}).catch(e=>({data:null,error:e}));
@@ -1208,6 +1239,37 @@ function App(){
             <p style={{margin:"0 0 8px",fontSize:12,color:"#6b7280"}}>{lang==="it"?"Scrivici per qualsiasi problema o domanda.":"Write to us for any issue or question."}</p>
             <a href="mailto:help@juniperapp.eu" style={{display:"block",background:"#1a5c3a",color:"white",padding:"9px 14px",borderRadius:10,fontSize:13,fontWeight:700,textAlign:"center",textDecoration:"none"}}>✉️ help@juniperapp.eu</a>
           </div>
+
+          {/* 🌿 FIX 3: BOTTONE RICHIESTA CANCELLAZIONE ACCOUNT */}
+          <button onClick={async()=>{
+            if(!window.confirm(lang==="it"
+              ?"Vuoi richiedere la cancellazione del tuo account? Riceverai conferma via email."
+              :"Request account deletion? You'll receive confirmation via email."))return;
+            
+            try {
+              // Manda email a help@juniperapp.eu con richiesta cancellazione
+              await fetch("https://api.resend.com/emails", {
+                method: "POST",
+                headers: {
+                  "Authorization": "Bearer re_SyKDTDZA_BF3UdqT9Tz3GKyDNQQ6JWATQ",
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  from: "Juniper <help@juniperapp.eu>",
+                  to: ["help@juniperapp.eu"],
+                  subject: "🗑️ Richiesta cancellazione account: " + user.email,
+                  html: "<div style='font-family:system-ui,sans-serif;padding:20px'><h2>Richiesta cancellazione account</h2><p><b>Nome:</b> " + user.name + "</p><p><b>Email:</b> " + user.email + "</p><p><b>ID:</b> " + user.id + "</p><p><b>Data richiesta:</b> " + new Date().toLocaleString("it-IT") + "</p></div>"
+                })
+              });
+              
+              alert(lang==="it"
+                ?"✅ Richiesta inviata! Ti contatteremo a breve a " + user.email
+                :"✅ Request sent! We'll contact you soon at " + user.email);
+            } catch(e) {
+              alert(lang==="it"?"Errore nell'invio. Riprova o contatta help@juniperapp.eu":"Error sending request. Try again or contact help@juniperapp.eu");
+            }
+          }} style={{width:"100%",background:"#fff7ed",border:"1px solid #fed7aa",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#c2410c",textAlign:"left",marginBottom:8}}>🗑️ {lang==="it"?"Richiedi cancellazione account":"Request account deletion"}</button>
+
           <button onClick={async()=>{await sb.auth.signOut();setUser(null);setScreen("welcome");setCnt(0);setTab("home");}} style={{width:"100%",background:"#fef2f2",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#ef4444",textAlign:"left"}}>🚪 {lang==="it"?"Esci":"Sign Out"}</button>
         </div>
       </div>
