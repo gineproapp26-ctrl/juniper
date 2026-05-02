@@ -487,6 +487,9 @@ function App(){
   const [aErr,setAErr]=React.useState("");
   const [forgotMode,setForgotMode]=React.useState(false);
   const [forgotSent,setForgotSent]=React.useState(false);
+  const [resetMode,setResetMode]=React.useState(false);
+  const [newPassword,setNewPassword]=React.useState("");
+  const [resetSuccess,setResetSuccess]=React.useState(false);
   const [aLoading,setALoading]=React.useState(false);
   const [showPass,setShowPass]=React.useState(false);
   const [structs,setStructs]=React.useState(DEMO);
@@ -503,6 +506,11 @@ function App(){
         setScreen(prev=>prev==="welcome"||prev==="auth"||prev==="policy"?"home":prev);
       }
       if(event==="SIGNED_OUT"){setUser(null);setScreen("welcome");}
+      // 🌿 Gestione password reset da email
+      if(event==="PASSWORD_RECOVERY"){
+        setResetMode(true);
+        setScreen("auth");
+      }
     });
     // Carica abbonamento utente
     sb.auth.getSession().then(({data:{session}})=>{
@@ -623,6 +631,27 @@ function App(){
     setALoading(false);
     if(error){setAErr("❌ "+error.message);return;}
     setForgotSent(true);
+  };
+
+  const doResetPassword=async()=>{
+    if(!newPassword||newPassword.length<6){
+      setAErr(lang==="it"?"La password deve essere di almeno 6 caratteri":"Password must be at least 6 characters");
+      return;
+    }
+    setALoading(true);
+    const {error}=await sb.auth.updateUser({password:newPassword});
+    setALoading(false);
+    if(error){
+      setAErr("❌ "+error.message);
+      return;
+    }
+    setResetSuccess(true);
+    setTimeout(()=>{
+      setResetMode(false);
+      setForgotMode(false);
+      setNewPassword("");
+      setScreen("home");
+    },2000);
   };
 
   const GKEY="AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck";
@@ -986,35 +1015,72 @@ function App(){
         <button onClick={()=>go("welcome")} style={{...ghost,position:"absolute",top:16,left:16}}>←</button>
         <button onClick={tl} style={{...ghost,position:"absolute",top:16,right:16}}>{lang==="it"?"🇬🇧":"🇮🇹"}</button>
         <Logo size={34}/>
-        <h2 style={{margin:"8px 0 0",fontSize:21,fontWeight:800}}>{authMode==="login"?t.login:t.register}</h2>
+        <h2 style={{margin:"8px 0 0",fontSize:21,fontWeight:800}}>
+          {resetMode?(lang==="it"?"Nuova Password":"New Password"):(authMode==="login"?t.login:t.register)}
+        </h2>
       </div>
       <div style={{margin:"0 16px",background:"white",borderRadius:16,padding:24,marginTop:-22,boxShadow:"0 4px 20px rgba(0,0,0,.1)"}}>
-        {authMode==="register"&&<div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Nome</label><input value={aName} onChange={e=>setAName(e.target.value)} style={inp} placeholder="Mario Rossi"/></div>}
-        <div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Email</label><input type="email" value={aEmail} onChange={e=>setAEmail(e.target.value)} style={inp} placeholder="mario@esempio.it"/></div>
-        <div style={{marginBottom:18}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Password</label><div style={{position:"relative"}}><input type={showPass?"text":"password"} value={aPass} onChange={e=>setAPass(e.target.value)} style={{...inp,paddingRight:44}} placeholder="••••••••"/><button onClick={()=>setShowPass(p=>!p)} type="button" style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#9ca3af"}}>{showPass?"🙈":"👁️"}</button></div></div>
-        {aErr&&<p style={{margin:"0 0 12px",fontSize:13,color:"#ef4444",textAlign:"center",lineHeight:1.5}}>{aErr}</p>}
-        {forgotMode
+        {resetMode
           ?<>
-            {forgotSent
+            {resetSuccess
               ?<div style={{background:"#d1fae5",borderRadius:12,padding:16,textAlign:"center"}}>
-                <p style={{fontSize:22,marginBottom:8}}>📬</p>
-                <p style={{fontWeight:700,color:"#065f46",marginBottom:4}}>{lang==="it"?"Email inviata!":"Email sent!"}</p>
-                <p style={{fontSize:13,color:"#047857"}}>{lang==="it"?"Controlla la tua casella email per il link di reset.":"Check your inbox for the reset link."}</p>
+                <p style={{fontSize:22,marginBottom:8}}>✅</p>
+                <p style={{fontWeight:700,color:"#065f46",marginBottom:4}}>{lang==="it"?"Password aggiornata!":"Password updated!"}</p>
+                <p style={{fontSize:13,color:"#047857"}}>{lang==="it"?"Verrai reindirizzato alla home...":"Redirecting to home..."}</p>
               </div>
               :<>
-                <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{lang==="it"?"Inserisci la tua email e ti mandiamo un link per resettare la password.":"Enter your email and we'll send you a reset link."}</p>
-                <button onClick={doForgotPassword} disabled={aLoading||!aEmail} style={{...btnG,opacity:aLoading||!aEmail?0.5:1,marginBottom:10}}>{aLoading?"⏳ Invio...":lang==="it"?"📬 Invia link di reset":"📬 Send reset link"}</button>
+                <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{lang==="it"?"Inserisci la tua nuova password (minimo 6 caratteri).":"Enter your new password (minimum 6 characters)."}</p>
+                <div style={{marginBottom:18}}>
+                  <label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>{lang==="it"?"Nuova Password":"New Password"}</label>
+                  <div style={{position:"relative"}}>
+                    <input 
+                      type={showPass?"text":"password"} 
+                      value={newPassword} 
+                      onChange={e=>setNewPassword(e.target.value)} 
+                      style={{...inp,paddingRight:44}} 
+                      placeholder="••••••••"
+                    />
+                    <button onClick={()=>setShowPass(p=>!p)} type="button" style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#9ca3af"}}>
+                      {showPass?"🙈":"👁️"}
+                    </button>
+                  </div>
+                </div>
+                {aErr&&<p style={{margin:"0 0 12px",fontSize:13,color:"#ef4444",textAlign:"center",lineHeight:1.5}}>{aErr}</p>}
+                <button onClick={doResetPassword} disabled={aLoading||!newPassword} style={{...btnG,opacity:aLoading||!newPassword?0.5:1}}>
+                  {aLoading?"⏳ Aggiornamento...":(lang==="it"?"🔐 Aggiorna Password":"🔐 Update Password")}
+                </button>
               </>
             }
-            <button onClick={()=>{setForgotMode(false);setForgotSent(false);setAErr("");}} style={{width:"100%",background:"none",border:"none",padding:8,fontSize:13,color:"#9ca3af",cursor:"pointer"}}>{lang==="it"?"← Torna al login":"← Back to login"}</button>
           </>
           :<>
-            <button onClick={doAuth} disabled={aLoading} style={{...btnG,opacity:aLoading?0.7:1}}>{aLoading?"⏳ Attendere...":(authMode==="login"?t.login:t.register)}</button>
-            {authMode==="login"&&<p onClick={()=>{setForgotMode(true);setAErr("");}} style={{textAlign:"center",margin:"10px 0 0",fontSize:13,color:"#1a5c3a",cursor:"pointer"}}>🔑 {lang==="it"?"Password dimenticata?":"Forgot password?"}</p>}
-            <p style={{textAlign:"center",marginTop:14,fontSize:13,color:"#6b7280",margin:"14px 0 0"}}>
-              {authMode==="login"?(lang==="it"?"Non hai un account?":"No account?"):(lang==="it"?"Hai già un account?":"Have an account?")}{" "}
-              <span onClick={()=>{setAuthMode(m=>m==="login"?"register":"login");setAErr("");setForgotMode(false);}} style={{color:"#1a5c3a",cursor:"pointer",fontWeight:600}}>{authMode==="login"?t.register:t.login}</span>
-            </p>
+            {authMode==="register"&&<div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Nome</label><input value={aName} onChange={e=>setAName(e.target.value)} style={inp} placeholder="Mario Rossi"/></div>}
+            <div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Email</label><input type="email" value={aEmail} onChange={e=>setAEmail(e.target.value)} style={inp} placeholder="mario@esempio.it"/></div>
+            <div style={{marginBottom:18}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Password</label><div style={{position:"relative"}}><input type={showPass?"text":"password"} value={aPass} onChange={e=>setAPass(e.target.value)} style={{...inp,paddingRight:44}} placeholder="••••••••"/><button onClick={()=>setShowPass(p=>!p)} type="button" style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#9ca3af"}}>{showPass?"🙈":"👁️"}</button></div></div>
+            {aErr&&<p style={{margin:"0 0 12px",fontSize:13,color:"#ef4444",textAlign:"center",lineHeight:1.5}}>{aErr}</p>}
+            {forgotMode
+              ?<>
+                {forgotSent
+                  ?<div style={{background:"#d1fae5",borderRadius:12,padding:16,textAlign:"center"}}>
+                    <p style={{fontSize:22,marginBottom:8}}>📬</p>
+                    <p style={{fontWeight:700,color:"#065f46",marginBottom:4}}>{lang==="it"?"Email inviata!":"Email sent!"}</p>
+                    <p style={{fontSize:13,color:"#047857"}}>{lang==="it"?"Controlla la tua casella email per il link di reset.":"Check your inbox for the reset link."}</p>
+                  </div>
+                  :<>
+                    <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{lang==="it"?"Inserisci la tua email e ti mandiamo un link per resettare la password.":"Enter your email and we'll send you a reset link."}</p>
+                    <button onClick={doForgotPassword} disabled={aLoading||!aEmail} style={{...btnG,opacity:aLoading||!aEmail?0.5:1,marginBottom:10}}>{aLoading?"⏳ Invio...":lang==="it"?"📬 Invia link di reset":"📬 Send reset link"}</button>
+                  </>
+                }
+                <button onClick={()=>{setForgotMode(false);setForgotSent(false);setAErr("");}} style={{width:"100%",background:"none",border:"none",padding:8,fontSize:13,color:"#9ca3af",cursor:"pointer"}}>{lang==="it"?"← Torna al login":"← Back to login"}</button>
+              </>
+              :<>
+                <button onClick={doAuth} disabled={aLoading} style={{...btnG,opacity:aLoading?0.7:1}}>{aLoading?"⏳ Attendere...":(authMode==="login"?t.login:t.register)}</button>
+                {authMode==="login"&&<p onClick={()=>{setForgotMode(true);setAErr("");}} style={{textAlign:"center",margin:"10px 0 0",fontSize:13,color:"#1a5c3a",cursor:"pointer"}}>🔑 {lang==="it"?"Password dimenticata?":"Forgot password?"}</p>}
+                <p style={{textAlign:"center",marginTop:14,fontSize:13,color:"#6b7280",margin:"14px 0 0"}}>
+                  {authMode==="login"?(lang==="it"?"Non hai un account?":"No account?"):(lang==="it"?"Hai già un account?":"Have an account?")}{" "}
+                  <span onClick={()=>{setAuthMode(m=>m==="login"?"register":"login");setAErr("");setForgotMode(false);}} style={{color:"#1a5c3a",cursor:"pointer",fontWeight:600}}>{authMode==="login"?t.register:t.login}</span>
+                </p>
+              </>
+            }
           </>
         }
       </div>
