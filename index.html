@@ -499,35 +499,60 @@ function App(){
   const GUEST_MAX=2;
 
   React.useEffect(()=>{
-    // 🌿 CONTROLLA URL HASH PER RESET PASSWORD (prima di tutto!)
-    const hash = window.location.hash;
-    if(hash.includes('type=recovery')){
-      setResetMode(true);
-      setScreen("auth");
-    }
+    // 🌿 CONTROLLA URL HASH PER RESET PASSWORD (massima priorità!)
+    const checkRecoveryMode = () => {
+      const hash = window.location.hash;
+      if(hash && hash.includes('type=recovery')){
+        // Salva in sessionStorage che siamo in recovery mode
+        sessionStorage.setItem('juniper_recovery_mode', 'true');
+        setResetMode(true);
+        setScreen("auth");
+        return true;
+      }
+      // Controlla anche sessionStorage nel caso l'hash sia già stato processato
+      if(sessionStorage.getItem('juniper_recovery_mode') === 'true'){
+        setResetMode(true);
+        setScreen("auth");
+        return true;
+      }
+      return false;
+    };
+    
+    // Controlla subito al mount
+    const isRecovery = checkRecoveryMode();
 
     const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
-      // 🌿 Controlla se siamo in modalità reset password
-      const isRecovery = window.location.hash.includes('type=recovery');
+      // 🌿 Se siamo in recovery mode, non fare redirect alla home
+      const stillInRecovery = sessionStorage.getItem('juniper_recovery_mode') === 'true';
+      
+      if(stillInRecovery){
+        setResetMode(true);
+        setScreen("auth");
+        if(session?.user){
+          setUser({name:session.user.user_metadata?.name||session.user.email.split("@")[0],email:session.user.email,id:session.user.id});
+        }
+        return; // STOP - mostra solo il form reset password
+      }
       
       if((event==="SIGNED_IN"||event==="INITIAL_SESSION")&&session?.user){
         setUser({name:session.user.user_metadata?.name||session.user.email.split("@")[0],email:session.user.email,id:session.user.id});
         setALoading(false);
-        // 🌿 NON reindirizzare a home se siamo in reset mode!
-        if(!isRecovery){
-          setScreen(prev=>prev==="welcome"||prev==="auth"||prev==="policy"?"home":prev);
-        }
+        setScreen(prev=>prev==="welcome"||prev==="auth"||prev==="policy"?"home":prev);
       }
       if(event==="SIGNED_OUT"){setUser(null);setScreen("welcome");}
     });
+    
     // Carica abbonamento utente
-    sb.auth.getSession().then(({data:{session}})=>{
-      if(session?.user){
-        sb.from("subscriptions").select("*").eq("user_id",session.user.id).eq("status","active").maybeSingle().then(({data})=>{
-          if(data){setPremium(true);setSubPlan(data.plan);setSubStatus(data.status);}
-        }).catch(()=>{});
-      }
-    });
+    if(!isRecovery){
+      sb.auth.getSession().then(({data:{session}})=>{
+        if(session?.user){
+          sb.from("subscriptions").select("*").eq("user_id",session.user.id).eq("status","active").maybeSingle().then(({data})=>{
+            if(data){setPremium(true);setSubPlan(data.plan);setSubStatus(data.status);}
+          }).catch(()=>{});
+        }
+      });
+    }
+    
     sb.from("structures").select("*").eq("pending",false).then(({data})=>{
       if(data&&data.length>0){
         const mapped=data.map(s=>({
@@ -654,8 +679,9 @@ function App(){
       return;
     }
     setResetSuccess(true);
-    // 🌿 Pulisci l'hash URL
+    // 🌿 Pulisci l'hash URL e sessionStorage
     window.location.hash = '';
+    sessionStorage.removeItem('juniper_recovery_mode');
     setTimeout(()=>{
       setResetMode(false);
       setForgotMode(false);
