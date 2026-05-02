@@ -589,34 +589,21 @@ function App(){
       sb.from("profiles").insert({id:data?.user?.id||"",name:nome,email:aEmail}).catch(()=>{});
 
       // 🌿 FIX 1: INVIO EMAIL BENVENUTO
-      fetch("https://api.resend.com/emails", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Bearer re_SyKDTDZA_BF3UdqT9Tz3GKyDNQQ6JWATQ"
-        },
-        body: JSON.stringify({
-          from: "Juniper <help@juniperapp.eu>",
-          to: [aEmail],
-          subject: lang === "it" ? "🌿 Benvenuto su Juniper!" : "🌿 Welcome to Juniper!",
-          html: `
-            <div style="font-family:system-ui,sans-serif;max-width:500px;margin:0 auto;padding:20px">
-              <h2 style="color:#1a5c3a">${lang === "it" ? "Ciao" : "Hi"} ${nome}! 👋</h2>
-              <p style="font-size:16px;line-height:1.6;color:#374151">
-                ${lang === "it" 
-                  ? "Benvenuto su Juniper! Siamo felici di averti con noi." 
-                  : "Welcome to Juniper! We're happy to have you with us."}
-              </p>
-              <p style="font-size:16px;line-height:1.6;color:#374151">
-                ${lang === "it"
-                  ? "Inizia a cercare i locali perfetti per le tue esigenze alimentari."
-                  : "Start finding the perfect venues for your dietary needs."}
-              </p>
-              <p style="font-size:14px;color:#6b7280;margin-top:30px">🌿 Team Juniper</p>
-            </div>
-          `
-        })
-      }).catch(() => {}); // Ignora errori per non bloccare la registrazione
+      setTimeout(() => {
+        fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer re_SyKDTDZA_BF3UdqT9Tz3GKyDNQQ6JWATQ"
+          },
+          body: JSON.stringify({
+            from: "Juniper <help@juniperapp.eu>",
+            to: [aEmail],
+            subject: lang === "it" ? "🌿 Benvenuto su Juniper!" : "🌿 Welcome to Juniper!",
+            html: "<div style='font-family:system-ui,sans-serif;max-width:500px;margin:0 auto;padding:20px'><h2 style='color:#1a5c3a'>" + (lang === "it" ? "Ciao" : "Hi") + " " + nome + "! 👋</h2><p style='font-size:16px;line-height:1.6;color:#374151'>" + (lang === "it" ? "Benvenuto su Juniper! Siamo felici di averti con noi." : "Welcome to Juniper! We're happy to have you with us.") + "</p><p style='font-size:16px;line-height:1.6;color:#374151'>" + (lang === "it" ? "Inizia a cercare i locali perfetti per le tue esigenze alimentari." : "Start finding the perfect venues for your dietary needs.") + "</p><p style='font-size:14px;color:#6b7280;margin-top:30px'>🌿 Team Juniper</p></div>"
+          })
+        }).catch(() => {});
+      }, 1000);
 
       return;
     }
