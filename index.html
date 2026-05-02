@@ -1227,32 +1227,17 @@ function App(){
           </div>
 
           {/* 🌿 FIX 3: BOTTONE RICHIESTA CANCELLAZIONE ACCOUNT */}
-          <button onClick={async()=>{
-            if(!window.confirm(lang==="it"
-              ?"Vuoi richiedere la cancellazione del tuo account? Riceverai conferma via email."
-              :"Request account deletion? You'll receive confirmation via email."))return;
-            
-            try {
-              // Manda email a help@juniperapp.eu con richiesta cancellazione
-              await fetch("/api/send-email", {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json"
-                },
-                body: JSON.stringify({
-                  to: "help@juniperapp.eu",
-                  subject: "🗑️ Richiesta cancellazione account: " + user.email,
-                  html: "<div style='font-family:system-ui,sans-serif;padding:20px'><h2>Richiesta cancellazione account</h2><p><b>Nome:</b> " + user.name + "</p><p><b>Email:</b> " + user.email + "</p><p><b>ID:</b> " + user.id + "</p><p><b>Data richiesta:</b> " + new Date().toLocaleString("it-IT") + "</p></div>",
-                  type: "deletion"
-                })
-              });
-              
-              alert(lang==="it"
-                ?"✅ Richiesta inviata! Ti contatteremo a breve a " + user.email
-                :"✅ Request sent! We'll contact you soon at " + user.email);
-            } catch(e) {
-              alert(lang==="it"?"Errore nell'invio. Riprova o contatta help@juniperapp.eu":"Error sending request. Try again or contact help@juniperapp.eu");
-            }
+          <button onClick={()=>{
+            const subject = encodeURIComponent("🗑️ Richiesta cancellazione account: " + user.email);
+            const body = encodeURIComponent(
+              "RICHIESTA CANCELLAZIONE ACCOUNT\n\n" +
+              "Nome: " + (user.user_metadata?.name || user.name || "N/A") + "\n" +
+              "Email: " + user.email + "\n" +
+              "User ID: " + user.id + "\n" +
+              "Data richiesta: " + new Date().toLocaleString("it-IT") + "\n\n" +
+              "Per favore procedi con la cancellazione del mio account."
+            );
+            window.location.href = "mailto:help@juniperapp.eu?subject=" + subject + "&body=" + body;
           }} style={{width:"100%",background:"#fff7ed",border:"1px solid #fed7aa",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#c2410c",textAlign:"left",marginBottom:8}}>🗑️ {lang==="it"?"Richiedi cancellazione account":"Request account deletion"}</button>
 
           <button onClick={async()=>{await sb.auth.signOut();setUser(null);setScreen("welcome");setCnt(0);setTab("home");}} style={{width:"100%",background:"#fef2f2",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#ef4444",textAlign:"left"}}>🚪 {lang==="it"?"Esci":"Sign Out"}</button>
