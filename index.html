@@ -588,22 +588,6 @@ function App(){
       }
       sb.from("profiles").insert({id:data?.user?.id||"",name:nome,email:aEmail});
 
-      // 🌿 FIX 1: INVIO EMAIL BENVENUTO (tramite Vercel Function)
-      setTimeout(() => {
-        fetch("/api/send-email", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json"
-          },
-          body: JSON.stringify({
-            to: aEmail,
-            subject: lang === "it" ? "🌿 Benvenuto su Juniper!" : "🌿 Welcome to Juniper!",
-            html: "<div style='font-family:system-ui,sans-serif;max-width:500px;margin:0 auto;padding:20px'><h2 style='color:#1a5c3a'>" + (lang === "it" ? "Ciao" : "Hi") + " " + nome + "! 👋</h2><p style='font-size:16px;line-height:1.6;color:#374151'>" + (lang === "it" ? "Benvenuto su Juniper! Siamo felici di averti con noi." : "Welcome to Juniper! We're happy to have you with us.") + "</p><p style='font-size:16px;line-height:1.6;color:#374151'>" + (lang === "it" ? "Inizia a cercare i locali perfetti per le tue esigenze alimentari." : "Start finding the perfect venues for your dietary needs.") + "</p><p style='font-size:14px;color:#6b7280;margin-top:30px'>🌿 Team Juniper</p></div>",
-            type: "welcome"
-          })
-        }).catch(() => {});
-      }, 1000);
-
       return;
     }
     const {data,error}=await sb.auth.signInWithPassword({email:aEmail,password:aPass}).catch(e=>({data:null,error:e}));
