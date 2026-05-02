@@ -586,7 +586,7 @@ function App(){
         if(m.includes("rate")){setAErr("⏳ Troppi tentativi. Aspetta qualche minuto.");return;}
         setAErr("❌ "+error.message);return;
       }
-      sb.from("profiles").insert({id:data?.user?.id||"",name:nome,email:aEmail}).catch(()=>{});
+      sb.from("profiles").insert({id:data?.user?.id||"",name:nome,email:aEmail});
 
       // 🌿 FIX 1: INVIO EMAIL BENVENUTO
       setTimeout(() => {
