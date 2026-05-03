@@ -26,15 +26,7 @@ const sb = window.supabase.createClient(
 );
 
 const GREEN = "linear-gradient(135deg,#1a5c3a,#0f3d26)";
-const FREE_LIMIT = 10;
 
-// ── STRIPE PAYMENT LINKS ──
-const STRIPE_LINKS = {
-  user_monthly:  "https://buy.stripe.com/6oU4gBfFmabvc2f0WM7bW01",  // €3/mese utenti
-  user_yearly:   "https://buy.stripe.com/bJe7sN2SA3N7d6jeNC7bW02",  // €30/anno utenti
-  biz_monthly:   "https://buy.stripe.com/6oU7sN8cUabvfer34U7bW03",  // €10/mese business
-  biz_yearly:    "https://buy.stripe.com/8x2bJ3dxe3N78Q3gVK7bW04",  // €110/anno business
-};
 const VENUE_TYPES = [
   {id:"ristorante",label:"Ristorante",icon:"🍽️"},
   {id:"bar",label:"Bar / Caffè",icon:"☕"},
@@ -463,9 +455,6 @@ function App(){
   const [screen,setScreen]=React.useState("welcome");
   const [authMode,setAuthMode]=React.useState("login");
   const [user,setUser]=React.useState(null);
-  const [premium,setPremium]=React.useState(false);
-  const [subPlan,setSubPlan]=React.useState(null); // 'user_monthly','user_yearly'
-  const [subStatus,setSubStatus]=React.useState(null); // 'active','pending'
   const [q,setQ]=React.useState("");
   const [tagFilters,setTagFilters]=React.useState([]);
   const [mealFilter,setMealFilter]=React.useState(null);
@@ -475,7 +464,6 @@ function App(){
   const [prevScr,setPrevScr]=React.useState("home");
   const [cnt,setCnt]=React.useState(0);
   const [popup,setPopup]=React.useState(null);
-  const [showUp,setShowUp]=React.useState(false);
   const [revs,setRevs]=React.useState({});
   const [communityTags,setCommunityTags]=React.useState({});
   const [nr,setNr]=React.useState({rating:5,text:""});
@@ -487,9 +475,6 @@ function App(){
   const [aErr,setAErr]=React.useState("");
   const [forgotMode,setForgotMode]=React.useState(false);
   const [forgotSent,setForgotSent]=React.useState(false);
-  const [resetMode,setResetMode]=React.useState(false);
-  const [newPassword,setNewPassword]=React.useState("");
-  const [resetSuccess,setResetSuccess]=React.useState(false);
   const [aLoading,setALoading]=React.useState(false);
   const [showPass,setShowPass]=React.useState(false);
   const [structs,setStructs]=React.useState(DEMO);
@@ -499,41 +484,7 @@ function App(){
   const GUEST_MAX=2;
 
   React.useEffect(()=>{
-    // 🌿 CONTROLLA URL HASH PER RESET PASSWORD (massima priorità!)
-    const checkRecoveryMode = () => {
-      const hash = window.location.hash;
-      if(hash && hash.includes('type=recovery')){
-        // Salva in sessionStorage che siamo in recovery mode
-        sessionStorage.setItem('juniper_recovery_mode', 'true');
-        setResetMode(true);
-        setScreen("auth");
-        return true;
-      }
-      // Controlla anche sessionStorage nel caso l'hash sia già stato processato
-      if(sessionStorage.getItem('juniper_recovery_mode') === 'true'){
-        setResetMode(true);
-        setScreen("auth");
-        return true;
-      }
-      return false;
-    };
-    
-    // Controlla subito al mount
-    const isRecovery = checkRecoveryMode();
-
     const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
-      // 🌿 Se siamo in recovery mode, non fare redirect alla home
-      const stillInRecovery = sessionStorage.getItem('juniper_recovery_mode') === 'true';
-      
-      if(stillInRecovery){
-        setResetMode(true);
-        setScreen("auth");
-        if(session?.user){
-          setUser({name:session.user.user_metadata?.name||session.user.email.split("@")[0],email:session.user.email,id:session.user.id});
-        }
-        return; // STOP - mostra solo il form reset password
-      }
-      
       if((event==="SIGNED_IN"||event==="INITIAL_SESSION")&&session?.user){
         setUser({name:session.user.user_metadata?.name||session.user.email.split("@")[0],email:session.user.email,id:session.user.id});
         setALoading(false);
@@ -541,18 +492,14 @@ function App(){
       }
       if(event==="SIGNED_OUT"){setUser(null);setScreen("welcome");}
     });
-    
     // Carica abbonamento utente
-    if(!isRecovery){
-      sb.auth.getSession().then(({data:{session}})=>{
-        if(session?.user){
-          sb.from("subscriptions").select("*").eq("user_id",session.user.id).eq("status","active").maybeSingle().then(({data})=>{
-            if(data){setPremium(true);setSubPlan(data.plan);setSubStatus(data.status);}
-          }).catch(()=>{});
-        }
-      });
-    }
-    
+    sb.auth.getSession().then(({data:{session}})=>{
+      if(session?.user){
+        sb.from("subscriptions").select("*").eq("user_id",session.user.id).eq("status","active").maybeSingle().then(({data})=>{
+          if(data){setPremium(true);setSubPlan(data.plan);setSubStatus(data.status);}
+        }).catch(()=>{});
+      }
+    });
     sb.from("structures").select("*").eq("pending",false).then(({data})=>{
       if(data&&data.length>0){
         const mapped=data.map(s=>({
@@ -627,7 +574,37 @@ function App(){
         if(m.includes("rate")){setAErr("⏳ Troppi tentativi. Aspetta qualche minuto.");return;}
         setAErr("❌ "+error.message);return;
       }
-      sb.from("profiles").insert({id:data?.user?.id||"",name:nome,email:aEmail});
+      sb.from("profiles").insert({id:data?.user?.id||"",name:nome,email:aEmail}).catch(()=>{});
+
+      // 🌿 FIX 1: INVIO EMAIL BENVENUTO
+      fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer re_SyKDTDZA_BF3UdqT9Tz3GKyDNQQ6JWATQ"
+        },
+        body: JSON.stringify({
+          from: "Juniper <help@juniperapp.eu>",
+          to: [aEmail],
+          subject: lang === "it" ? "🌿 Benvenuto su Juniper!" : "🌿 Welcome to Juniper!",
+          html: `
+            <div style="font-family:system-ui,sans-serif;max-width:500px;margin:0 auto;padding:20px">
+              <h2 style="color:#1a5c3a">${lang === "it" ? "Ciao" : "Hi"} ${nome}! 👋</h2>
+              <p style="font-size:16px;line-height:1.6;color:#374151">
+                ${lang === "it" 
+                  ? "Benvenuto su Juniper! Siamo felici di averti con noi." 
+                  : "Welcome to Juniper! We're happy to have you with us."}
+              </p>
+              <p style="font-size:16px;line-height:1.6;color:#374151">
+                ${lang === "it"
+                  ? "Inizia a cercare i locali perfetti per le tue esigenze alimentari."
+                  : "Start finding the perfect venues for your dietary needs."}
+              </p>
+              <p style="font-size:14px;color:#6b7280;margin-top:30px">🌿 Team Juniper</p>
+            </div>
+          `
+        })
+      }).catch(() => {}); // Ignora errori per non bloccare la registrazione
 
       return;
     }
@@ -637,23 +614,6 @@ function App(){
 
   // ── RICERCHE MENSILI ──
   const SEARCH_KEY="juniper_searches";
-  const getSearchCount=()=>{
-    try{
-      const data=JSON.parse(localStorage.getItem(SEARCH_KEY)||"{}");
-      const now=new Date();
-      const month=`${now.getFullYear()}-${now.getMonth()}`;
-      return data.month===month?data.count||0:0;
-    }catch(e){return 0;}
-  };
-  const incSearchCount=()=>{
-    try{
-      const now=new Date();
-      const month=`${now.getFullYear()}-${now.getMonth()}`;
-      const data=JSON.parse(localStorage.getItem(SEARCH_KEY)||"{}");
-      const count=data.month===month?(data.count||0)+1:1;
-      localStorage.setItem(SEARCH_KEY,JSON.stringify({month,count}));
-    }catch(e){}
-  };
 
   const doForgotPassword=async()=>{
     if(!aEmail)return;
@@ -664,32 +624,6 @@ function App(){
     setALoading(false);
     if(error){setAErr("❌ "+error.message);return;}
     setForgotSent(true);
-  };
-
-  const doResetPassword=async()=>{
-    if(!newPassword||newPassword.length<6){
-      setAErr(lang==="it"?"La password deve essere di almeno 6 caratteri":"Password must be at least 6 characters");
-      return;
-    }
-    setALoading(true);
-    const {error}=await sb.auth.updateUser({password:newPassword});
-    setALoading(false);
-    if(error){
-      setAErr("❌ "+error.message);
-      return;
-    }
-    setResetSuccess(true);
-    // 🌿 Pulisci l'hash URL e sessionStorage
-    window.location.hash = '';
-    sessionStorage.removeItem('juniper_recovery_mode');
-    setTimeout(()=>{
-      setResetMode(false);
-      setForgotMode(false);
-      setNewPassword("");
-      setResetSuccess(false);
-      setAErr("");
-      setScreen("home");
-    },2000);
   };
 
   const GKEY="AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck";
@@ -738,7 +672,6 @@ function App(){
 
   const doSearch=async()=>{
     if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
-    if(!premium&&getSearchCount()>=FREE_LIMIT){showP(t.popSearch,t.popSearchSub,"upgrade");return;}
     setSearching(true);
     let res=structs.filter(s=>{
       const mf=tagFilters.length===0||tagFilters.every(f=>s.tags&&s.tags.includes(f));
@@ -761,7 +694,6 @@ function App(){
     // Carica community tags per tutti i risultati in background
     res.forEach(r=>loadCommunityTags(r.id));
     // Conta ricerca
-    if(!premium)incSearchCount();
     // Scansiona recensioni in background per i locali Google
     const googleRes=res.filter(r=>r.source==="google"&&r.id.startsWith("g_"));
     googleRes.forEach(async(venue)=>{
@@ -909,7 +841,6 @@ function App(){
 
   const Popup=()=>{
     if(!popup)return null;
-    if(popup.type==="upgrade")return <UpgradeModal/>;
     return(
       <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1000,padding:20}}>
         <div style={{background:"white",width:"100%",maxWidth:340,borderRadius:20,padding:28,textAlign:"center"}}>
@@ -927,33 +858,6 @@ function App(){
     );
   };
 
-  const UpgradeModal=()=>(
-    <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.5)",display:"flex",alignItems:"flex-end",justifyContent:"center",zIndex:1000}}>
-      <div style={{background:"white",width:"100%",maxWidth:480,borderRadius:"24px 24px 0 0",padding:"28px 24px 36px",maxHeight:"90vh",overflowY:"auto"}}>
-        <div style={{textAlign:"center",marginBottom:20}}>
-          <div style={{fontSize:44}}>⭐</div>
-          <h2 style={{margin:"8px 0 4px",fontSize:20,fontWeight:800}}>Juniper Premium</h2>
-          <p style={{margin:0,fontSize:13,color:"#6b7280"}}>{lang==="it"?"Ricerche illimitate · Nessun limite":"Unlimited searches · No limits"}</p>
-        </div>
-        {[
-          {key:"user_yearly",lbl:lang==="it"?"Piano Annuale":"Yearly Plan",price:"30€",sub:lang==="it"?"2,50€/mese · Risparmi 6€":"€2.50/month · Save €6",best:true},
-          {key:"user_monthly",lbl:lang==="it"?"Piano Mensile":"Monthly Plan",price:"3€",sub:lang==="it"?"/mese":"/month"},
-        ].map((p)=>(
-          <div key={p.key} onClick={()=>{window.open(STRIPE_LINKS[p.key]+"?prefilled_email="+encodeURIComponent(user?.email||""),"_blank");setShowUp(false);}} style={{border:"2px solid "+(p.best?"#1a5c3a":"#e5e7eb"),borderRadius:14,padding:16,cursor:"pointer",marginBottom:10,position:"relative",background:p.best?"#f0fdf4":"white"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div><p style={{margin:"0 0 2px",fontWeight:700,fontSize:16}}>{p.lbl}</p><p style={{margin:0,fontSize:12,color:p.best?"#1a5c3a":"#6b7280"}}>{p.sub}</p></div>
-              <p style={{margin:0,fontSize:24,fontWeight:800,color:p.best?"#1a5c3a":"#374151"}}>{p.price}</p>
-            </div>
-            {p.best&&<span style={{position:"absolute",top:-10,right:12,background:"#1a5c3a",color:"white",fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:10}}>BEST</span>}
-          </div>
-        ))}
-        <div style={{background:"#f0fdf4",borderRadius:12,padding:12,marginBottom:12,border:"1px solid #bbf7d0"}}>
-          <p style={{margin:0,fontSize:12,color:"#065f46"}}>✅ {lang==="it"?"Il piano si attiva automaticamente dopo il pagamento!":"Plan activates automatically after payment!"}</p>
-        </div>
-        <button onClick={()=>setShowUp(false)} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:12,fontSize:14,color:"#6b7280",cursor:"pointer"}}>{t.cancel}</button>
-      </div>
-    </div>
-  );
 
   const FilterPanel=()=>(
     <div style={card}>
@@ -1013,37 +917,6 @@ function App(){
   );
 
   if(screen==="business")return <BusinessScreen lang={lang} go={go}/>;
-  if(screen==="business_premium")return(
-    <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
-      <div style={{background:GREEN,padding:"20px",color:"white"}}>
-        <button onClick={()=>go("profile")} style={{background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13,marginBottom:10,display:"block"}}>← {lang==="it"?"Indietro":"Back"}</button>
-        <Logo size={22}/>
-        <h2 style={{margin:"8px 0 2px",fontSize:17,fontWeight:700}}>🏢 {lang==="it"?"Piani per Attività":"Business Plans"}</h2>
-        <p style={{margin:0,fontSize:12,opacity:.8}}>{lang==="it"?"Badge verificato · Priorità nei risultati":"Verified badge · Priority in results"}</p>
-      </div>
-      <div style={{padding:16}}>
-        <div style={{background:"#d1fae5",borderRadius:12,padding:14,marginBottom:14,border:"1px solid #a7f3d0"}}>
-          <p style={{margin:"0 0 6px",fontWeight:700,color:"#065f46"}}>✅ {lang==="it"?"Cosa include il piano Business:":"What's included in Business plan:"}</p>
-          {["Badge 🌿 Verificato da Juniper","Priorità nei risultati di ricerca","Supporto prioritario"].map((f,i)=><p key={i} style={{margin:"0 0 3px",fontSize:13,color:"#047857"}}>· {f}</p>)}
-        </div>
-        {[
-          {key:"biz_yearly",lbl:lang==="it"?"Piano Annuale":"Yearly Plan",price:"110€",sub:lang==="it"?"9,17€/mese · Risparmi 10€":"€9.17/month · Save €10",best:true},
-          {key:"biz_monthly",lbl:lang==="it"?"Piano Mensile":"Monthly Plan",price:"10€",sub:lang==="it"?"/mese":"/month"},
-        ].map((p)=>(
-          <div key={p.key} onClick={()=>window.open(STRIPE_LINKS[p.key]+"?prefilled_email="+encodeURIComponent(user?.email||""),"_blank")} style={{border:"2px solid "+(p.best?"#1a5c3a":"#e5e7eb"),borderRadius:14,padding:16,cursor:"pointer",marginBottom:10,position:"relative",background:p.best?"#f0fdf4":"white"}}>
-            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-              <div><p style={{margin:"0 0 2px",fontWeight:700,fontSize:16}}>{p.lbl}</p><p style={{margin:0,fontSize:12,color:p.best?"#1a5c3a":"#6b7280"}}>{p.sub}</p></div>
-              <p style={{margin:0,fontSize:24,fontWeight:800,color:p.best?"#1a5c3a":"#374151"}}>{p.price}</p>
-            </div>
-            {p.best&&<span style={{position:"absolute",top:-10,right:12,background:"#1a5c3a",color:"white",fontSize:11,fontWeight:700,padding:"2px 8px",borderRadius:10}}>BEST</span>}
-          </div>
-        ))}
-        <div style={{background:"#f0fdf4",borderRadius:12,padding:12,border:"1px solid #bbf7d0"}}>
-          <p style={{margin:0,fontSize:12,color:"#065f46",fontWeight:600}}>✅ {lang==="it"?"Il badge si attiva automaticamente dopo il pagamento!":"Badge activates automatically after payment!"}</p>
-        </div>
-      </div>
-    </div>
-  );
   if(screen==="admin"){if(user?.email!==ADMIN_EMAIL){go("home");return null;}return <AdminScreen user={user} lang={lang} go={go} sb={sb}/>;}
   if(screen==="policy")return <PolicyScreen lang={lang} go={go}/>;
 
@@ -1053,72 +926,35 @@ function App(){
         <button onClick={()=>go("welcome")} style={{...ghost,position:"absolute",top:16,left:16}}>←</button>
         <button onClick={tl} style={{...ghost,position:"absolute",top:16,right:16}}>{lang==="it"?"🇬🇧":"🇮🇹"}</button>
         <Logo size={34}/>
-        <h2 style={{margin:"8px 0 0",fontSize:21,fontWeight:800}}>
-          {resetMode?(lang==="it"?"Nuova Password":"New Password"):(authMode==="login"?t.login:t.register)}
-        </h2>
+        <h2 style={{margin:"8px 0 0",fontSize:21,fontWeight:800}}>{authMode==="login"?t.login:t.register}</h2>
       </div>
       <div style={{margin:"0 16px",background:"white",borderRadius:16,padding:24,marginTop:-22,boxShadow:"0 4px 20px rgba(0,0,0,.1)"}}>
-        {resetMode
+        {authMode==="register"&&<div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Nome</label><input value={aName} onChange={e=>setAName(e.target.value)} style={inp} placeholder="Mario Rossi"/></div>}
+        <div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Email</label><input type="email" value={aEmail} onChange={e=>setAEmail(e.target.value)} style={inp} placeholder="mario@esempio.it"/></div>
+        <div style={{marginBottom:18}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Password</label><div style={{position:"relative"}}><input type={showPass?"text":"password"} value={aPass} onChange={e=>setAPass(e.target.value)} style={{...inp,paddingRight:44}} placeholder="••••••••"/><button onClick={()=>setShowPass(p=>!p)} type="button" style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#9ca3af"}}>{showPass?"🙈":"👁️"}</button></div></div>
+        {aErr&&<p style={{margin:"0 0 12px",fontSize:13,color:"#ef4444",textAlign:"center",lineHeight:1.5}}>{aErr}</p>}
+        {forgotMode
           ?<>
-            {resetSuccess
+            {forgotSent
               ?<div style={{background:"#d1fae5",borderRadius:12,padding:16,textAlign:"center"}}>
-                <p style={{fontSize:22,marginBottom:8}}>✅</p>
-                <p style={{fontWeight:700,color:"#065f46",marginBottom:4}}>{lang==="it"?"Password aggiornata!":"Password updated!"}</p>
-                <p style={{fontSize:13,color:"#047857"}}>{lang==="it"?"Verrai reindirizzato alla home...":"Redirecting to home..."}</p>
+                <p style={{fontSize:22,marginBottom:8}}>📬</p>
+                <p style={{fontWeight:700,color:"#065f46",marginBottom:4}}>{lang==="it"?"Email inviata!":"Email sent!"}</p>
+                <p style={{fontSize:13,color:"#047857"}}>{lang==="it"?"Controlla la tua casella email per il link di reset.":"Check your inbox for the reset link."}</p>
               </div>
               :<>
-                <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{lang==="it"?"Inserisci la tua nuova password (minimo 6 caratteri).":"Enter your new password (minimum 6 characters)."}</p>
-                <div style={{marginBottom:18}}>
-                  <label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>{lang==="it"?"Nuova Password":"New Password"}</label>
-                  <div style={{position:"relative"}}>
-                    <input 
-                      type={showPass?"text":"password"} 
-                      value={newPassword} 
-                      onChange={e=>setNewPassword(e.target.value)} 
-                      style={{...inp,paddingRight:44}} 
-                      placeholder="••••••••"
-                    />
-                    <button onClick={()=>setShowPass(p=>!p)} type="button" style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#9ca3af"}}>
-                      {showPass?"🙈":"👁️"}
-                    </button>
-                  </div>
-                </div>
-                {aErr&&<p style={{margin:"0 0 12px",fontSize:13,color:"#ef4444",textAlign:"center",lineHeight:1.5}}>{aErr}</p>}
-                <button onClick={doResetPassword} disabled={aLoading||!newPassword} style={{...btnG,opacity:aLoading||!newPassword?0.5:1}}>
-                  {aLoading?"⏳ Aggiornamento...":(lang==="it"?"🔐 Aggiorna Password":"🔐 Update Password")}
-                </button>
+                <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{lang==="it"?"Inserisci la tua email e ti mandiamo un link per resettare la password.":"Enter your email and we'll send you a reset link."}</p>
+                <button onClick={doForgotPassword} disabled={aLoading||!aEmail} style={{...btnG,opacity:aLoading||!aEmail?0.5:1,marginBottom:10}}>{aLoading?"⏳ Invio...":lang==="it"?"📬 Invia link di reset":"📬 Send reset link"}</button>
               </>
             }
+            <button onClick={()=>{setForgotMode(false);setForgotSent(false);setAErr("");}} style={{width:"100%",background:"none",border:"none",padding:8,fontSize:13,color:"#9ca3af",cursor:"pointer"}}>{lang==="it"?"← Torna al login":"← Back to login"}</button>
           </>
           :<>
-            {authMode==="register"&&<div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Nome</label><input value={aName} onChange={e=>setAName(e.target.value)} style={inp} placeholder="Mario Rossi"/></div>}
-            <div style={{marginBottom:12}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Email</label><input type="email" value={aEmail} onChange={e=>setAEmail(e.target.value)} style={inp} placeholder="mario@esempio.it"/></div>
-            <div style={{marginBottom:18}}><label style={{display:"block",fontSize:13,color:"#6b7280",marginBottom:5}}>Password</label><div style={{position:"relative"}}><input type={showPass?"text":"password"} value={aPass} onChange={e=>setAPass(e.target.value)} style={{...inp,paddingRight:44}} placeholder="••••••••"/><button onClick={()=>setShowPass(p=>!p)} type="button" style={{position:"absolute",right:12,top:"50%",transform:"translateY(-50%)",background:"none",border:"none",cursor:"pointer",fontSize:16,color:"#9ca3af"}}>{showPass?"🙈":"👁️"}</button></div></div>
-            {aErr&&<p style={{margin:"0 0 12px",fontSize:13,color:"#ef4444",textAlign:"center",lineHeight:1.5}}>{aErr}</p>}
-            {forgotMode
-              ?<>
-                {forgotSent
-                  ?<div style={{background:"#d1fae5",borderRadius:12,padding:16,textAlign:"center"}}>
-                    <p style={{fontSize:22,marginBottom:8}}>📬</p>
-                    <p style={{fontWeight:700,color:"#065f46",marginBottom:4}}>{lang==="it"?"Email inviata!":"Email sent!"}</p>
-                    <p style={{fontSize:13,color:"#047857"}}>{lang==="it"?"Controlla la tua casella email per il link di reset.":"Check your inbox for the reset link."}</p>
-                  </div>
-                  :<>
-                    <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{lang==="it"?"Inserisci la tua email e ti mandiamo un link per resettare la password.":"Enter your email and we'll send you a reset link."}</p>
-                    <button onClick={doForgotPassword} disabled={aLoading||!aEmail} style={{...btnG,opacity:aLoading||!aEmail?0.5:1,marginBottom:10}}>{aLoading?"⏳ Invio...":lang==="it"?"📬 Invia link di reset":"📬 Send reset link"}</button>
-                  </>
-                }
-                <button onClick={()=>{setForgotMode(false);setForgotSent(false);setAErr("");}} style={{width:"100%",background:"none",border:"none",padding:8,fontSize:13,color:"#9ca3af",cursor:"pointer"}}>{lang==="it"?"← Torna al login":"← Back to login"}</button>
-              </>
-              :<>
-                <button onClick={doAuth} disabled={aLoading} style={{...btnG,opacity:aLoading?0.7:1}}>{aLoading?"⏳ Attendere...":(authMode==="login"?t.login:t.register)}</button>
-                {authMode==="login"&&<p onClick={()=>{setForgotMode(true);setAErr("");}} style={{textAlign:"center",margin:"10px 0 0",fontSize:13,color:"#1a5c3a",cursor:"pointer"}}>🔑 {lang==="it"?"Password dimenticata?":"Forgot password?"}</p>}
-                <p style={{textAlign:"center",marginTop:14,fontSize:13,color:"#6b7280",margin:"14px 0 0"}}>
-                  {authMode==="login"?(lang==="it"?"Non hai un account?":"No account?"):(lang==="it"?"Hai già un account?":"Have an account?")}{" "}
-                  <span onClick={()=>{setAuthMode(m=>m==="login"?"register":"login");setAErr("");setForgotMode(false);}} style={{color:"#1a5c3a",cursor:"pointer",fontWeight:600}}>{authMode==="login"?t.register:t.login}</span>
-                </p>
-              </>
-            }
+            <button onClick={doAuth} disabled={aLoading} style={{...btnG,opacity:aLoading?0.7:1}}>{aLoading?"⏳ Attendere...":(authMode==="login"?t.login:t.register)}</button>
+            {authMode==="login"&&<p onClick={()=>{setForgotMode(true);setAErr("");}} style={{textAlign:"center",margin:"10px 0 0",fontSize:13,color:"#1a5c3a",cursor:"pointer"}}>🔑 {lang==="it"?"Password dimenticata?":"Forgot password?"}</p>}
+            <p style={{textAlign:"center",marginTop:14,fontSize:13,color:"#6b7280",margin:"14px 0 0"}}>
+              {authMode==="login"?(lang==="it"?"Non hai un account?":"No account?"):(lang==="it"?"Hai già un account?":"Have an account?")}{" "}
+              <span onClick={()=>{setAuthMode(m=>m==="login"?"register":"login");setAErr("");setForgotMode(false);}} style={{color:"#1a5c3a",cursor:"pointer",fontWeight:600}}>{authMode==="login"?t.register:t.login}</span>
+            </p>
           </>
         }
       </div>
@@ -1139,7 +975,6 @@ function App(){
           <div style={{display:"flex",gap:7}}>
             <button onClick={tl} style={ghost}>{lang==="it"?"🇬🇧":"🇮🇹"}</button>
             {isGuest&&<button onClick={()=>{setAuthMode("register");go("auth");}} style={{background:"white",color:"#1a5c3a",border:"none",padding:"6px 11px",borderRadius:15,cursor:"pointer",fontSize:12,fontWeight:700}}>{t.register}</button>}
-            {!isGuest&&!premium&&<button onClick={()=>setShowUp(true)} style={{background:"#f59e0b",border:"none",color:"white",padding:"6px 11px",borderRadius:15,cursor:"pointer",fontSize:12,fontWeight:700}}>⭐ Premium</button>}
           </div>
         </div>
       </div>
@@ -1166,7 +1001,6 @@ function App(){
         <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"14px 0 10px"}}>🇮🇹 {t.nearby}</h3>
         {structs.filter(s=>s.country==="Italia"&&!s.sponsored).slice(0,5).map((s,i)=><StructCard key={s.id} s={s} index={i+2} guestMode={isGuest}/>)}
       </div>
-      <BottomNav/>{showUp&&<UpgradeModal/>}<Popup/>
       {searching&&<div style={{position:"fixed",inset:0,background:"rgba(255,255,255,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500,gap:14}}>
         <div style={{fontSize:48,animation:"spin 1.5s linear infinite"}}>🌿</div>
         <p style={{fontSize:16,fontWeight:700,color:"#1a5c3a"}}>{lang==="it"?"Sto cercando i locali...":"Finding venues..."}</p>
@@ -1276,33 +1110,6 @@ function App(){
       </div>
       <div style={{padding:"0 16px",marginTop:-18}}>
         <div style={card}>
-          {premium
-            ?<>
-              <div style={{background:"#d1fae5",borderRadius:12,padding:14,marginBottom:10}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-                  <div><p style={{margin:"0 0 2px",fontWeight:700,color:"#065f46"}}>⭐ Piano Premium Attivo</p><p style={{margin:0,fontSize:12,color:"#047857"}}>{subPlan==="user_yearly"?"Annuale · €30/anno":"Mensile · €3/mese"}</p></div>
-                  <span style={{background:"#10b981",color:"white",fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10}}>✓ Attivo</span>
-                </div>
-              </div>
-              <button onClick={()=>window.open("https://billing.stripe.com","_blank")} style={{width:"100%",background:"#f9fafb",border:"1px solid #e5e7eb",padding:10,borderRadius:10,fontSize:13,cursor:"pointer",color:"#374151",marginBottom:8}}>🔄 {lang==="it"?"Gestisci abbonamento":"Manage subscription"}</button>
-            </>
-            :<>
-              <div style={{background:"#f9fafb",borderRadius:12,padding:14,marginBottom:10,border:"1px solid #e5e7eb"}}>
-                <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
-                  <p style={{margin:0,fontWeight:700,fontSize:13}}>🌿 {lang==="it"?"Piano Gratuito":"Free Plan"}</p>
-                  <span style={{fontSize:12,color:getSearchCount()>=FREE_LIMIT?"#ef4444":"#6b7280",fontWeight:700}}>{getSearchCount()}/{FREE_LIMIT}</span>
-                </div>
-                <div style={{background:"#e5e7eb",borderRadius:10,height:6,overflow:"hidden",marginBottom:6}}><div style={{background:getSearchCount()>=FREE_LIMIT?"#ef4444":"#10b981",height:"100%",width:`${Math.min((getSearchCount()/FREE_LIMIT)*100,100)}%`,transition:"width 0.3s"}}/></div>
-                <p style={{margin:"0 0 10px",fontSize:11,color:"#6b7280"}}>{lang==="it"?"Ricerche usate questo mese":"Searches used this month"}</p>
-                <button onClick={()=>setShowUp(true)} style={{width:"100%",background:GREEN,color:"white",border:"none",padding:10,borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>⭐ {lang==="it"?"Passa a Premium · da €3/mese":"Go Premium · from €3/month"}</button>
-              </div>
-              <div style={{background:"#f0fdf4",borderRadius:12,padding:12,border:"1px solid #bbf7d0",marginBottom:10}}>
-                <p style={{margin:"0 0 4px",fontWeight:700,fontSize:13,color:"#1a5c3a"}}>🏢 {lang==="it"?"Sei un locale?":"Are you a venue?"}</p>
-                <p style={{margin:"0 0 8px",fontSize:12,color:"#6b7280"}}>{lang==="it"?"Badge verificato + priorità nei risultati":"Verified badge + priority in results"}</p>
-                <button onClick={()=>go("business")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:10,borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>🏢 {lang==="it"?"Registra la tua attività":"Register your business"}</button>
-              </div>
-            </>
-          }
         </div>
         <div style={card}>
           <button onClick={tl} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>🌐 {lang==="it"?"Switch to English":"Passa all'italiano"}</button>
@@ -1315,23 +1122,38 @@ function App(){
           </div>
 
           {/* 🌿 FIX 3: BOTTONE RICHIESTA CANCELLAZIONE ACCOUNT */}
-          <button onClick={()=>{
-            const subject = encodeURIComponent("🗑️ Richiesta cancellazione account: " + user.email);
-            const body = encodeURIComponent(
-              "RICHIESTA CANCELLAZIONE ACCOUNT\n\n" +
-              "Nome: " + (user.user_metadata?.name || user.name || "N/A") + "\n" +
-              "Email: " + user.email + "\n" +
-              "User ID: " + user.id + "\n" +
-              "Data richiesta: " + new Date().toLocaleString("it-IT") + "\n\n" +
-              "Per favore procedi con la cancellazione del mio account."
-            );
-            window.location.href = "mailto:help@juniperapp.eu?subject=" + subject + "&body=" + body;
+          <button onClick={async()=>{
+            if(!window.confirm(lang==="it"
+              ?"Vuoi richiedere la cancellazione del tuo account? Riceverai conferma via email."
+              :"Request account deletion? You'll receive confirmation via email."))return;
+            
+            try {
+              // Manda email a help@juniperapp.eu con richiesta cancellazione
+              await fetch("https://api.resend.com/emails", {
+                method: "POST",
+                headers: {
+                  "Authorization": "Bearer re_SyKDTDZA_BF3UdqT9Tz3GKyDNQQ6JWATQ",
+                  "Content-Type": "application/json"
+                },
+                body: JSON.stringify({
+                  from: "Juniper <help@juniperapp.eu>",
+                  to: ["help@juniperapp.eu"],
+                  subject: "🗑️ Richiesta cancellazione account: " + user.email,
+                  html: "<div style='font-family:system-ui,sans-serif;padding:20px'><h2>Richiesta cancellazione account</h2><p><b>Nome:</b> " + user.name + "</p><p><b>Email:</b> " + user.email + "</p><p><b>ID:</b> " + user.id + "</p><p><b>Data richiesta:</b> " + new Date().toLocaleString("it-IT") + "</p></div>"
+                })
+              });
+              
+              alert(lang==="it"
+                ?"✅ Richiesta inviata! Ti contatteremo a breve a " + user.email
+                :"✅ Request sent! We'll contact you soon at " + user.email);
+            } catch(e) {
+              alert(lang==="it"?"Errore nell'invio. Riprova o contatta help@juniperapp.eu":"Error sending request. Try again or contact help@juniperapp.eu");
+            }
           }} style={{width:"100%",background:"#fff7ed",border:"1px solid #fed7aa",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#c2410c",textAlign:"left",marginBottom:8}}>🗑️ {lang==="it"?"Richiedi cancellazione account":"Request account deletion"}</button>
 
           <button onClick={async()=>{await sb.auth.signOut();setUser(null);setScreen("welcome");setCnt(0);setTab("home");}} style={{width:"100%",background:"#fef2f2",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#ef4444",textAlign:"left"}}>🚪 {lang==="it"?"Esci":"Sign Out"}</button>
         </div>
       </div>
-      <BottomNav/>{showUp&&<UpgradeModal/>}
     </div>
   );
 
