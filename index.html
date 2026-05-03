@@ -1154,6 +1154,7 @@ function App(){
           <button onClick={async()=>{await sb.auth.signOut();setUser(null);setScreen("welcome");setCnt(0);setTab("home");}} style={{width:"100%",background:"#fef2f2",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#ef4444",textAlign:"left"}}>🚪 {lang==="it"?"Esci":"Sign Out"}</button>
         </div>
       </div>
+      <BottomNav/>
     </div>
   );
 
