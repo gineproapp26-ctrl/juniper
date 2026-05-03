@@ -1001,6 +1001,7 @@ function App(){
         <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"14px 0 10px"}}>🇮🇹 {t.nearby}</h3>
         {structs.filter(s=>s.country==="Italia"&&!s.sponsored).slice(0,5).map((s,i)=><StructCard key={s.id} s={s} index={i+2} guestMode={isGuest}/>)}
       </div>
+      <BottomNav/><Popup/>
       {searching&&<div style={{position:"fixed",inset:0,background:"rgba(255,255,255,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500,gap:14}}>
         <div style={{fontSize:48,animation:"spin 1.5s linear infinite"}}>🌿</div>
         <p style={{fontSize:16,fontWeight:700,color:"#1a5c3a"}}>{lang==="it"?"Sto cercando i locali...":"Finding venues..."}</p>
