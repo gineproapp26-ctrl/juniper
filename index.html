@@ -683,17 +683,6 @@ function App(){
       const qRes=res.filter(s=>(s.name&&s.name.toLowerCase().includes(q.toLowerCase()))||(s.city&&s.city.toLowerCase().includes(q.toLowerCase()))||(s.address&&s.address.toLowerCase().includes(q.toLowerCase())));
       if(qRes.length>0)res=qRes;
     }
-    try{
-      const gRes=await Promise.race([searchGooglePlaces(q||"ristorante",tagFilters),new Promise(r=>setTimeout(()=>r([]),5000))]);
-      if(gRes&&gRes.length>0){
-        const existing=new Set(res.map(s=>(s.name||"").toLowerCase()));
-        const newGooglePlaces=gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase()));
-        // Se NON ci sono filtri tags, aggiungi subito i locali Google
-        if(tagFilters.length===0){
-          res=[...res,...newGooglePlaces];
-        }
-        // Altrimenti li aggiungeremo dopo aver letto le recensioni
-    }catch(e){}
     
     // Se ci sono filtri tags, memorizzo i locali Google per scannerizzarli
     let pendingGooglePlaces=[];
