@@ -312,8 +312,8 @@ function BusinessScreen({lang,go}){
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const btnG2={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
   const tx={
-    it:{back:"Indietro",title:"Registra la tua attività",sub:"Raggiungi chi cerca esattamente quello che offri. Registrazione e Badge GRATIS! 🎁",searchPh:"Cerca per nome o città...",claim:"Sono il titolare",addNew:"Aggiungi da zero",baseInfo:"📋 Info base",typeLabel:"🏪 Tipo",openLabel:"🍽️ Quando siete aperti?",offersLabel:"✅ Cosa offrite?",kitchenLabel:"🔬 Sicurezza in cucina",kitchenSub:"Sii onesto — è importante per i tuoi clienti",badgeLabel:"✨ Badge Verificato GRATIS!",badgeSub:"Incluso per tutti i locali registrati. Aumenta la fiducia dei clienti!",send:"Invia richiesta",sent:"Richiesta inviata!",sentSub:"Ti contatteremo a",backHome:"Torna alla home",disclaimerTitle:"⚖️ Dichiarazione di responsabilità",disclaimerText:"Il titolare dichiara sotto la propria responsabilità che le informazioni inserite sono veritiere e aggiornate. Juniper non è responsabile per eventuali inesattezze. L'utente finale è sempre invitato a confermare direttamente con il locale prima di consumare.",disclaimerCheck:"Ho letto e accetto. Confermo che le informazioni sono veritiere e mi assumo la piena responsabilità dei contenuti pubblicati.",cancel:"Annulla"},
-    en:{back:"Back",title:"Register your business",sub:"Reach those looking for exactly what you offer. Registration & Badge FREE! 🎁",searchPh:"Search by name or city...",claim:"I'm the owner",addNew:"Add from scratch",baseInfo:"📋 Basic info",typeLabel:"🏪 Type",openLabel:"🍽️ When are you open?",offersLabel:"✅ What do you offer?",kitchenLabel:"🔬 Kitchen safety",kitchenSub:"Be honest — it matters to your customers",badgeLabel:"✨ Verified Badge FREE!",badgeSub:"Included for all registered venues. Build customer trust!",send:"Send request",sent:"Request sent!",sentSub:"We'll contact you at",backHome:"Back to home",disclaimerTitle:"⚖️ Liability Declaration",disclaimerText:"The owner declares under their own responsibility that the information provided is truthful and up to date. Juniper is not liable for any inaccuracies. End users are always encouraged to confirm directly with the venue before consuming.",disclaimerCheck:"I have read and agree. I confirm the information is truthful and take full responsibility for the published content.",cancel:"Cancel"},
+    it:{back:"Indietro",title:"Registra la tua attività",sub:"Raggiungi chi cerca esattamente quello che offri. Badge Verificato incluso! ✨",searchPh:"Cerca per nome o città...",claim:"Sono il titolare",addNew:"Aggiungi da zero",baseInfo:"📋 Info base",typeLabel:"🏪 Tipo",openLabel:"🍽️ Quando siete aperti?",offersLabel:"✅ Cosa offrite?",kitchenLabel:"🔬 Sicurezza in cucina",kitchenSub:"Sii onesto — è importante per i tuoi clienti",badgeLabel:"✨ Badge Verificato Incluso",badgeSub:"Distintivo esclusivo per i locali registrati. Aumenta la fiducia dei clienti!",send:"Invia richiesta",sent:"Richiesta inviata!",sentSub:"Ti contatteremo a",backHome:"Torna alla home",disclaimerTitle:"⚖️ Dichiarazione di responsabilità",disclaimerText:"Il titolare dichiara sotto la propria responsabilità che le informazioni inserite sono veritiere e aggiornate. Juniper non è responsabile per eventuali inesattezze. L'utente finale è sempre invitato a confermare direttamente con il locale prima di consumare.",disclaimerCheck:"Ho letto e accetto. Confermo che le informazioni sono veritiere e mi assumo la piena responsabilità dei contenuti pubblicati.",cancel:"Annulla"},
+    en:{back:"Back",title:"Register your business",sub:"Reach those looking for exactly what you offer. Verified Badge included! ✨",searchPh:"Search by name or city...",claim:"I'm the owner",addNew:"Add from scratch",baseInfo:"📋 Basic info",typeLabel:"🏪 Type",openLabel:"🍽️ When are you open?",offersLabel:"✅ What do you offer?",kitchenLabel:"🔬 Kitchen safety",kitchenSub:"Be honest — it matters to your customers",badgeLabel:"✨ Verified Badge Included",badgeSub:"Exclusive badge for registered venues. Build customer trust!",send:"Send request",sent:"Request sent!",sentSub:"We'll contact you at",backHome:"Back to home",disclaimerTitle:"⚖️ Liability Declaration",disclaimerText:"The owner declares under their own responsibility that the information provided is truthful and up to date. Juniper is not liable for any inaccuracies. End users are always encouraged to confirm directly with the venue before consuming.",disclaimerCheck:"I have read and agree. I confirm the information is truthful and take full responsibility for the published content.",cancel:"Cancel"},
   };
   const t=tx[lang];
   const [step,setStep]=React.useState("search");
@@ -480,6 +480,7 @@ function App(){
   const [structs,setStructs]=React.useState(DEMO);
   const [loadingData,setLoadingData]=React.useState(true);
   const [searching,setSearching]=React.useState(false);
+  const [showWelcomePopup,setShowWelcomePopup]=React.useState(false);
   const isGuest=!user;
   const GUEST_MAX=2;
 
@@ -489,6 +490,11 @@ function App(){
         setUser({name:session.user.user_metadata?.name||session.user.email.split("@")[0],email:session.user.email,id:session.user.id});
         setALoading(false);
         setScreen(prev=>prev==="welcome"||prev==="auth"||prev==="policy"?"home":prev);
+        // Mostra welcome popup solo al primo accesso
+        const welcomeSeen=localStorage.getItem("juniper_welcome_seen");
+        if(!welcomeSeen){
+          setTimeout(()=>setShowWelcomePopup(true),1000);
+        }
       }
       if(event==="SIGNED_OUT"){setUser(null);setScreen("welcome");}
     });
@@ -887,6 +893,53 @@ function App(){
     );
   };
 
+  const WelcomePopup=()=>{
+    if(!showWelcomePopup)return null;
+    const closeWelcome=()=>{
+      setShowWelcomePopup(false);
+      localStorage.setItem("juniper_welcome_seen","true");
+    };
+    return(
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.6)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1001,padding:20}}>
+        <div style={{background:"white",width:"100%",maxWidth:420,borderRadius:20,padding:32,textAlign:"center"}}>
+          <div style={{fontSize:48,marginBottom:16}}>🌿</div>
+          <h3 style={{margin:"0 0 12px",fontSize:19,fontWeight:800,color:"#1a5c3a"}}>
+            {lang==="it"?"Benvenuto in Juniper!":"Welcome to Juniper!"}
+          </h3>
+          <p style={{margin:"0 0 18px",fontSize:14,color:"#6b7280",lineHeight:1.6}}>
+            {lang==="it"
+              ?"Siamo all'inizio di questa avventura e stiamo crescendo insieme a te. L'app migliora ogni giorno grazie al contributo della community."
+              :"We're at the beginning of this journey and growing together with you. The app improves daily thanks to community feedback."}
+          </p>
+          <div style={{background:"#f0fdf4",borderRadius:12,padding:14,marginBottom:18,border:"1.5px solid #bbf7d0"}}>
+            <p style={{margin:"0 0 10px",fontSize:14,fontWeight:700,color:"#1a5c3a"}}>
+              🏪 {lang==="it"?"Hai un locale?":"Do you own a venue?"}
+            </p>
+            <p style={{margin:0,fontSize:13,color:"#065f46",lineHeight:1.5}}>
+              {lang==="it"
+                ?"Registrati per condividere tutte le info e aiutare chi cerca esattamente quello che offri!"
+                :"Register to share all your info and help those looking for exactly what you provide!"}
+            </p>
+          </div>
+          <p style={{margin:"0 0 10px",fontSize:13,color:"#6b7280",lineHeight:1.5}}>
+            {lang==="it"
+              ?"Se noti qualcosa che non funziona o hai suggerimenti, scrivici a:"
+              :"If you notice anything that doesn't work or have suggestions, write to us at:"}
+          </p>
+          <a href="mailto:help@juniperapp.eu" style={{display:"inline-block",background:"#1a5c3a",color:"white",textDecoration:"none",padding:"10px 20px",borderRadius:10,fontSize:13,fontWeight:700,marginBottom:18}}>
+            📧 help@juniperapp.eu
+          </a>
+          <p style={{margin:"0 0 20px",fontSize:14,color:"#1a5c3a",fontWeight:600}}>
+            {lang==="it"?"Grazie per essere dei nostri! 💚":"Thanks for being part of this! 💚"}
+          </p>
+          <button onClick={closeWelcome} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:14,borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer"}}>
+            {lang==="it"?"Ho capito!":"Got it!"}
+          </button>
+        </div>
+      </div>
+    );
+  };
+
 
   const FilterPanel=()=>(
     <div style={card}>
@@ -1030,7 +1083,7 @@ function App(){
         <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"14px 0 10px"}}>🇮🇹 {t.nearby}</h3>
         {structs.filter(s=>s.country==="Italia"&&!s.sponsored).slice(0,5).map((s,i)=><StructCard key={s.id} s={s} index={i+2} guestMode={isGuest}/>)}
       </div>
-      <BottomNav/><Popup/>
+      <BottomNav/><Popup/><WelcomePopup/>
       {searching&&<div style={{position:"fixed",inset:0,background:"rgba(255,255,255,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500,gap:14}}>
         <div style={{fontSize:48,animation:"spin 1.5s linear infinite"}}>🌿</div>
         <p style={{fontSize:16,fontWeight:700,color:"#1a5c3a"}}>{lang==="it"?"Sto cercando i locali...":"Finding venues..."}</p>
@@ -1055,7 +1108,7 @@ function App(){
           :(results||[]).filter(s=>s&&s.name).map(s=><StructCard key={s.id||s.name} s={s} index={0} guestMode={false}/>)
         }
       </div>
-      <BottomNav/><Popup/>
+      <BottomNav/><Popup/><WelcomePopup/>
     </div>
   );
 
@@ -1126,7 +1179,7 @@ function App(){
             </div>
           </div>
         </div>
-        <BottomNav/><Popup/>
+        <BottomNav/><Popup/><WelcomePopup/>
       </div>
     );
   }
@@ -1184,7 +1237,7 @@ function App(){
           <button onClick={async()=>{await sb.auth.signOut();setUser(null);setScreen("welcome");setCnt(0);setTab("home");}} style={{width:"100%",background:"#fef2f2",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#ef4444",textAlign:"left"}}>🚪 {lang==="it"?"Esci":"Sign Out"}</button>
         </div>
       </div>
-      <BottomNav/>
+      <BottomNav/><Popup/><WelcomePopup/>
     </div>
   );
 
