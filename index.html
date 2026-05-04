@@ -628,8 +628,8 @@ function App(){
 
   const GKEY="AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck";
   const searchGooglePlaces=async(query,tags)=>{
-    const tagWords=(tags||[]).map(k=>TAGS[k]?.it||"").filter(Boolean).join(" ");
-    const loc=(query||"Maremma Grosseto")+(tagWords?" "+tagWords:"")+" Italia";
+    // NON aggiungo i tag alla query - trovo TUTTI i locali e filtro dalle recensioni
+    const loc=(query||"Maremma Grosseto")+" Italia";
     const hasFood=query&&["ristorante","bar","pizzeria","agriturismo"].some(w=>query.toLowerCase().includes(w));
     // Se c'è un filtro tipo locale, cerca solo quel tipo
     const queries=venueType
@@ -690,12 +690,7 @@ function App(){
         res=[...res,...gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase()))];
       }
     }catch(e){}
-    setSearching(false);setResults(res);setTab("explore");go("results","home");
-    // Carica community tags per tutti i risultati in background
-    res.forEach(r=>loadCommunityTags(r.id));
-    // Conta ricerca
-    // Scansiona recensioni in background per i locali Google
-    const googleRes=res.filter(r=>r.source==="google"&&r.id.startsWith("g_"));
+.filter(r=>r.source==="google"&&r.id.startsWith("g_"));
     googleRes.forEach(async(venue)=>{
       try{
         const placeId=venue.id.replace("g_","");
@@ -704,30 +699,29 @@ function App(){
         });
         const data=await resp.json();
         const reviews=data.reviews||[];
-        if(!reviews.length)return;
-        const allText=reviews.map(r=>r.text?.text||r.originalText?.text||"").join(" ").toLowerCase();
+        const allText=reviews.length>0?reviews.map(r=>r.text?.text||r.originalText?.text||"").join(" ").toLowerCase():"";
         const revTags=[];
         if(allText.includes("gluten")||allText.includes("celiach")||allText.includes("senza glutine"))revTags.push("gluten_free");
         if(allText.includes("vegan")||allText.includes("vegano")||allText.includes("vegana"))revTags.push("vegan");
         if(allText.includes("vegetar"))revTags.push("vegetarian");
         if(allText.includes("lattosio")||allText.includes("lactose")||allText.includes("senza latte"))revTags.push("lactose_free");
         if(allText.includes("pet")||allText.includes("cane")||allText.includes("animali"))revTags.push("pet_friendly");
-        if(revTags.length>0){
-          setResults(prev=>{
-            const updated=(prev||[]).map(r=>r.id===venue.id?{...r,reviewTags:revTags}:r);
-            // Se ci sono filtri attivi, rimuovi locali che non matchano dopo aver letto le recensioni
-            if(tagFilters.length>0){
-              const dietFilters=tagFilters.filter(f=>DIET_TAGS.includes(f));
-              if(dietFilters.length>0){
-                return updated.filter(r=>{
-                  if(r.source!=="google")return true; // non filtrare locali registrati
-                  return dietFilters.every(f=>(r.tags&&r.tags.includes(f))||(r.reviewTags&&r.reviewTags.includes(f)));
-                });
-              }
+        // SEMPRE aggiorna i risultati (anche se revTags vuoto) e filtra
+        setResults(prev=>{
+          const updated=(prev||[]).map(r=>r.id===venue.id?{...r,reviewTags:revTags}:r);
+          // Se ci sono filtri attivi, rimuovi locali Google che non matchano
+          if(tagFilters.length>0){
+            const dietFilters=tagFilters.filter(f=>DIET_TAGS.includes(f));
+            if(dietFilters.length>0){
+              return updated.filter(r=>{
+                if(r.source!=="google")return true; // non filtrare locali registrati
+                // Locale Google DEVE avere TUTTI i filtri nei tags O reviewTags
+                return dietFilters.every(f=>(r.tags&&r.tags.includes(f))||(r.reviewTags&&r.reviewTags.includes(f)));
+              });
             }
-            return updated;
-          });
-        }
+          }
+          return updated;
+        });
       }catch(e){}
     });
   };
