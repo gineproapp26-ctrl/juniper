@@ -690,7 +690,11 @@ function App(){
         res=[...res,...gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase()))];
       }
     }catch(e){}
-.filter(r=>r.source==="google"&&r.id.startsWith("g_"));
+    setSearching(false);setResults(res);setTab("explore");go("results","home");
+    // Carica community tags per tutti i risultati in background
+    res.forEach(r=>loadCommunityTags(r.id));
+    // Scansiona recensioni in background per i locali Google
+    const googleRes=res.filter(r=>r.source==="google"&&r.id.startsWith("g_"));
     googleRes.forEach(async(venue)=>{
       try{
         const placeId=venue.id.replace("g_","");
