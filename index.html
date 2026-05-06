@@ -965,7 +965,7 @@ function App(){
       </div>
       <p style={{margin:"0 0 14px",fontSize:10,color:"#9ca3af"}}>{t.kitchenLegend}</p>
       <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{lang==="it"?"Tipo di locale":"Venue type"}</p>
-      <p style={{fontSize:11,color:"#9ca3af",margin:"0 0 8px"}}>{lang==="it"?"Seleziona 'Tutti' (filtro in sviluppo)":"Select 'All' (filter in development)"}</p>
+      <p style={{fontSize:11,color:"#f59e0b",margin:"0 0 8px"}}>{lang==="it"?"Seleziona 'Tutti' (filtro in sviluppo)":"Select 'All' (filter in development)"}</p>
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
         <button onClick={()=>setVenueType(null)} style={{background:!venueType?"#1f2937":"#f3f4f6",color:!venueType?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:!venueType?700:400}}>🏪 Tutti</button>
         {VENUE_TYPES.map(v=>(
