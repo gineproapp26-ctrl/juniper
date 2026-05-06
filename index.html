@@ -343,7 +343,7 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
   const toggleTag=k=>setForm(f=>({...f,tags:f.tags.includes(k)?f.tags.filter(x=>x!==k):[...f.tags,k]}));
   const toggleMeal=k=>setForm(f=>({...f,meals:f.meals.includes(k)?f.meals.filter(x=>x!==k):[...f.meals,k]}));
   const submit=async()=>{
-    if(!form.email||!form.vat||!disclaimer)return;
+    if(!form.name||!form.city||!form.address||!form.phone||!form.email||!form.vat||!form.sdi||!form.legal_name||!form.owner_name||!disclaimer)return;
     setSending(true);
     await sb.from("business_requests").insert({
       structure_id:sel?.id&&!sel.id.startsWith("d")&&!sel.id.startsWith("g_")?sel.id:null,
@@ -407,10 +407,10 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
         {sel&&<div style={{background:"#f0fdf4",borderRadius:12,padding:12,marginBottom:12,border:"1.5px solid #bbf7d0"}}><p style={{margin:0,fontWeight:700,fontSize:13,color:"#1a5c3a"}}>{sel.emoji} {sel.name} — {lang==="it"?"dati precompilati":"pre-filled data"}</p></div>}
         <div style={card}>
           <p style={{margin:"0 0 10px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.baseInfo}</p>
-          {[{k:"name",p:lang==="it"?"Nome attività *":"Business name *"},{k:"city",p:lang==="it"?"Città *":"City *"},{k:"address",p:lang==="it"?"Indirizzo":"Address"},{k:"phone",p:"Telefono"},{k:"email",p:"Email *"},{k:"vat",p:lang==="it"?"Partita IVA *":"VAT Number *"},{k:"sdi",p:lang==="it"?"Codice Univoco / SDI":"SDI / Unique Code"},{k:"legal_name",p:lang==="it"?"Ragione Sociale":"Legal Business Name"},{k:"owner_name",p:lang==="it"?"Nome Titolare":"Owner Name"},{k:"website",p:"Sito web"},{k:"instagram",p:"Instagram"}].map(f=>(
+          {[{k:"name",p:lang==="it"?"Nome attività *":"Business name *"},{k:"city",p:lang==="it"?"Città *":"City *"},{k:"address",p:lang==="it"?"Indirizzo *":"Address *"},{k:"phone",p:lang==="it"?"Telefono *":"Phone *"},{k:"email",p:"Email *"},{k:"vat",p:lang==="it"?"Partita IVA *":"VAT Number *"},{k:"sdi",p:lang==="it"?"Codice Univoco / SDI *":"SDI / Unique Code *"},{k:"legal_name",p:lang==="it"?"Ragione Sociale *":"Legal Business Name *"},{k:"owner_name",p:lang==="it"?"Nome Titolare *":"Owner Name *"},{k:"website",p:lang==="it"?"Sito web":"Website"},{k:"instagram",p:"Instagram"}].map(f=>(
             <input key={f.k} value={form[f.k]} onChange={e=>setForm(fm=>({...fm,[f.k]:e.target.value}))} placeholder={f.p} style={{...inp,marginBottom:10,fontSize:13}}/>
           ))}
-          <textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder={lang==="it"?"Descrizione...":"Description..."} style={{...inp,resize:"none",height:70,fontSize:13}}/>
+          <textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder={lang==="it"?"Descrizione":"Description"} style={{...inp,resize:"none",height:70,fontSize:13}}/>
         </div>
         <div style={card}>
           <p style={{margin:"0 0 8px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.typeLabel}</p>
