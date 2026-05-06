@@ -956,7 +956,7 @@ function App(){
           <button key={k} onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):toggleTag(k)} style={{background:tagFilters.includes(k)?TAGS[k].color:"#f3f4f6",color:tagFilters.includes(k)?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:tagFilters.includes(k)?700:400}}>{TAGS[k].icon} {TAGS[k][lang]}</button>
         ))}
       </div>
-      <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.kitchenTitle}</p>
+      <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.kitchenTitle} <span style={{color:"#f59e0b"}}>({lang==="it"?"Funzione in arrivo":"Coming soon"})</span></p>
       <p style={{margin:"0 0 8px",fontSize:11,color:"#9ca3af"}}>{t.kitchenSub}</p>
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:5}}>
         {CROSS_TAGS.map(k=>(
@@ -965,6 +965,7 @@ function App(){
       </div>
       <p style={{margin:"0 0 14px",fontSize:10,color:"#9ca3af"}}>{t.kitchenLegend}</p>
       <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{lang==="it"?"Tipo di locale":"Venue type"}</p>
+      <p style={{fontSize:11,color:"#9ca3af",margin:"0 0 8px"}}>{lang==="it"?"Seleziona 'Tutti' (filtro in sviluppo)":"Select 'All' (filter in development)"}</p>
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
         <button onClick={()=>setVenueType(null)} style={{background:!venueType?"#1f2937":"#f3f4f6",color:!venueType?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:!venueType?700:400}}>🏪 Tutti</button>
         {VENUE_TYPES.map(v=>(
@@ -1065,23 +1066,10 @@ function App(){
           <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📍 {t.whereLabel}</p>
           <div style={{display:"flex",gap:8}}>
             <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={t.wherePh} style={{...inp,flex:1,fontSize:14}}/>
-            <button onClick={()=>{
-              if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
-              if(!navigator.geolocation){alert(lang==="it"?"GPS non disponibile":"GPS not available");return;}
-              navigator.geolocation.getCurrentPosition(pos=>{
-                const lat=pos.coords.latitude.toFixed(4),lon=pos.coords.longitude.toFixed(4);
-                setQ(lang==="it"?`Vicino a me (${lat}, ${lon})`:`Near me (${lat}, ${lon})`);
-                searchGooglePlaces(`ristorante vicino ${lat},${lon}`,[]).then(res=>{if(res&&res.length>0){setResults(res);setTab("explore");go("results","home");}});
-              },()=>{alert(lang==="it"?"Impossibile ottenere la posizione":"Could not get location");});
-            }} style={{background:"#1a5c3a",color:"white",border:"none",padding:"10px 12px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>📍</button>
           </div>
         </div>
         <FilterPanel/>
         {loadingData&&<div style={{textAlign:"center",padding:"20px",color:"#6b7280",fontSize:14}}>🔄 {lang==="it"?"Caricamento...":"Loading..."}</div>}
-        <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"4px 0 10px"}}>📢 {t.featured}</h3>
-        {structs.filter(s=>s.sponsored).map((s,i)=><StructCard key={s.id} s={s} index={i} guestMode={isGuest}/>)}
-        <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"14px 0 10px"}}>🇮🇹 {t.nearby}</h3>
-        {structs.filter(s=>s.country==="Italia"&&!s.sponsored).slice(0,5).map((s,i)=><StructCard key={s.id} s={s} index={i+2} guestMode={isGuest}/>)}
       </div>
       <BottomNav/><Popup/><WelcomePopup/>
       {searching&&<div style={{position:"fixed",inset:0,background:"rgba(255,255,255,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500,gap:14}}>
