@@ -148,19 +148,51 @@ function AdminScreen({user,lang,go,sb}){
     setLoading(false);
   };
   const approveTag=async(suggestion)=>{
+    // 🌿 NUOVO: Se è un locale Google (ID inizia con g_), crealo automaticamente!
+    if(suggestion.structure_id && suggestion.structure_id.startsWith("g_")){
+      // Controlla se il locale esiste già
+      const {data:existing}=await sb.from("structures")
+        .select("id")
+        .eq("id",suggestion.structure_id)
+        .maybeSingle();
+      
+      // Se NON esiste, crealo ADESSO!
+      if(!existing){
+        console.log("📍 Creo locale Google:", suggestion.structure_name);
+        await sb.from("structures").insert({
+          id: suggestion.structure_id,
+          name: suggestion.structure_name || "Locale",
+          city: "Italia",
+          type: "ristorante",
+          source: "google",
+          pending: false,
+          country: "Italia",
+          description: suggestion.structure_name || "",
+          // Aggiungi il tag specifico come colonna boolean
+          gluten_free: suggestion.tag === "gluten_free",
+          lactose_free: suggestion.tag === "lactose_free",
+          combo_free: suggestion.tag === "combo_free",
+          vegan: suggestion.tag === "vegan",
+          vegetarian: suggestion.tag === "vegetarian",
+          pet_friendly: suggestion.tag === "pet_friendly"
+        });
+      }
+    }
+    
+    // 🌿 Approva il tag in community_tags (come prima)
     const r1=await sb.from("community_tags").upsert(
       {structure_id:suggestion.structure_id,tag:suggestion.tag,count:1},
       {onConflict:"structure_id,tag",ignoreDuplicates:false}
     );
     const r2=await sb.from("tag_suggestions").update({status:"approved"}).eq("id",suggestion.id);
+    
     if(r1.error||r2.error){
       showMsg("❌ Errore: "+(r1.error?.message||r2.error?.message));
     } else {
-      showMsg("✅ Tag approvato e pubblicato!");
+      showMsg("✅ Tag approvato e locale salvato!");
       load();
     }
-  };
-  const rejectTag=async(id)=>{
+  };  const rejectTag=async(id)=>{
     await sb.from("tag_suggestions").update({status:"rejected"}).eq("id",id);
     showMsg("❌ Tag rifiutato");load();
   };
@@ -308,7 +340,7 @@ function AdminScreen({user,lang,go,sb}){
   );
 }
 
-function BusinessScreen({lang,go,preselected,clearPreselected}){
+function BusinessScreen({lang,go}){
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const btnG2={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
   const tx={
@@ -316,42 +348,30 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
     en:{back:"Back",title:"Register your business",sub:"Reach those looking for exactly what you offer. Verified Badge included! ✨",searchPh:"Search by name or city...",claim:"I'm the owner",addNew:"Add from scratch",baseInfo:"📋 Basic info",typeLabel:"🏪 Type",openLabel:"🍽️ When are you open?",offersLabel:"✅ What do you offer?",kitchenLabel:"🔬 Kitchen safety",kitchenSub:"Be honest — it matters to your customers",badgeLabel:"✨ Verified Badge Included",badgeSub:"Exclusive badge for registered venues. Build customer trust!",send:"Send request",sent:"Request sent!",sentSub:"We'll contact you at",backHome:"Back to home",disclaimerTitle:"⚖️ Liability Declaration",disclaimerText:"The owner declares under their own responsibility that the information provided is truthful and up to date. Juniper is not liable for any inaccuracies. End users are always encouraged to confirm directly with the venue before consuming.",disclaimerCheck:"I have read and agree. I confirm the information is truthful and take full responsibility for the published content.",cancel:"Cancel"},
   };
   const t=tx[lang];
-  const [step,setStep]=React.useState(preselected?"form":"search");
+  const [step,setStep]=React.useState("search");
   const [q,setQ]=React.useState("");
   const [found,setFound]=React.useState([]);
-  const [sel,setSel]=React.useState(preselected||null);
+  const [sel,setSel]=React.useState(null);
   const [sent,setSent]=React.useState(false);
   const [disclaimer,setDisclaimer]=React.useState(false);
   const [sending,setSending]=React.useState(false);
-  const [form,setForm]=React.useState({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",vat:"",sdi:"",legal_name:"",owner_name:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
-  
-  React.useEffect(()=>{
-    if(preselected){
-      setSel(preselected);
-      setForm(f=>({...f,name:preselected.name,city:preselected.city||"",address:preselected.address||"",phone:preselected.phone||"",tags:(preselected.tags||[]).filter(k=>DIET_TAGS.includes(k)),meals:preselected.meals||[],cross:(preselected.tags||[]).find(k=>CROSS_TAGS.includes(k))||""}));
-      setStep("form");
-      clearPreselected();
-    }
-  },[preselected,clearPreselected]);
+  const [form,setForm]=React.useState({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
   const doSearch=()=>{const lq=q.toLowerCase();setFound(DEMO.filter(s=>s.name.toLowerCase().includes(lq)||s.city.toLowerCase().includes(lq)));};
   const claim=(s)=>{
     setSel(s);
     if(s) setForm(f=>({...f,name:s.name,city:s.city,address:s.address||"",phone:s.phone||"",tags:(s.tags||[]).filter(k=>DIET_TAGS.includes(k)),meals:s.meals||[],cross:(s.tags||[]).find(k=>CROSS_TAGS.includes(k))||""}));
-    else setForm({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",vat:"",sdi:"",legal_name:"",owner_name:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
+    else setForm({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
     setStep("form");
   };
   const toggleTag=k=>setForm(f=>({...f,tags:f.tags.includes(k)?f.tags.filter(x=>x!==k):[...f.tags,k]}));
   const toggleMeal=k=>setForm(f=>({...f,meals:f.meals.includes(k)?f.meals.filter(x=>x!==k):[...f.meals,k]}));
   const submit=async()=>{
-    if(!form.name||!form.city||!form.address||!form.phone||!form.email||!form.vat||!form.sdi||!form.legal_name||!form.owner_name||!disclaimer)return;
+    if(!form.email||!disclaimer)return;
     setSending(true);
     await sb.from("business_requests").insert({
-      structure_id:sel?.id&&!sel.id.startsWith("d")&&!sel.id.startsWith("g_")?sel.id:null,
-      google_place_id:sel?.id&&sel.id.startsWith("g_")?sel.id.replace("g_",""):null,
+      structure_id:sel?.id&&!sel.id.startsWith("d")?sel.id:null,
       name:form.name,type:form.type,city:form.city,address:form.address,
-      phone:form.phone,email:form.email,
-      vat_number:form.vat,sdi_code:form.sdi,legal_name:form.legal_name,owner_name:form.owner_name,
-      website:form.website,instagram:form.instagram,
+      phone:form.phone,email:form.email,website:form.website,instagram:form.instagram,
       description:form.description,tags:form.tags,meals:form.meals,
       kitchen_safety:form.cross,certified_request:form.certified,
       disclaimer_accepted:true,disclaimer_accepted_at:new Date().toISOString(),
@@ -407,10 +427,10 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
         {sel&&<div style={{background:"#f0fdf4",borderRadius:12,padding:12,marginBottom:12,border:"1.5px solid #bbf7d0"}}><p style={{margin:0,fontWeight:700,fontSize:13,color:"#1a5c3a"}}>{sel.emoji} {sel.name} — {lang==="it"?"dati precompilati":"pre-filled data"}</p></div>}
         <div style={card}>
           <p style={{margin:"0 0 10px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.baseInfo}</p>
-          {[{k:"name",p:lang==="it"?"Nome attività *":"Business name *"},{k:"city",p:lang==="it"?"Città *":"City *"},{k:"address",p:lang==="it"?"Indirizzo *":"Address *"},{k:"phone",p:lang==="it"?"Telefono *":"Phone *"},{k:"email",p:"Email *"},{k:"vat",p:lang==="it"?"Partita IVA *":"VAT Number *"},{k:"sdi",p:lang==="it"?"Codice Univoco / SDI *":"SDI / Unique Code *"},{k:"legal_name",p:lang==="it"?"Ragione Sociale *":"Legal Business Name *"},{k:"owner_name",p:lang==="it"?"Nome Titolare *":"Owner Name *"},{k:"website",p:lang==="it"?"Sito web":"Website"},{k:"instagram",p:"Instagram"}].map(f=>(
+          {[{k:"name",p:lang==="it"?"Nome attività *":"Business name *"},{k:"city",p:lang==="it"?"Città *":"City *"},{k:"address",p:lang==="it"?"Indirizzo":"Address"},{k:"phone",p:"Telefono"},{k:"email",p:"Email *"},{k:"website",p:"Sito web"},{k:"instagram",p:"Instagram"}].map(f=>(
             <input key={f.k} value={form[f.k]} onChange={e=>setForm(fm=>({...fm,[f.k]:e.target.value}))} placeholder={f.p} style={{...inp,marginBottom:10,fontSize:13}}/>
           ))}
-          <textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder={lang==="it"?"Descrizione":"Description"} style={{...inp,resize:"none",height:70,fontSize:13}}/>
+          <textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder={lang==="it"?"Descrizione...":"Description..."} style={{...inp,resize:"none",height:70,fontSize:13}}/>
         </div>
         <div style={card}>
           <p style={{margin:"0 0 8px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.typeLabel}</p>
@@ -473,7 +493,6 @@ function App(){
   const [venueType,setVenueType]=React.useState(null);
   const [results,setResults]=React.useState([]);
   const [sel,setSel]=React.useState(null);
-  const [businessClaim,setBusinessClaim]=React.useState(null);
   const [prevScr,setPrevScr]=React.useState("home");
   const [cnt,setCnt]=React.useState(0);
   const [popup,setPopup]=React.useState(null);
@@ -519,7 +538,7 @@ function App(){
         }).catch(()=>{});
       }
     });
-    sb.from("structures").select("*").eq("pending",false).then(async({data})=>{
+    sb.from("structures").select("*").eq("pending",false).then(({data})=>{
       if(data&&data.length>0){
         const mapped=data.map(s=>({
           ...s,
@@ -527,26 +546,6 @@ function App(){
           meals:[s.breakfast&&"breakfast",s.lunch&&"lunch",s.aperitivo&&"aperitivo",s.dinner&&"dinner"].filter(Boolean),
           reviewCount:s.review_count||0,
         })).sort((a,b)=>({registered:3,verified:2,google:1}[b.source]||0)-({registered:3,verified:2,google:1}[a.source]||0)||Number(b.sponsored)-Number(a.sponsored));
-        
-        // Carica community_tags approvati e uniscili alle strutture
-        try{
-          const {data:communityTagsData}=await sb.from("community_tags").select("structure_id,tag,count");
-          if(communityTagsData&&communityTagsData.length>0){
-            const tagsByStructure={};
-            communityTagsData.forEach(ct=>{
-              if(ct.count>0){
-                if(!tagsByStructure[ct.structure_id])tagsByStructure[ct.structure_id]=[];
-                tagsByStructure[ct.structure_id].push(ct.tag);
-              }
-            });
-            // Unisci i community_tags ai tags delle strutture
-            mapped.forEach(s=>{
-              const communityTags=tagsByStructure[s.id]||[];
-              s.tags=[...new Set([...s.tags,...communityTags])];
-            });
-          }
-        }catch(e){console.error("Errore caricamento community_tags:",e);}
-        
         setStructs(mapped);
       }
       setLoadingData(false);
@@ -687,22 +686,8 @@ function App(){
       const nl=name.toLowerCase();
       if(nl.includes("gelat")||nl.includes("gelateria")){type="gelateria";emoji="🍦";}
       const addr=p.shortFormattedAddress||p.formattedAddress||"";
-      const parts=(p.formattedAddress||"").split(",").map(s=>s.trim());
-      // Cerca la città: ultimo elemento prima di provincia e Italia
-      // Formato tipico: "Via X, 123, Città, Provincia, Italia"
-      let city="Italia";
-      if(parts.length>=3){
-        // Terzo dalla fine è la città (prima di provincia e paese)
-        const candidate=parts[parts.length-3];
-        if(candidate&&!/^\d+$/.test(candidate)){city=candidate;}
-      }
-      // Fallback: se city è ancora "Italia" o numero, prova secondo dalla fine
-      if(city==="Italia"||/^\d+$/.test(city)){
-        if(parts.length>=2){
-          const candidate=parts[parts.length-2];
-          if(candidate&&candidate!=="Italia"&&!/^\d+$/.test(candidate)){city=candidate;}
-        }
-      }
+      const parts=(p.formattedAddress||"").split(",");
+      const city=parts.length>2?parts[parts.length-3]?.trim()||"Italia":"Italia";
       return{id:"g_"+(p.id||Math.random().toString(36)),name,type,city,country:"Italia",address:addr,phone:"",description:type+" · "+city,emoji,tags:[],lat:p.location?.latitude||null,lng:p.location?.longitude||null,meals:type==="bar"?["breakfast","aperitivo"]:type==="gelateria"||type==="pasticceria"?["breakfast","lunch","aperitivo"]:["lunch","dinner"],source:"google",certified:false,sponsored:false,rating:p.rating||null,reviewCount:p.userRatingCount||0,unverified:true};
     };
     try{
@@ -723,11 +708,11 @@ function App(){
     }catch(e){return[];}
   };
 
-const doSearch=async()=>{
+  const doSearch=async()=>{
     if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
     setSearching(true);
     
-    console.log("🔍 [DEBUG] ========== INIZIO RICERCA ==========");
+    console.log("🔍 [DEBUG] === INIZIO RICERCA ===");
     console.log("🔍 [DEBUG] Filtri tag attivi:", tagFilters);
     console.log("🔍 [DEBUG] Structs totali:", structs.length);
     
@@ -758,21 +743,21 @@ const doSearch=async()=>{
           }
         });
         console.log("✅ [DEBUG] Tag caricati per", Object.keys(communityTagsLoaded).length, "locali");
-        console.log("✅ [DEBUG] IDs locali:", Object.keys(communityTagsLoaded));
+        console.log("✅ [DEBUG] IDs locali con tag:", Object.keys(communityTagsLoaded));
       } else {
-        console.warn("⚠️ [DEBUG] NESSUN TAG NEL DATABASE!");
+        console.warn("⚠️ [DEBUG] NESSUN TAG TROVATO NEL DATABASE!");
       }
     } catch(e) {
-      console.error("❌ [DEBUG] ERRORE:", e);
+      console.error("❌ [DEBUG] ERRORE caricamento:", e);
     }
     
-    console.log("🔍 [DEBUG] Unisco community tags...");
+    console.log("🔍 [DEBUG] Unisco community tags ai locali...");
     const structsWithCommunityTags = structs.map(s => {
       const ctags = communityTagsLoaded[s.id] || {};
       const newTags = Object.keys(ctags).filter(k => DIET_TAGS.includes(k) && ctags[k]?.count > 0);
       
       if(newTags.length > 0) {
-        console.log("✅ [DEBUG] AGGIUNGO a:", s.name, "| ID:", s.id, "| TAG:", newTags);
+        console.log("✅ [DEBUG] AGGIUNGO TAG A:", s.name, "| ID:", s.id, "| NUOVI TAG:", newTags);
       }
       
       return {...s, tags: [...new Set([...(s.tags||[]), ...newTags])]};
@@ -786,15 +771,17 @@ const doSearch=async()=>{
       const passa = mf && mm && mt;
       
       if(tagFilters.length > 0) {
-        console.log("  →", s.name, "| ID:", s.id, "| TAGS:", s.tags, "| PASSA?", passa ? "✅" : "❌");
+        console.log("  → Locale:", s.name, "| ID:", s.id, "| TAGS:", s.tags, "| PASSA FILTRO?", passa ? "✅ SÌ" : "❌ NO");
       }
       
       return passa;
     });
     
-    console.log("✅ [DEBUG] RISULTATI:", res.length, "locali");
+    console.log("✅ [DEBUG] ========= RISULTATI FINALI:", res.length, "locali =========");
     if(res.length > 0) {
-      console.log("✅ [DEBUG] Trovati:", res.map(r => r.name));
+      console.log("✅ [DEBUG] Locali che hanno passato il filtro:", res.map(r => r.name));
+    } else {
+      console.warn("⚠️ [DEBUG] NESSUN LOCALE HA PASSATO IL FILTRO!");
     }
     
     if(q){
@@ -863,6 +850,7 @@ const doSearch=async()=>{
       }catch(e){}
     });
   };
+
   const addRev=async(sid)=>{
     if(isGuest){showP(t.popReview,t.popReviewSub,"register");return;}
     if(!nr.text.trim())return;
@@ -1052,7 +1040,7 @@ const doSearch=async()=>{
           <button key={k} onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):toggleTag(k)} style={{background:tagFilters.includes(k)?TAGS[k].color:"#f3f4f6",color:tagFilters.includes(k)?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:tagFilters.includes(k)?700:400}}>{TAGS[k].icon} {TAGS[k][lang]}</button>
         ))}
       </div>
-      <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.kitchenTitle} <span style={{color:"#f59e0b"}}>({lang==="it"?"Funzione in arrivo":"Coming soon"})</span></p>
+      <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.kitchenTitle}</p>
       <p style={{margin:"0 0 8px",fontSize:11,color:"#9ca3af"}}>{t.kitchenSub}</p>
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:5}}>
         {CROSS_TAGS.map(k=>(
@@ -1061,7 +1049,6 @@ const doSearch=async()=>{
       </div>
       <p style={{margin:"0 0 14px",fontSize:10,color:"#9ca3af"}}>{t.kitchenLegend}</p>
       <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{lang==="it"?"Tipo di locale":"Venue type"}</p>
-      <p style={{fontSize:11,color:"#f59e0b",margin:"0 0 8px"}}>{lang==="it"?"Seleziona 'Tutti' (filtro in sviluppo)":"Select 'All' (filter in development)"}</p>
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
         <button onClick={()=>setVenueType(null)} style={{background:!venueType?"#1f2937":"#f3f4f6",color:!venueType?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:!venueType?700:400}}>🏪 Tutti</button>
         {VENUE_TYPES.map(v=>(
@@ -1095,7 +1082,7 @@ const doSearch=async()=>{
     </div>
   );
 
-  if(screen==="business")return <BusinessScreen lang={lang} go={go} preselected={businessClaim} clearPreselected={()=>setBusinessClaim(null)}/>;
+  if(screen==="business")return <BusinessScreen lang={lang} go={go}/>;
   if(screen==="admin"){if(user?.email!==ADMIN_EMAIL){go("home");return null;}return <AdminScreen user={user} lang={lang} go={go} sb={sb}/>;}
   if(screen==="policy")return <PolicyScreen lang={lang} go={go}/>;
 
@@ -1162,10 +1149,23 @@ const doSearch=async()=>{
           <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📍 {t.whereLabel}</p>
           <div style={{display:"flex",gap:8}}>
             <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={t.wherePh} style={{...inp,flex:1,fontSize:14}}/>
+            <button onClick={()=>{
+              if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
+              if(!navigator.geolocation){alert(lang==="it"?"GPS non disponibile":"GPS not available");return;}
+              navigator.geolocation.getCurrentPosition(pos=>{
+                const lat=pos.coords.latitude.toFixed(4),lon=pos.coords.longitude.toFixed(4);
+                setQ(lang==="it"?`Vicino a me (${lat}, ${lon})`:`Near me (${lat}, ${lon})`);
+                searchGooglePlaces(`ristorante vicino ${lat},${lon}`,[]).then(res=>{if(res&&res.length>0){setResults(res);setTab("explore");go("results","home");}});
+              },()=>{alert(lang==="it"?"Impossibile ottenere la posizione":"Could not get location");});
+            }} style={{background:"#1a5c3a",color:"white",border:"none",padding:"10px 12px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700,flexShrink:0}}>📍</button>
           </div>
         </div>
         <FilterPanel/>
         {loadingData&&<div style={{textAlign:"center",padding:"20px",color:"#6b7280",fontSize:14}}>🔄 {lang==="it"?"Caricamento...":"Loading..."}</div>}
+        <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"4px 0 10px"}}>📢 {t.featured}</h3>
+        {structs.filter(s=>s.sponsored).map((s,i)=><StructCard key={s.id} s={s} index={i} guestMode={isGuest}/>)}
+        <h3 style={{fontSize:14,fontWeight:700,color:"#1f2937",margin:"14px 0 10px"}}>🇮🇹 {t.nearby}</h3>
+        {structs.filter(s=>s.country==="Italia"&&!s.sponsored).slice(0,5).map((s,i)=><StructCard key={s.id} s={s} index={i+2} guestMode={isGuest}/>)}
       </div>
       <BottomNav/><Popup/><WelcomePopup/>
       {searching&&<div style={{position:"fixed",inset:0,background:"rgba(255,255,255,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500,gap:14}}>
@@ -1227,12 +1227,6 @@ const doSearch=async()=>{
             {communityTags[s.id]&&Object.keys(communityTags[s.id]).filter(k=>communityTags[s.id][k].count>0).length>0&&<div style={{marginTop:8,background:"#f0fdf4",borderRadius:10,padding:"8px 10px",border:"1px solid #bbf7d0"}}><p style={{margin:"0 0 6px",fontSize:11,color:"#1a5c3a",fontWeight:700}}>👥 {lang==="it"?"Segnalato dalla community:":"Reported by community:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{Object.entries(communityTags[s.id]).filter(([k,v])=>v.count>0).map(([k,v])=><span key={k} style={{background:"white",color:"#1a5c3a",fontSize:11,padding:"3px 8px",borderRadius:20,border:"1px solid #bbf7d0",fontWeight:600}}>{TAGS[k]?.icon} {TAGS[k]?.[lang]} · {v.count}</span>)}</div><p style={{margin:"6px 0 0",fontSize:10,color:"#6b7280"}}>{lang==="it"?"Segnalato dagli utenti, non garantito":"Reported by users, not guaranteed"}</p></div>}
             <div style={{marginTop:8}}><p style={{margin:"0 0 6px",fontSize:11,color:"#9ca3af"}}>{lang==="it"?"+ Segnala una caratteristica:":"+ Report a feature:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{DIET_TAGS.map(k=>{const ct=communityTags[s.id]?.[k];const hasVoted=ct?.users?.includes(user?.id);return <button key={k} onClick={()=>addCommunityTag(s.id,s.name,k)} style={{background:hasVoted?"#fef3c7":"#f9fafb",color:hasVoted?"#92400e":"#9ca3af",border:`1px solid ${hasVoted?"#fcd34d":"#e5e7eb"}`,padding:"4px 10px",borderRadius:20,fontSize:11,cursor:"pointer"}}>{TAGS[k].icon} {TAGS[k]?.[lang]}{ct?.count>0?` (${ct.count})`:""}</button>;})} </div></div>
           </div>
-          {s.source==="google"&&!isGuest&&<div onClick={()=>{setBusinessClaim(s);go("business");}} style={{...card,background:"#fff7ed",border:"2px dashed #fb923c",cursor:"pointer",textAlign:"center",padding:20}}>
-            <div style={{fontSize:36,marginBottom:8}}>🏪</div>
-            <h3 style={{margin:"0 0 8px",fontSize:15,fontWeight:800,color:"#c2410c"}}>{lang==="it"?"Sei il proprietario?":"Are you the owner?"}</h3>
-            <p style={{margin:"0 0 12px",fontSize:13,color:"#9a3412"}}>{lang==="it"?"Registra questo locale per verificare le informazioni e ottenere il badge Verificato!":"Register this venue to verify information and get the Verified badge!"}</p>
-            <div style={{background:"#ea580c",color:"white",padding:"10px 16px",borderRadius:10,display:"inline-block",fontWeight:700,fontSize:14}}>📝 {lang==="it"?"Registra Ora":"Register Now"}</div>
-          </div>}
           <div style={card}>
             <p style={{margin:"0 0 10px",fontSize:14,color:"#374151",lineHeight:1.6}}>{s.description}</p>
             <div style={{borderTop:"1px solid #f3f4f6",paddingTop:10,display:"flex",flexDirection:"column",gap:5}}>
