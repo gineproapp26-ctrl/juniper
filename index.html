@@ -519,7 +519,7 @@ function App(){
         }).catch(()=>{});
       }
     });
-    sb.from("structures").select("*").eq("pending",false).then(({data})=>{
+    sb.from("structures").select("*").eq("pending",false).then(async({data})=>{
       if(data&&data.length>0){
         const mapped=data.map(s=>({
           ...s,
@@ -527,6 +527,26 @@ function App(){
           meals:[s.breakfast&&"breakfast",s.lunch&&"lunch",s.aperitivo&&"aperitivo",s.dinner&&"dinner"].filter(Boolean),
           reviewCount:s.review_count||0,
         })).sort((a,b)=>({registered:3,verified:2,google:1}[b.source]||0)-({registered:3,verified:2,google:1}[a.source]||0)||Number(b.sponsored)-Number(a.sponsored));
+        
+        // Carica community_tags approvati e uniscili alle strutture
+        try{
+          const {data:communityTagsData}=await sb.from("community_tags").select("structure_id,tag,count");
+          if(communityTagsData&&communityTagsData.length>0){
+            const tagsByStructure={};
+            communityTagsData.forEach(ct=>{
+              if(ct.count>0){
+                if(!tagsByStructure[ct.structure_id])tagsByStructure[ct.structure_id]=[];
+                tagsByStructure[ct.structure_id].push(ct.tag);
+              }
+            });
+            // Unisci i community_tags ai tags delle strutture
+            mapped.forEach(s=>{
+              const communityTags=tagsByStructure[s.id]||[];
+              s.tags=[...new Set([...s.tags,...communityTags])];
+            });
+          }
+        }catch(e){console.error("Errore caricamento community_tags:",e);}
+        
         setStructs(mapped);
       }
       setLoadingData(false);
@@ -667,8 +687,22 @@ function App(){
       const nl=name.toLowerCase();
       if(nl.includes("gelat")||nl.includes("gelateria")){type="gelateria";emoji="🍦";}
       const addr=p.shortFormattedAddress||p.formattedAddress||"";
-      const parts=(p.formattedAddress||"").split(",");
-      const city=parts.length>2?parts[parts.length-3]?.trim()||"Italia":"Italia";
+      const parts=(p.formattedAddress||"").split(",").map(s=>s.trim());
+      // Cerca la città: ultimo elemento prima di provincia e Italia
+      // Formato tipico: "Via X, 123, Città, Provincia, Italia"
+      let city="Italia";
+      if(parts.length>=3){
+        // Terzo dalla fine è la città (prima di provincia e paese)
+        const candidate=parts[parts.length-3];
+        if(candidate&&!/^\d+$/.test(candidate)){city=candidate;}
+      }
+      // Fallback: se city è ancora "Italia" o numero, prova secondo dalla fine
+      if(city==="Italia"||/^\d+$/.test(city)){
+        if(parts.length>=2){
+          const candidate=parts[parts.length-2];
+          if(candidate&&candidate!=="Italia"&&!/^\d+$/.test(candidate)){city=candidate;}
+        }
+      }
       return{id:"g_"+(p.id||Math.random().toString(36)),name,type,city,country:"Italia",address:addr,phone:"",description:type+" · "+city,emoji,tags:[],lat:p.location?.latitude||null,lng:p.location?.longitude||null,meals:type==="bar"?["breakfast","aperitivo"]:type==="gelateria"||type==="pasticceria"?["breakfast","lunch","aperitivo"]:["lunch","dinner"],source:"google",certified:false,sponsored:false,rating:p.rating||null,reviewCount:p.userRatingCount||0,unverified:true};
     };
     try{
