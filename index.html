@@ -980,11 +980,11 @@ function App(){
               {s.meals.map(m=><span key={m} style={{background:"#fef9ec",color:"#d97706",fontSize:10,padding:"2px 6px",borderRadius:10}}>{MEALS[m]?.icon} {MEALS[m]?.[lang]}</span>)}
             </div>
             <div style={{display:"flex",gap:3,flexWrap:"wrap",marginBottom:3}}>
-              {s.tags.filter(k=>DIET_TAGS.includes(k)&&!(communityTags[s.id]?.[k]?.count>0)).map(k=><span key={k} style={{background:TAGS[k].color+"22",color:TAGS[k].color,fontSize:10,padding:"2px 6px",borderRadius:10}}>{TAGS[k].icon} {TAGS[k][lang]}</span>)}
+              {s.tags.filter(k=>DIET_TAGS.includes(k)).map(k=><span key={k} style={{background:TAGS[k].color+"22",color:TAGS[k].color,fontSize:10,padding:"2px 6px",borderRadius:10}}>{TAGS[k].icon} {TAGS[k][lang]}</span>)}
               {s.tags.filter(k=>CROSS_TAGS.includes(k)).map(k=><span key={k} style={{background:TAGS[k].color+"22",color:TAGS[k].color,fontSize:10,padding:"2px 6px",borderRadius:10}}>{TAGS[k].icon}</span>)}
             </div>
             {s.rating&&<div style={{display:"flex",alignItems:"center",gap:4}}><span style={{color:"#f59e0b",fontSize:11}}>⭐</span><span style={{fontSize:12,fontWeight:600}}>{s.rating}</span><span style={{fontSize:11,color:"#9ca3af"}}>({s.reviewCount})</span></div>}
-            {s.reviewTags&&s.reviewTags.length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap",marginTop:3}}>{s.reviewTags.filter(k=>!(communityTags[s.id]?.[k]?.count>0)).map(k=><span key={k} style={{background:"#fef9ec",color:"#92400e",fontSize:10,padding:"2px 6px",borderRadius:10,border:"1px dashed #fcd34d"}}>💬 {TAGS[k]?.[lang]}</span>)}</div>}
+            {s.reviewTags&&s.reviewTags.length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap",marginTop:3}}>{s.reviewTags.map(k=><span key={k} style={{background:"#fef9ec",color:"#92400e",fontSize:10,padding:"2px 6px",borderRadius:10,border:"1px dashed #fcd34d"}}>💬 {TAGS[k]?.[lang]}</span>)}</div>}
             {communityTags[s.id]&&DIET_TAGS.filter(k=>communityTags[s.id]?.[k]?.count>0).length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap",marginTop:3}}>{DIET_TAGS.filter(k=>communityTags[s.id]?.[k]?.count>0).map(k=><span key={k} style={{background:"#f0fdf4",color:"#1a5c3a",fontSize:10,padding:"2px 6px",borderRadius:10,border:"1px solid #bbf7d0"}}>👥 {TAGS[k]?.[lang]}</span>)}</div>}
             {communityTags[s.id]&&Object.keys(communityTags[s.id]).filter(k=>communityTags[s.id][k].count>0).length>0&&(
               <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:4}}>
