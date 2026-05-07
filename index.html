@@ -762,8 +762,22 @@ function App(){
         if(tagFilters.length===0){
           res=[...res,...newGooglePlaces];
         } else {
-          // Altrimenti li scannerizzeremo e aggiungeremo solo quelli che matchano
-          pendingGooglePlaces=newGooglePlaces;
+          // Se ci sono filtri, controlla i community tags per ogni locale Google
+          const dietFilters=tagFilters.filter(f=>DIET_TAGS.includes(f));
+          newGooglePlaces.forEach(venue=>{
+            // Carica community tags per questo locale
+            const communityTagsForVenue=communityTags[venue.id]||{};
+            const communityTagsList=Object.keys(communityTagsForVenue).filter(k=>DIET_TAGS.includes(k)&&communityTagsForVenue[k].count>0);
+            
+            // Se matcha i community tags, aggiungilo SUBITO!
+            if(dietFilters.every(f=>communityTagsList.includes(f))){
+              venue.tags=[...new Set([...(venue.tags||[]),...communityTagsList])];
+              res.push(venue);
+            } else {
+              // Altrimenti mettilo in pending per scannerizzare le recensioni
+              pendingGooglePlaces.push(venue);
+            }
+          });
         }
       }
     }catch(e){}
@@ -799,15 +813,19 @@ function App(){
           if(tagFilters.length>0){
             const dietFilters=tagFilters.filter(f=>DIET_TAGS.includes(f));
             if(dietFilters.length>0){
-              // Controlla se questo locale matcha i filtri
-              const matches=dietFilters.every(f=>(venue.tags&&venue.tags.includes(f))||(revTags&&revTags.includes(f)));
+              // Carica community tags per questo locale
+              const communityTagsForVenue=communityTags[venue.id]||{};
+              const communityTagsList=Object.keys(communityTagsForVenue).filter(k=>DIET_TAGS.includes(k)&&communityTagsForVenue[k].count>0);
+              
+              // Controlla se questo locale matcha i filtri (venue.tags OR revTags OR communityTags)
+              const matches=dietFilters.every(f=>(venue.tags&&venue.tags.includes(f))||(revTags&&revTags.includes(f))||communityTagsList.includes(f));
               
               if(!isInResults&&matches){
                 // Locale NON ancora nei risultati MA matcha → AGGIUNGILO!
-                return [...prev,{...venue,reviewTags:revTags}];
+                return [...prev,{...venue,reviewTags:revTags,tags:[...new Set([...(venue.tags||[]),...revTags,...communityTagsList])]}];
               } else if(isInResults){
                 // Locale già nei risultati → aggiorna reviewTags e filtra
-                const updated=(prev||[]).map(r=>r.id===venue.id?{...r,reviewTags:revTags}:r);
+                const updated=(prev||[]).map(r=>r.id===venue.id?{...r,reviewTags:revTags,tags:[...new Set([...(r.tags||[]),...revTags,...communityTagsList])]}:r);
                 return updated.filter(r=>{
                   if(r.source!=="google")return true;
                   return dietFilters.every(f=>(r.tags&&r.tags.includes(f))||(r.reviewTags&&r.reviewTags.includes(f)));
