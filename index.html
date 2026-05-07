@@ -531,7 +531,7 @@ function App(){
         // Carica tag approvati da tag_suggestions (NON da community_tags)
         try{
           console.log("🔍 [DEBUG] Caricamento tag approvati da tag_suggestions...");
-          const {data:approvedTagsData}=await sb.from("tag_suggestions").select("structure_id,tag,user_id").eq("status","approved");
+          const {data:approvedTagsData}=await sb.from("tag_suggestions").select("structure_id,structure_name,tag,user_id").eq("status","approved");
           console.log("🔍 [DEBUG] Tag approvati caricati:", approvedTagsData?.length || 0, "righe");
           if(approvedTagsData&&approvedTagsData.length>0){
             const tagsByStructure={};
@@ -545,7 +545,7 @@ function App(){
               }
               
               // Conta le approvazioni per tag
-              if(!communityTagsState[ct.structure_id])communityTagsState[ct.structure_id]={};
+              if(!communityTagsState[ct.structure_id])communityTagsState[ct.structure_id]={_name:ct.structure_name};
               if(!communityTagsState[ct.structure_id][ct.tag]){
                 communityTagsState[ct.structure_id][ct.tag]={count:0,users:[]};
               }
@@ -557,6 +557,7 @@ function App(){
             
             console.log("🔍 [DEBUG] Structure con tag:", Object.keys(tagsByStructure).length);
             console.log("🔍 [DEBUG] Esempio tag per 'Nadia':", Object.entries(tagsByStructure).filter(([id])=>id.includes("AfQ")).map(([id,tags])=>({id,tags})));
+            console.log("🔍 [DEBUG] Esempio communityTagsState:", Object.entries(communityTagsState).slice(0,2).map(([id,data])=>({id,name:data._name,tags:Object.keys(data).filter(k=>k!=='_name')})));
             
             // Unisci i tag approvati ai tags delle strutture
             mapped.forEach(s=>{
@@ -791,16 +792,41 @@ function App(){
           console.log("🔍 [DEBUG Google] Locali Google trovati:", newGooglePlaces.length);
           
           newGooglePlaces.forEach(venue=>{
-            // Carica community tags per questo locale
-            const communityTagsForVenue=communityTags[venue.id]||{};
-            const communityTagsList=Object.keys(communityTagsForVenue).filter(k=>DIET_TAGS.includes(k)&&communityTagsForVenue[k].count>0);
+            // Carica community tags PER NOME (non per ID che può variare)
+            const venueNameLower=(venue.name||"").toLowerCase();
+            let communityTagsList=[];
+            
+            // Cerca nei communityTags per structure_id O per nome
+            Object.keys(communityTags).forEach(structId=>{
+              // Cerca corrispondenza per ID esatto O per nome
+              if(structId===venue.id){
+                // Match per ID
+                const tagsForId=Object.keys(communityTags[structId]).filter(k=>DIET_TAGS.includes(k)&&communityTags[structId][k].count>0);
+                communityTagsList=[...communityTagsList,...tagsForId];
+              }else{
+                // Verifica se questo structId ha un nome simile
+                // Cerca nelle tag_suggestions per trovare il structure_name
+                // Per ora uso una ricerca parziale per nome
+                const structData=communityTags[structId];
+                if(structData&&structData._name){
+                  const structNameLower=structData._name.toLowerCase();
+                  if(venueNameLower.includes(structNameLower)||structNameLower.includes(venueNameLower)){
+                    const tagsForName=Object.keys(structData).filter(k=>k!=='_name'&&DIET_TAGS.includes(k)&&structData[k].count>0);
+                    communityTagsList=[...communityTagsList,...tagsForName];
+                  }
+                }
+              }
+            });
+            
+            // Rimuovi duplicati
+            communityTagsList=[...new Set(communityTagsList)];
             
             console.log("🔍 [DEBUG Google]",venue.name,"- ID:",venue.id);
-            console.log("  • Community tags:",communityTagsList);
+            console.log("  • Community tags trovati:",communityTagsList);
             console.log("  • Matcha filtri?",dietFilters.every(f=>communityTagsList.includes(f)));
             
             // Se matcha i community tags, aggiungilo SUBITO!
-            if(dietFilters.every(f=>communityTagsList.includes(f))){
+            if(communityTagsList.length>0&&dietFilters.every(f=>communityTagsList.includes(f))){
               venue.tags=[...new Set([...(venue.tags||[]),...communityTagsList])];
               res.push(venue);
               console.log("  ✅ AGGIUNTO AI RISULTATI!");
