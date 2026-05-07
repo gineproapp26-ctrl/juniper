@@ -533,10 +533,14 @@ function App(){
           const {data:communityTagsData}=await sb.from("community_tags").select("structure_id,tag,count");
           if(communityTagsData&&communityTagsData.length>0){
             const tagsByStructure={};
+            const communityTagsState={};
             communityTagsData.forEach(ct=>{
               if(ct.count>0){
                 if(!tagsByStructure[ct.structure_id])tagsByStructure[ct.structure_id]=[];
                 tagsByStructure[ct.structure_id].push(ct.tag);
+                // Salva anche nello stato communityTags per doSearch
+                if(!communityTagsState[ct.structure_id])communityTagsState[ct.structure_id]={};
+                communityTagsState[ct.structure_id][ct.tag]={count:ct.count,users:[]};
               }
             });
             // Unisci i community_tags ai tags delle strutture
@@ -544,6 +548,8 @@ function App(){
               const communityTags=tagsByStructure[s.id]||[];
               s.tags=[...new Set([...s.tags,...communityTags])];
             });
+            // Salva nello stato communityTags
+            setCommunityTags(communityTagsState);
           }
         }catch(e){console.error("Errore caricamento community_tags:",e);}
         
@@ -726,7 +732,15 @@ function App(){
   const doSearch=async()=>{
     if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
     setSearching(true);
-    let res=structs.filter(s=>{
+    
+    // PRIMA unisci i community_tags ai tags delle strutture
+    const structsWithCommunityTags=structs.map(s=>{
+      const communityTagsForStruct=communityTags[s.id]||{};
+      const additionalTags=Object.keys(communityTagsForStruct).filter(k=>DIET_TAGS.includes(k)&&communityTagsForStruct[k].count>0);
+      return{...s,tags:[...new Set([...(s.tags||[]),...additionalTags])]};
+    });
+    
+    let res=structsWithCommunityTags.filter(s=>{
       const mf=tagFilters.length===0||tagFilters.every(f=>s.tags&&s.tags.includes(f));
       const mm=!mealFilter||(s.meals&&s.meals.includes(mealFilter));
       const mt=!venueType||s.type===venueType;
