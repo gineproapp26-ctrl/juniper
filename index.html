@@ -530,7 +530,9 @@ function App(){
         
         // Carica tag approvati da tag_suggestions (NON da community_tags)
         try{
+          console.log("🔍 [DEBUG] Caricamento tag approvati da tag_suggestions...");
           const {data:approvedTagsData}=await sb.from("tag_suggestions").select("structure_id,tag,user_id").eq("status","approved");
+          console.log("🔍 [DEBUG] Tag approvati caricati:", approvedTagsData?.length || 0, "righe");
           if(approvedTagsData&&approvedTagsData.length>0){
             const tagsByStructure={};
             const communityTagsState={};
@@ -553,6 +555,9 @@ function App(){
               }
             });
             
+            console.log("🔍 [DEBUG] Structure con tag:", Object.keys(tagsByStructure).length);
+            console.log("🔍 [DEBUG] Esempio tag per 'Nadia':", Object.entries(tagsByStructure).filter(([id])=>id.includes("AfQ")).map(([id,tags])=>({id,tags})));
+            
             // Unisci i tag approvati ai tags delle strutture
             mapped.forEach(s=>{
               const approvedTags=tagsByStructure[s.id]||[];
@@ -560,8 +565,9 @@ function App(){
             });
             // Salva nello stato communityTags
             setCommunityTags(communityTagsState);
+            console.log("🔍 [DEBUG] communityTags salvato nello stato:", Object.keys(communityTagsState).length, "structure");
           }
-        }catch(e){console.error("Errore caricamento tag approvati:",e);}
+        }catch(e){console.error("❌ [DEBUG] Errore caricamento tag approvati:",e);}
         
         setStructs(mapped);
       }
@@ -743,6 +749,9 @@ function App(){
     if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
     setSearching(true);
     
+    console.log("🔍 [DEBUG doSearch] Inizio ricerca con filtri:", tagFilters);
+    console.log("🔍 [DEBUG doSearch] communityTags disponibili:", Object.keys(communityTags).length, "structure");
+    
     // PRIMA unisci i community_tags ai tags delle strutture
     const structsWithCommunityTags=structs.map(s=>{
       const communityTagsForStruct=communityTags[s.id]||{};
@@ -750,12 +759,16 @@ function App(){
       return{...s,tags:[...new Set([...(s.tags||[]),...additionalTags])]};
     });
     
+    console.log("🔍 [DEBUG doSearch] Strutture con tag uniti:", structsWithCommunityTags.length);
+    
     let res=structsWithCommunityTags.filter(s=>{
       const mf=tagFilters.length===0||tagFilters.every(f=>s.tags&&s.tags.includes(f));
       const mm=!mealFilter||(s.meals&&s.meals.includes(mealFilter));
       const mt=!venueType||s.type===venueType;
       return mf&&mm&&mt;
     });
+    
+    console.log("🔍 [DEBUG doSearch] Risultati dopo filtro DB:", res.length);
     if(q){
       const qRes=res.filter(s=>(s.name&&s.name.toLowerCase().includes(q.toLowerCase()))||(s.city&&s.city.toLowerCase().includes(q.toLowerCase()))||(s.address&&s.address.toLowerCase().includes(q.toLowerCase())));
       if(qRes.length>0)res=qRes;
@@ -774,18 +787,27 @@ function App(){
         } else {
           // Se ci sono filtri, controlla i community tags per ogni locale Google
           const dietFilters=tagFilters.filter(f=>DIET_TAGS.includes(f));
+          console.log("🔍 [DEBUG Google] Filtri diet attivi:", dietFilters);
+          console.log("🔍 [DEBUG Google] Locali Google trovati:", newGooglePlaces.length);
+          
           newGooglePlaces.forEach(venue=>{
             // Carica community tags per questo locale
             const communityTagsForVenue=communityTags[venue.id]||{};
             const communityTagsList=Object.keys(communityTagsForVenue).filter(k=>DIET_TAGS.includes(k)&&communityTagsForVenue[k].count>0);
             
+            console.log("🔍 [DEBUG Google]",venue.name,"- ID:",venue.id);
+            console.log("  • Community tags:",communityTagsList);
+            console.log("  • Matcha filtri?",dietFilters.every(f=>communityTagsList.includes(f)));
+            
             // Se matcha i community tags, aggiungilo SUBITO!
             if(dietFilters.every(f=>communityTagsList.includes(f))){
               venue.tags=[...new Set([...(venue.tags||[]),...communityTagsList])];
               res.push(venue);
+              console.log("  ✅ AGGIUNTO AI RISULTATI!");
             } else {
               // Altrimenti mettilo in pending per scannerizzare le recensioni
               pendingGooglePlaces.push(venue);
+              console.log("  ⏳ Messo in pending per recensioni");
             }
           });
         }
