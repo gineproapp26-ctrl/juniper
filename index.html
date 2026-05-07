@@ -528,30 +528,40 @@ function App(){
           reviewCount:s.review_count||0,
         })).sort((a,b)=>({registered:3,verified:2,google:1}[b.source]||0)-({registered:3,verified:2,google:1}[a.source]||0)||Number(b.sponsored)-Number(a.sponsored));
         
-        // Carica community_tags approvati e uniscili alle strutture
+        // Carica tag approvati da tag_suggestions (NON da community_tags)
         try{
-          const {data:communityTagsData}=await sb.from("community_tags").select("structure_id,tag,count");
-          if(communityTagsData&&communityTagsData.length>0){
+          const {data:approvedTagsData}=await sb.from("tag_suggestions").select("structure_id,tag,user_id").eq("status","approved");
+          if(approvedTagsData&&approvedTagsData.length>0){
             const tagsByStructure={};
             const communityTagsState={};
-            communityTagsData.forEach(ct=>{
-              if(ct.count>0){
-                if(!tagsByStructure[ct.structure_id])tagsByStructure[ct.structure_id]=[];
+            
+            // Raggruppa per structure_id e tag, conta le approvazioni
+            approvedTagsData.forEach(ct=>{
+              if(!tagsByStructure[ct.structure_id])tagsByStructure[ct.structure_id]=[];
+              if(!tagsByStructure[ct.structure_id].includes(ct.tag)){
                 tagsByStructure[ct.structure_id].push(ct.tag);
-                // Salva anche nello stato communityTags per doSearch
-                if(!communityTagsState[ct.structure_id])communityTagsState[ct.structure_id]={};
-                communityTagsState[ct.structure_id][ct.tag]={count:ct.count,users:[]};
+              }
+              
+              // Conta le approvazioni per tag
+              if(!communityTagsState[ct.structure_id])communityTagsState[ct.structure_id]={};
+              if(!communityTagsState[ct.structure_id][ct.tag]){
+                communityTagsState[ct.structure_id][ct.tag]={count:0,users:[]};
+              }
+              communityTagsState[ct.structure_id][ct.tag].count++;
+              if(!communityTagsState[ct.structure_id][ct.tag].users.includes(ct.user_id)){
+                communityTagsState[ct.structure_id][ct.tag].users.push(ct.user_id);
               }
             });
-            // Unisci i community_tags ai tags delle strutture
+            
+            // Unisci i tag approvati ai tags delle strutture
             mapped.forEach(s=>{
-              const communityTags=tagsByStructure[s.id]||[];
-              s.tags=[...new Set([...s.tags,...communityTags])];
+              const approvedTags=tagsByStructure[s.id]||[];
+              s.tags=[...new Set([...s.tags,...approvedTags])];
             });
             // Salva nello stato communityTags
             setCommunityTags(communityTagsState);
           }
-        }catch(e){console.error("Errore caricamento community_tags:",e);}
+        }catch(e){console.error("Errore caricamento tag approvati:",e);}
         
         setStructs(mapped);
       }
