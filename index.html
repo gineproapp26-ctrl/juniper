@@ -147,30 +147,38 @@ function AdminScreen({user,lang,go,sb}){
     if(rTags.data)setTagSuggestions(rTags.data);
     setLoading(false);
   };
-  const approveTag=async(suggestion)=>{
-  // 🌿 Se è locale Google (ID inizia con "g_"), crealo in structures
+ const approveTag=async(suggestion)=>{
+  // 🌿 Se è locale Google, crealo in structures
   if(suggestion.structure_id && suggestion.structure_id.startsWith("g_")){
-    // Controlla se esiste già
     const {data:existing}=await sb.from("structures")
       .select("id")
       .eq("id",suggestion.structure_id)
       .maybeSingle();
     
-    // Se NON esiste, crealo
     if(!existing){
-      await sb.from("structures").insert({
+      // Crea oggetto base
+      const newStructure = {
         id: suggestion.structure_id,
         name: suggestion.structure_name || "Locale Google",
         city: "Italia",
         type: "ristorante",
         source: "google",
         pending: false,
-        [suggestion.tag]: true
-      });
+        gluten_free: false,
+        lactose_free: false,
+        vegan: false,
+        vegetarian: false,
+        pet_friendly: false,
+        combo_free: false
+      };
+      
+      // Attiva il tag specifico
+      newStructure[suggestion.tag] = true;
+      
+      await sb.from("structures").insert(newStructure);
     }
   }
   
-  // Approva il tag normalmente
   const r1=await sb.from("community_tags").upsert(
     {structure_id:suggestion.structure_id,tag:suggestion.tag,count:1},
     {onConflict:"structure_id,tag",ignoreDuplicates:false}
