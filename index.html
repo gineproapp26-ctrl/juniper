@@ -1012,7 +1012,9 @@ function App(){
     const loc=(query||"Maremma Grosseto")+" Italia";
     const hasFood=query&&["ristorante","bar","pizzeria","agriturismo"].some(w=>query.toLowerCase().includes(w));
     // Se c'è un filtro tipo locale, cerca solo quel tipo
-    const queries=[venueType ? (venueType+" "+loc) : ((query||"ristoranti bar pizzerie gelaterie")+" "+loc)];
+    const queries=venueType
+      ?[venueType+" "+loc]
+      :hasFood?[query+" "+loc]:["ristorante "+loc,"bar caffè "+loc,"pizzeria trattoria osteria agriturismo "+loc,"gelateria pasticceria "+loc];
     const mapPlace=(p)=>{
       const pt=p.primaryType||"";
       let type="ristorante",emoji="🍽️";
@@ -1070,40 +1072,55 @@ function App(){
     if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
     const allowed=await canUseSearch();
     if(!allowed)return;
-
-    setSearching(false);
-
-    // 1) Mostra SUBITO i risultati già presenti in Supabase.
-    // Google e recensioni lavorano dopo, in background, così l'app non resta bloccata.
-    let baseRes=structs.filter(s=>{
+    setSearching(true);
+    let res=structs.filter(s=>{
       const mf=tagFilters.length===0||tagFilters.every(f=>s.tags&&s.tags.includes(f));
       const mm=!mealFilter||(s.meals&&s.meals.includes(mealFilter));
       const mt=!venueType||s.type===venueType;
       return mf&&mm&&mt;
     });
-
     if(q){
       const nq=normalizeText(q);
       const qTokens=getLocationTokens(q);
-      baseRes=baseRes.filter(s=>{
+      const qRes=res.filter(s=>{
         const hay=normalizeText(`${s.name||""} ${s.city||""} ${s.address||""}`);
         if(hay.includes(nq))return true;
         if(qTokens.length>0)return qTokens.every(tok=>hay.includes(tok));
         return false;
       });
+      // Importante: se l'utente cerca una città, non tenere risultati globali di altre città.
+      res=qRes;
     }
-
-    setResults(baseRes);
-    setTab("explore");
-    go("results","home");
-    setSearching(false);
-
-    baseRes.forEach(r=>loadCommunityTags(r.id));
-
-    // 2) Google parte in BACKGROUND. Se è lento/quota-limited, non blocca la schermata.
-    const scanReviewTags=async(venue)=>{
+    
+    // Se ci sono filtri tags, memorizzo i locali Google per scannerizzarli
+    let pendingGooglePlaces=[];
+    try{
+      const gRes=await Promise.race([searchGooglePlaces(q||"ristorante",tagFilters),new Promise(r=>setTimeout(()=>r([]),5000))]);
+      if(gRes&&gRes.length>0){
+        const existing=new Set(res.map(s=>(s.name||"").toLowerCase()));
+        const newGooglePlaces=gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase()));
+        // Se NON ci sono filtri tags, aggiungi subito i locali Google
+        if(tagFilters.length===0){
+          res=[...res,...newGooglePlaces];
+        } else {
+          // Altrimenti li scannerizzeremo e aggiungeremo solo quelli che matchano
+          pendingGooglePlaces=newGooglePlaces;
+        }
+      }
+    }catch(e){}
+    setSearching(false);setResults(res);setTab("explore");go("results","home");
+    // Carica community tags per tutti i risultati in background
+    res.forEach(r=>loadCommunityTags(r.id));
+    
+    // Scansione recensioni Google CONTROLLATA:
+    // - solo quando l'utente usa filtri alimentari/pet
+    // - massimo 10 locali per ricerca
+    // - cache locale 7 giorni per non richiamare Google sullo stesso locale
+    const googleRes=res.filter(r=>r.source==="google"&&r.id.startsWith("g_"));
+    const shouldScanReviews=tagFilters.some(f=>DIET_TAGS.includes(f));
+    const allToScan=shouldScanReviews?[...googleRes,...pendingGooglePlaces].slice(0,10):[];
+    allToScan.forEach(async(venue)=>{
       try{
-        if(!venue?.id?.startsWith("g_"))return [];
         const placeId=venue.id.replace("g_","");
         const cacheKey="juniper_review_tags_"+placeId;
         const cacheTtl=7*24*60*60*1000;
@@ -1111,70 +1128,59 @@ function App(){
         try{
           const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
           if(cached&&cached.time&&(Date.now()-cached.time)<cacheTtl&&Array.isArray(cached.tags)){
-            return cached.tags;
+            revTags=cached.tags;
           }
         }catch(_){}
-
-        const controller=new AbortController();
-        const timeout=setTimeout(()=>controller.abort(),1200);
-        const resp=await fetch(`https://places.googleapis.com/v1/places/${placeId}`,{
-          signal:controller.signal,
-          headers:{"X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"reviews"}
-        }).catch(()=>null);
-        clearTimeout(timeout);
-        if(!resp||!resp.ok)return [];
-
-        const data=await resp.json().catch(()=>({reviews:[]}));
-        const reviews=(data.reviews||[]).slice(0,10);
-        const allText=reviews.length>0?reviews.map(r=>r.text?.text||r.originalText?.text||"").join(" ").toLowerCase():"";
-        if(allText.includes("gluten")||allText.includes("celiach")||allText.includes("senza glutine"))revTags.push("gluten_free");
-        if(allText.includes("vegan")||allText.includes("vegano")||allText.includes("vegana"))revTags.push("vegan");
-        if(allText.includes("vegetar"))revTags.push("vegetarian");
-        if(allText.includes("lattosio")||allText.includes("lactose")||allText.includes("senza latte"))revTags.push("lactose_free");
-        if(allText.includes("pet")||allText.includes("cane")||allText.includes("animali"))revTags.push("pet_friendly");
-        try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),tags:revTags}));}catch(_){}
-        return revTags;
-      }catch(e){return [];}
-    };
-
-    (async()=>{
-      try{
-        const googleTimeout=new Promise(r=>setTimeout(()=>r([]),1200));
-        const gRes=await Promise.race([searchGooglePlaces(q||"ristorante",tagFilters),googleTimeout]);
-        if(!gRes||gRes.length===0)return;
-
-        const existingNames=new Set(baseRes.map(s=>(s.name||"").toLowerCase()));
-        const newGooglePlaces=gRes.filter(g=>g&&g.name&&!existingNames.has(g.name.toLowerCase()));
-        if(newGooglePlaces.length===0)return;
-
-        if(tagFilters.length===0){
-          setResults(prev=>{
-            const names=new Set((prev||[]).map(s=>(s.name||"").toLowerCase()));
-            const toAdd=newGooglePlaces.filter(g=>!names.has((g.name||"").toLowerCase()));
-            toAdd.forEach(r=>loadCommunityTags(r.id));
-            return [...(prev||[]),...toAdd];
+        if(!revTags.length){
+          const resp=await fetch(`https://places.googleapis.com/v1/places/${placeId}`,{
+            headers:{"X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"reviews"}
           });
-          return;
+          const data=await resp.json();
+          const reviews=(data.reviews||[]).slice(0,10);
+          const allText=reviews.length>0?reviews.map(r=>r.text?.text||r.originalText?.text||"").join(" ").toLowerCase():"";
+          if(allText.includes("gluten")||allText.includes("celiach")||allText.includes("senza glutine"))revTags.push("gluten_free");
+          if(allText.includes("vegan")||allText.includes("vegano")||allText.includes("vegana"))revTags.push("vegan");
+          if(allText.includes("vegetar"))revTags.push("vegetarian");
+          if(allText.includes("lattosio")||allText.includes("lactose")||allText.includes("senza latte"))revTags.push("lactose_free");
+          if(allText.includes("pet")||allText.includes("cane")||allText.includes("animali"))revTags.push("pet_friendly");
+          try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),tags:revTags}));}catch(_){}
         }
-
-        // Se ci sono filtri alimentari/pet, scansiona solo pochi locali e poi aggiunge quelli compatibili.
-        const dietFilters=tagFilters.filter(f=>DIET_TAGS.includes(f));
-        if(dietFilters.length===0)return;
-
-        for(const venue of newGooglePlaces.slice(0,2)){
-          const revTags=await scanReviewTags(venue);
-          const matches=dietFilters.every(f=>(venue.tags&&venue.tags.includes(f))||(revTags&&revTags.includes(f)));
-          if(matches){
-            setResults(prev=>{
-              const ids=new Set((prev||[]).map(r=>r.id));
-              if(ids.has(venue.id))return prev;
-              loadCommunityTags(venue.id);
-              return [...(prev||[]),{...venue,reviewTags:revTags}];
-            });
+        // Aggiorna i risultati
+        setResults(prev=>{
+          const currentIds=new Set((prev||[]).map(r=>r.id));
+          const isInResults=currentIds.has(venue.id);
+          
+          // Se ci sono filtri attivi
+          if(tagFilters.length>0){
+            const dietFilters=tagFilters.filter(f=>DIET_TAGS.includes(f));
+            if(dietFilters.length>0){
+              // Controlla se questo locale matcha i filtri
+              const matches=dietFilters.every(f=>(venue.tags&&venue.tags.includes(f))||(revTags&&revTags.includes(f)));
+              
+              if(!isInResults&&matches){
+                // Locale NON ancora nei risultati MA matcha → AGGIUNGILO!
+                return [...prev,{...venue,reviewTags:revTags}];
+              } else if(isInResults){
+                // Locale già nei risultati → aggiorna reviewTags e filtra
+                const updated=(prev||[]).map(r=>r.id===venue.id?{...r,reviewTags:revTags}:r);
+                return updated.filter(r=>{
+                  if(r.source!=="google")return true;
+                  return dietFilters.every(f=>(r.tags&&r.tags.includes(f))||(r.reviewTags&&r.reviewTags.includes(f)));
+                });
+              }
+              // Locale non matcha → non fare nulla
+              return prev;
+            }
           }
-        }
-      }catch(e){console.warn("Ricerca Google in background ignorata",e);}
-    })();
+          
+          // Nessun filtro attivo → solo aggiorna reviewTags se già nei risultati
+          if(isInResults){
+            return (prev||[]).map(r=>r.id===venue.id?{...r,reviewTags:revTags}:r);
+          }
+          return prev;
+        });
+      }catch(e){}
+    });
   };
 
   const addRev=async(sid)=>{
