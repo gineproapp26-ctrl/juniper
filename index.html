@@ -621,6 +621,7 @@ function App(){
     user_yearly:"https://buy.stripe.com/bJe7sN2SA3N7d6jeNC7bW02",
     extra_searches:EXTRA_SEARCH_LINK
   };
+  const isAdmin=user?.email?.toLowerCase()===ADMIN_EMAIL.toLowerCase();
 
   React.useEffect(()=>{
     const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
@@ -796,17 +797,13 @@ function App(){
   const isYearlyPlan=(plan)=>plan==="user_yearly"||String(plan||"").includes("yearly");
   const isMonthlyPlan=(plan)=>plan==="user_monthly"||String(plan||"").includes("monthly");
 
-  const isAdminUser=()=>user?.email===ADMIN_EMAIL;
-
   const getIncludedSearchLimit=()=>{
-    if(isAdminUser())return 999999;
     if(isPremium&&isYearlyPlan(subPlan))return YEARLY_PREMIUM_LIMIT;
     if(isPremium&&isMonthlyPlan(subPlan))return MONTHLY_PREMIUM_LIMIT;
     return FREE_SEARCH_LIMIT;
   };
 
   const getIncludedSearchUsed=()=>{
-    if(isAdminUser())return 0;
     if(isPremium&&isYearlyPlan(subPlan))return annualSearchCount||0;
     return searchCount||0;
   };
@@ -924,7 +921,7 @@ function App(){
 
   const canUseSearch=async()=>{
     if(!user)return false;
-    if(isAdminUser())return true;
+    if(isAdmin)return true;
 
     if(getRemainingIncludedSearches()>0){
       return await incrementIncludedSearchUsage(user.id);
@@ -987,32 +984,14 @@ function App(){
     }
   };
 
-  const getLocationTokens=(query="")=>{
-    const stop=new Set([
-      "gluten","free","glutine","senza","lattosio","lactose","latte",
-      "vegan","vegano","vegana","vegetariano","vegetariana","pet","friendly",
-      "ristorante","ristoranti","bar","caffe","caffè","pizzeria","pizzerie",
-      "gelateria","gelaterie","pasticceria","pasticcerie","agriturismo",
-      "hotel","locale","locali","food","italia"
-    ]);
-    return normalizeText(query)
-      .split(" ")
-      .filter(tok=>tok.length>2&&!stop.has(tok));
-  };
-
-  const matchesSearchLocation=(place,query="")=>{
-    const tokens=getLocationTokens(query);
-    if(tokens.length===0)return true;
-    const hay=normalizeText(`${place.name||""} ${place.city||""} ${place.address||""}`);
-    return tokens.every(tok=>hay.includes(tok));
-  };
-
   const searchGooglePlaces=async(query,tags)=>{
     // NON aggiungo i tag alla query - trovo TUTTI i locali e filtro dalle recensioni
     const loc=(query||"Maremma Grosseto")+" Italia";
     const hasFood=query&&["ristorante","bar","pizzeria","agriturismo"].some(w=>query.toLowerCase().includes(w));
     // Se c'è un filtro tipo locale, cerca solo quel tipo
-    const queries=[(venueType ? venueType+" " : "ristorante bar pizzeria gelateria ") + loc];
+    const queries=venueType
+      ?[venueType+" "+loc]
+      :hasFood?[query+" "+loc]:["ristorante "+loc,"bar caffè "+loc,"pizzeria trattoria osteria agriturismo "+loc,"gelateria pasticceria "+loc];
     const mapPlace=(p)=>{
       const pt=p.primaryType||"";
       let type="ristorante",emoji="🍽️";
@@ -1057,8 +1036,6 @@ function App(){
         if(seen.has(p.name.toLowerCase()))return false;
         seen.add(p.name.toLowerCase());
         if(venueType&&p.type!==venueType)return false;
-        // Se l'utente ha scritto una città/zona, non mostrare locali di altre città.
-        if(!matchesSearchLocation(p,query))return false;
         return true;
       }).slice(0,20);
       saveGooglePlacesToSupabase(finalResults);
@@ -1066,153 +1043,97 @@ function App(){
     }catch(e){return[];}
   };
 
-  const scanGoogleReviewTagsInBackground=(venues=[],activeTagFilters=[])=>{
-    const shouldScanReviews=false; // emergenza: recensioni Google disattivate, non devono bloccare la piattaforma
-    if(!shouldScanReviews||!venues.length)return;
-
-    // IMPORTANTISSIMO:
-    // le recensioni Google NON devono mai bloccare la piattaforma.
-    // Questa scansione parte solo dopo che la pagina risultati è già visibile.
-    const toScan=venues
-      .filter(v=>v&&v.source==="google"&&v.id&&v.id.startsWith("g_"))
-      .slice(0,5);
-
-    toScan.forEach(async(venue)=>{
-      try{
-        const placeId=venue.id.replace("g_","");
-        const cacheKey="juniper_review_tags_"+placeId;
-        const cacheTtl=7*24*60*60*1000;
-        let revTags=[];
-
-        try{
-          const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
-          if(cached&&cached.time&&(Date.now()-cached.time)<cacheTtl&&Array.isArray(cached.tags)){
-            revTags=cached.tags;
-          }
-        }catch(_){}
-
-        if(!revTags.length){
-          const controller=new AbortController();
-          const timer=setTimeout(()=>controller.abort(),1800);
-          let data={reviews:[]};
-          try{
-            const resp=await fetch(`https://places.googleapis.com/v1/places/${placeId}`,{
-              signal:controller.signal,
-              headers:{
-                "X-Goog-Api-Key":GKEY,
-                "X-Goog-FieldMask":"reviews"
-              }
-            });
-            if(resp.ok)data=await resp.json();
-          }catch(_){
-            data={reviews:[]};
-          }finally{
-            clearTimeout(timer);
-          }
-
-          const reviews=(data.reviews||[]).slice(0,10);
-          const allText=reviews.length>0?reviews.map(r=>r.text?.text||r.originalText?.text||"").join(" ").toLowerCase():"";
-          if(allText.includes("gluten")||allText.includes("celiach")||allText.includes("senza glutine"))revTags.push("gluten_free");
-          if(allText.includes("vegan")||allText.includes("vegano")||allText.includes("vegana"))revTags.push("vegan");
-          if(allText.includes("vegetar"))revTags.push("vegetarian");
-          if(allText.includes("lattosio")||allText.includes("lactose")||allText.includes("senza latte"))revTags.push("lactose_free");
-          if(allText.includes("pet")||allText.includes("cane")||allText.includes("animali"))revTags.push("pet_friendly");
-          try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),tags:revTags}));}catch(_){}
-        }
-
-        if(!revTags.length)return;
-
-        setResults(prev=>{
-          const current=prev||[];
-          const currentIds=new Set(current.map(r=>r.id));
-          const isInResults=currentIds.has(venue.id);
-          const dietFilters=activeTagFilters.filter(f=>DIET_TAGS.includes(f));
-          const matches=dietFilters.length===0||dietFilters.every(f=>(venue.tags&&venue.tags.includes(f))||(revTags&&revTags.includes(f)));
-
-          if(!matches)return current;
-
-          if(isInResults){
-            return current.map(r=>r.id===venue.id?{...r,reviewTags:revTags}:r);
-          }
-
-          return [...current,{...venue,reviewTags:revTags}];
-        });
-      }catch(e){
-        console.warn("Scansione recensioni ignorata:",e);
-      }
-    });
-  };
-
   const doSearch=async()=>{
     if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
     const allowed=await canUseSearch();
     if(!allowed)return;
-
-    const activeTagFilters=[...tagFilters];
     setSearching(true);
-    setTimeout(()=>setSearching(false),2500);
-
     let res=structs.filter(s=>{
-      const mf=activeTagFilters.length===0||activeTagFilters.every(f=>s.tags&&s.tags.includes(f));
+      const mf=tagFilters.length===0||tagFilters.every(f=>s.tags&&s.tags.includes(f));
       const mm=!mealFilter||(s.meals&&s.meals.includes(mealFilter));
       const mt=!venueType||s.type===venueType;
       return mf&&mm&&mt;
     });
-
     if(q){
-      const nq=normalizeText(q);
-      const qTokens=getLocationTokens(q);
-      const qRes=res.filter(s=>{
-        const hay=normalizeText(`${s.name||""} ${s.city||""} ${s.address||""}`);
-        if(hay.includes(nq))return true;
-        if(qTokens.length>0)return qTokens.every(tok=>hay.includes(tok));
-        return false;
-      });
-      res=qRes;
+      const qRes=res.filter(s=>(s.name&&s.name.toLowerCase().includes(q.toLowerCase()))||(s.city&&s.city.toLowerCase().includes(q.toLowerCase()))||(s.address&&s.address.toLowerCase().includes(q.toLowerCase())));
+      if(qRes.length>0)res=qRes;
     }
-
-    // 1) Prima regola: MAI bloccare la piattaforma per Google/recensioni.
-    // Mostra subito ciò che Juniper ha già salvato.
-    setResults(res);
-    setTab("explore");
-    go("results","home");
-    setSearching(false);
-    res.forEach(r=>loadCommunityTags(r.id));
-
-    // 2) Google lavora DOPO, in background.
-    // Se Google è lento, quota-limited o in errore, l'app resta navigabile.
+    
+    // Se ci sono filtri tags, memorizzo i locali Google per scannerizzarli
+    let pendingGooglePlaces=[];
     try{
-      const gRes=await Promise.race([
-        searchGooglePlaces(q||"ristorante",activeTagFilters),
-        new Promise(r=>setTimeout(()=>r([]),1200))
-      ]);
-
-      if(!gRes||gRes.length===0)return;
-
-      setResults(prev=>{
-        const current=prev||[];
-        const existing=new Set(current.map(s=>(s.name||"").toLowerCase()));
+      const gRes=await Promise.race([searchGooglePlaces(q||"ristorante",tagFilters),new Promise(r=>setTimeout(()=>r([]),5000))]);
+      if(gRes&&gRes.length>0){
+        const existing=new Set(res.map(s=>(s.name||"").toLowerCase()));
         const newGooglePlaces=gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase()));
-
-        if(activeTagFilters.length===0){
-          const merged=[...current,...newGooglePlaces];
-          newGooglePlaces.forEach(r=>loadCommunityTags(r.id));
-          return merged;
+        // Se NON ci sono filtri tags, aggiungi subito i locali Google
+        if(tagFilters.length===0){
+          res=[...res,...newGooglePlaces];
+        } else {
+          // Altrimenti li scannerizzeremo e aggiungeremo solo quelli che matchano
+          pendingGooglePlaces=newGooglePlaces;
         }
-
-        // Con filtri attivi, aggiungo subito solo i Google che hanno già tag salvati.
-        // Gli altri possono entrare dopo solo se la scansione recensioni trova match.
-        const immediate=newGooglePlaces.filter(g=>activeTagFilters.every(f=>g.tags&&g.tags.includes(f)));
-        const merged=[...current,...immediate];
-        immediate.forEach(r=>loadCommunityTags(r.id));
-        return merged;
-      });
-
-      // 3) Recensioni: solo background, max 5 locali, timeout breve.
-      scanGoogleReviewTagsInBackground(gRes,activeTagFilters);
-    }catch(e){
-      console.warn("Google background search ignorata:",e);
-    }
+      }
+    }catch(e){}
+    setSearching(false);setResults(res);setTab("explore");go("results","home");
+    // Carica community tags per tutti i risultati in background
+    res.forEach(r=>loadCommunityTags(r.id));
+    
+    // Scansiona recensioni per i locali Google già nei risultati
+    const googleRes=res.filter(r=>r.source==="google"&&r.id.startsWith("g_"));
+    // E anche per quelli pending se ci sono filtri
+    const allToScan=[...googleRes,...pendingGooglePlaces].slice(0,20);
+    allToScan.forEach(async(venue)=>{
+      try{
+        const placeId=venue.id.replace("g_","");
+        const resp=await fetch(`https://places.googleapis.com/v1/places/${placeId}`,{
+          headers:{"X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"reviews"}
+        });
+        const data=await resp.json();
+        const reviews=(data.reviews||[]).slice(0,10);
+        const allText=reviews.length>0?reviews.map(r=>r.text?.text||r.originalText?.text||"").join(" ").toLowerCase():"";
+        const revTags=[];
+        if(allText.includes("gluten")||allText.includes("celiach")||allText.includes("senza glutine"))revTags.push("gluten_free");
+        if(allText.includes("vegan")||allText.includes("vegano")||allText.includes("vegana"))revTags.push("vegan");
+        if(allText.includes("vegetar"))revTags.push("vegetarian");
+        if(allText.includes("lattosio")||allText.includes("lactose")||allText.includes("senza latte"))revTags.push("lactose_free");
+        if(allText.includes("pet")||allText.includes("cane")||allText.includes("animali"))revTags.push("pet_friendly");
+        // Aggiorna i risultati
+        setResults(prev=>{
+          const currentIds=new Set((prev||[]).map(r=>r.id));
+          const isInResults=currentIds.has(venue.id);
+          
+          // Se ci sono filtri attivi
+          if(tagFilters.length>0){
+            const dietFilters=tagFilters.filter(f=>DIET_TAGS.includes(f));
+            if(dietFilters.length>0){
+              // Controlla se questo locale matcha i filtri
+              const matches=dietFilters.every(f=>(venue.tags&&venue.tags.includes(f))||(revTags&&revTags.includes(f)));
+              
+              if(!isInResults&&matches){
+                // Locale NON ancora nei risultati MA matcha → AGGIUNGILO!
+                return [...prev,{...venue,reviewTags:revTags}];
+              } else if(isInResults){
+                // Locale già nei risultati → aggiorna reviewTags e filtra
+                const updated=(prev||[]).map(r=>r.id===venue.id?{...r,reviewTags:revTags}:r);
+                return updated.filter(r=>{
+                  if(r.source!=="google")return true;
+                  return dietFilters.every(f=>(r.tags&&r.tags.includes(f))||(r.reviewTags&&r.reviewTags.includes(f)));
+                });
+              }
+              // Locale non matcha → non fare nulla
+              return prev;
+            }
+          }
+          
+          // Nessun filtro attivo → solo aggiorna reviewTags se già nei risultati
+          if(isInResults){
+            return (prev||[]).map(r=>r.id===venue.id?{...r,reviewTags:revTags}:r);
+          }
+          return prev;
+        });
+      }catch(e){}
+    });
   };
 
   const addRev=async(sid)=>{
@@ -1425,7 +1346,7 @@ function App(){
           <button key={v.id} onClick={()=>setVenueType(venueType===v.id?null:v.id)} style={{background:venueType===v.id?"#1f2937":"#f3f4f6",color:venueType===v.id?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:venueType===v.id?700:400}}>{v.icon} {v.label}</button>
         ))}
       </div>
-      <button onClick={doSearch} disabled={false} style={{...btnG,display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:16,padding:"14px",opacity:searching?0.85:1}}>
+      <button onClick={doSearch} disabled={searching} style={{...btnG,display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:16,padding:"14px",opacity:searching?0.85:1}}>
         {searching
           ?<><span style={{display:"inline-block",animation:"spin 1s linear infinite",fontSize:18}}>🌿</span>{lang==="it"?"Sto cercando...":"Searching..."}</>
           :<>🔍 {t.searchBtn}{(tagFilters.length>0||mealFilter||q)&&<span style={{background:"rgba(255,255,255,0.25)",fontSize:12,padding:"2px 9px",borderRadius:10}}>{[q&&1,...tagFilters,mealFilter,venueType].filter(Boolean).length} {lang==="it"?"filtri":"filters"}</span>}</>
@@ -1453,7 +1374,7 @@ function App(){
   );
 
   if(screen==="business")return <BusinessScreen lang={lang} go={go} user={user} setAuthMode={setAuthMode} preselected={businessClaim} clearPreselected={()=>setBusinessClaim(null)}/>;
-  if(screen==="admin"){if(user?.email!==ADMIN_EMAIL){go("home");return null;}return <AdminScreen user={user} lang={lang} go={go} sb={sb}/>;}
+  if(screen==="admin"){if(!isAdmin){go("home");return null;}return <AdminScreen user={user} lang={lang} go={go} sb={sb}/>;}
   if(screen==="policy")return <PolicyScreen lang={lang} go={go}/>;
 
   if(screen==="auth")return(
@@ -1525,7 +1446,11 @@ function App(){
         {loadingData&&<div style={{textAlign:"center",padding:"20px",color:"#6b7280",fontSize:14}}>🔄 {lang==="it"?"Caricamento...":"Loading..."}</div>}
       </div>
       <BottomNav/><Popup/><WelcomePopup/>
-
+      {searching&&<div style={{position:"fixed",inset:0,background:"rgba(255,255,255,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500,gap:14}}>
+        <div style={{fontSize:48,animation:"spin 1.5s linear infinite"}}>🌿</div>
+        <p style={{fontSize:16,fontWeight:700,color:"#1a5c3a"}}>{lang==="it"?"Sto cercando i locali...":"Finding venues..."}</p>
+        <p style={{fontSize:13,color:"#6b7280"}}>{lang==="it"?"Cerco su Google Places...":"Searching Google Places..."}</p>
+      </div>}
     </div>
   );
 
@@ -1637,38 +1562,38 @@ function App(){
       <div style={{padding:"0 16px",marginTop:-18}}>
         <div style={card}>
           <h3 style={{margin:"0 0 10px",fontSize:15,fontWeight:800,color:"#1a5c3a"}}>🌿 {lang==="it"?"Ricerche Juniper":"Juniper searches"}</h3>
-          <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:12,padding:12,marginBottom:10}}>
-            <p style={{margin:"0 0 4px",fontSize:13,fontWeight:700,color:"#065f46"}}>
-              {isAdminUser()
-                ? "Admin Juniper"
-                : isPremium
+          {isAdmin ? (
+            <div style={{background:"#ecfdf5",border:"1px solid #86efac",borderRadius:12,padding:12}}>
+              <p style={{margin:"0 0 4px",fontSize:13,fontWeight:800,color:"#065f46"}}>🔓 Admin Juniper</p>
+              <p style={{margin:0,fontSize:12,color:"#374151"}}>{lang==="it"?"Ricerche illimitate. Non consumi crediti e non devi acquistare abbonamenti.":"Unlimited searches. You do not consume credits and do not need subscriptions."}</p>
+            </div>
+          ) : (<>
+            <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:12,padding:12,marginBottom:10}}>
+              <p style={{margin:"0 0 4px",fontSize:13,fontWeight:700,color:"#065f46"}}>
+                {isPremium
                   ? (isYearlyPlan(subPlan)?"Premium annuale":"Premium mensile")
                   : (lang==="it"?"Piano gratuito":"Free plan")}
-            </p>
-            {isAdminUser()?
-              <p style={{margin:0,fontSize:12,color:"#374151"}}>🔓 Ricerche illimitate admin</p>
-              : <>
-                <p style={{margin:0,fontSize:12,color:"#374151"}}>
-                  {getIncludedSearchUsed()} / {getIncludedSearchLimit()} {lang==="it"?"ricerche usate":"searches used"}
-                </p>
-                <p style={{margin:"4px 0 0",fontSize:12,color:"#374151"}}>
-                  ➕ Extra disponibili: <b>{extraCredits||0}</b>
-                </p>
-              </>
-            }
-          </div>
-          <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8}}>
-            {!isAdminUser()&&!isPremium&&<>
-              <button onClick={()=>openStripeLink("user_monthly")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Premium 3€/mese · 10 ricerche</button>
-              <button onClick={()=>openStripeLink("user_yearly")} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"1px solid #bbf7d0",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Annuale 30€ · 120 ricerche/anno</button>
-            </>}
-            {!isAdminUser()&&<button onClick={()=>openStripeLink("extra_searches")} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>➕ Compra extra +5 ricerche · 2,50€</button>}
-          </div>
+              </p>
+              <p style={{margin:0,fontSize:12,color:"#374151"}}>
+                {getIncludedSearchUsed()} / {getIncludedSearchLimit()} {lang==="it"?"ricerche usate":"searches used"}
+              </p>
+              <p style={{margin:"4px 0 0",fontSize:12,color:"#374151"}}>
+                ➕ Extra disponibili: <b>{extraCredits||0}</b>
+              </p>
+            </div>
+            <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8}}>
+              {!isPremium&&<>
+                <button onClick={()=>openStripeLink("user_monthly")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Premium 3€/mese · 10 ricerche</button>
+                <button onClick={()=>openStripeLink("user_yearly")} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"1px solid #bbf7d0",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Annuale 30€ · 120 ricerche/anno</button>
+              </>}
+              <button onClick={()=>openStripeLink("extra_searches")} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>➕ Compra extra +5 ricerche · 2,50€</button>
+            </div>
+          </>)}
         </div>
         <div style={card}>
           <button onClick={tl} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>🌐 {lang==="it"?"Switch to English":"Passa all'italiano"}</button>
           <button onClick={()=>go("policy")} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>⚖️ {lang==="it"?"Policy & Termini":"Policy & Terms"}</button>
-          {user?.email===ADMIN_EMAIL&&<button onClick={()=>go("admin")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",textAlign:"left",marginBottom:8,fontWeight:700}}>⚙️ Pannello Admin</button>}
+          {isAdmin&&<button onClick={()=>go("admin")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",textAlign:"left",marginBottom:8,fontWeight:700}}>⚙️ Pannello Admin</button>}
           <div style={{background:"#f0fdf4",borderRadius:12,padding:14,marginBottom:8,border:"1px solid #bbf7d0"}}>
             <p style={{margin:"0 0 6px",fontWeight:700,fontSize:13,color:"#1a5c3a"}}>💬 {lang==="it"?"Hai bisogno di aiuto?":"Need help?"}</p>
             <p style={{margin:"0 0 8px",fontSize:12,color:"#6b7280"}}>{lang==="it"?"Scrivici per qualsiasi problema o domanda.":"Write to us for any issue or question."}</p>
