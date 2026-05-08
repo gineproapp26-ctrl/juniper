@@ -796,13 +796,17 @@ function App(){
   const isYearlyPlan=(plan)=>plan==="user_yearly"||String(plan||"").includes("yearly");
   const isMonthlyPlan=(plan)=>plan==="user_monthly"||String(plan||"").includes("monthly");
 
+  const isAdminUser=()=>user?.email===ADMIN_EMAIL;
+
   const getIncludedSearchLimit=()=>{
+    if(isAdminUser())return 999999;
     if(isPremium&&isYearlyPlan(subPlan))return YEARLY_PREMIUM_LIMIT;
     if(isPremium&&isMonthlyPlan(subPlan))return MONTHLY_PREMIUM_LIMIT;
     return FREE_SEARCH_LIMIT;
   };
 
   const getIncludedSearchUsed=()=>{
+    if(isAdminUser())return 0;
     if(isPremium&&isYearlyPlan(subPlan))return annualSearchCount||0;
     return searchCount||0;
   };
@@ -920,6 +924,7 @@ function App(){
 
   const canUseSearch=async()=>{
     if(!user)return false;
+    if(isAdminUser())return true;
 
     if(getRemainingIncludedSearches()>0){
       return await incrementIncludedSearchUsage(user.id);
@@ -1077,25 +1082,39 @@ function App(){
     // Carica community tags per tutti i risultati in background
     res.forEach(r=>loadCommunityTags(r.id));
     
-    // Scansiona recensioni per i locali Google già nei risultati
+    // Scansione recensioni Google CONTROLLATA:
+    // - solo quando l'utente usa filtri alimentari/pet
+    // - massimo 10 locali per ricerca
+    // - cache locale 7 giorni per non richiamare Google sullo stesso locale
     const googleRes=res.filter(r=>r.source==="google"&&r.id.startsWith("g_"));
-    // E anche per quelli pending se ci sono filtri
-    const allToScan=[...googleRes,...pendingGooglePlaces].slice(0,20);
+    const shouldScanReviews=tagFilters.some(f=>DIET_TAGS.includes(f));
+    const allToScan=shouldScanReviews?[...googleRes,...pendingGooglePlaces].slice(0,10):[];
     allToScan.forEach(async(venue)=>{
       try{
         const placeId=venue.id.replace("g_","");
-        const resp=await fetch(`https://places.googleapis.com/v1/places/${placeId}`,{
-          headers:{"X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"reviews"}
-        });
-        const data=await resp.json();
-        const reviews=(data.reviews||[]).slice(0,10);
-        const allText=reviews.length>0?reviews.map(r=>r.text?.text||r.originalText?.text||"").join(" ").toLowerCase():"";
-        const revTags=[];
-        if(allText.includes("gluten")||allText.includes("celiach")||allText.includes("senza glutine"))revTags.push("gluten_free");
-        if(allText.includes("vegan")||allText.includes("vegano")||allText.includes("vegana"))revTags.push("vegan");
-        if(allText.includes("vegetar"))revTags.push("vegetarian");
-        if(allText.includes("lattosio")||allText.includes("lactose")||allText.includes("senza latte"))revTags.push("lactose_free");
-        if(allText.includes("pet")||allText.includes("cane")||allText.includes("animali"))revTags.push("pet_friendly");
+        const cacheKey="juniper_review_tags_"+placeId;
+        const cacheTtl=7*24*60*60*1000;
+        let revTags=[];
+        try{
+          const cached=JSON.parse(localStorage.getItem(cacheKey)||"null");
+          if(cached&&cached.time&&(Date.now()-cached.time)<cacheTtl&&Array.isArray(cached.tags)){
+            revTags=cached.tags;
+          }
+        }catch(_){}
+        if(!revTags.length){
+          const resp=await fetch(`https://places.googleapis.com/v1/places/${placeId}`,{
+            headers:{"X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"reviews"}
+          });
+          const data=await resp.json();
+          const reviews=(data.reviews||[]).slice(0,10);
+          const allText=reviews.length>0?reviews.map(r=>r.text?.text||r.originalText?.text||"").join(" ").toLowerCase():"";
+          if(allText.includes("gluten")||allText.includes("celiach")||allText.includes("senza glutine"))revTags.push("gluten_free");
+          if(allText.includes("vegan")||allText.includes("vegano")||allText.includes("vegana"))revTags.push("vegan");
+          if(allText.includes("vegetar"))revTags.push("vegetarian");
+          if(allText.includes("lattosio")||allText.includes("lactose")||allText.includes("senza latte"))revTags.push("lactose_free");
+          if(allText.includes("pet")||allText.includes("cane")||allText.includes("animali"))revTags.push("pet_friendly");
+          try{localStorage.setItem(cacheKey,JSON.stringify({time:Date.now(),tags:revTags}));}catch(_){}
+        }
         // Aggiorna i risultati
         setResults(prev=>{
           const currentIds=new Set((prev||[]).map(r=>r.id));
@@ -1562,23 +1581,30 @@ function App(){
           <h3 style={{margin:"0 0 10px",fontSize:15,fontWeight:800,color:"#1a5c3a"}}>🌿 {lang==="it"?"Ricerche Juniper":"Juniper searches"}</h3>
           <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:12,padding:12,marginBottom:10}}>
             <p style={{margin:"0 0 4px",fontSize:13,fontWeight:700,color:"#065f46"}}>
-              {isPremium
-                ? (isYearlyPlan(subPlan)?"Premium annuale":"Premium mensile")
-                : (lang==="it"?"Piano gratuito":"Free plan")}
+              {isAdminUser()
+                ? "Admin Juniper"
+                : isPremium
+                  ? (isYearlyPlan(subPlan)?"Premium annuale":"Premium mensile")
+                  : (lang==="it"?"Piano gratuito":"Free plan")}
             </p>
-            <p style={{margin:0,fontSize:12,color:"#374151"}}>
-              {getIncludedSearchUsed()} / {getIncludedSearchLimit()} {lang==="it"?"ricerche usate":"searches used"}
-            </p>
-            <p style={{margin:"4px 0 0",fontSize:12,color:"#374151"}}>
-              ➕ Extra disponibili: <b>{extraCredits||0}</b>
-            </p>
+            {isAdminUser()?
+              <p style={{margin:0,fontSize:12,color:"#374151"}}>🔓 Ricerche illimitate admin</p>
+              : <>
+                <p style={{margin:0,fontSize:12,color:"#374151"}}>
+                  {getIncludedSearchUsed()} / {getIncludedSearchLimit()} {lang==="it"?"ricerche usate":"searches used"}
+                </p>
+                <p style={{margin:"4px 0 0",fontSize:12,color:"#374151"}}>
+                  ➕ Extra disponibili: <b>{extraCredits||0}</b>
+                </p>
+              </>
+            }
           </div>
           <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8}}>
-            {!isPremium&&<>
+            {!isAdminUser()&&!isPremium&&<>
               <button onClick={()=>openStripeLink("user_monthly")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Premium 3€/mese · 10 ricerche</button>
               <button onClick={()=>openStripeLink("user_yearly")} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"1px solid #bbf7d0",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Annuale 30€ · 120 ricerche/anno</button>
             </>}
-            <button onClick={()=>openStripeLink("extra_searches")} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>➕ Compra extra +5 ricerche · 2,50€</button>
+            {!isAdminUser()&&<button onClick={()=>openStripeLink("extra_searches")} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>➕ Compra extra +5 ricerche · 2,50€</button>}
           </div>
         </div>
         <div style={card}>
