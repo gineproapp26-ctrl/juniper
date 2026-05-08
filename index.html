@@ -147,36 +147,24 @@ function AdminScreen({user,lang,go,sb}){
     if(rTags.data)setTagSuggestions(rTags.data);
     setLoading(false);
   };
- const approveTag = async (suggestion) => {
-  let targetStructureId = suggestion.structure_id;
-
-  // Se è un locale Google, salvalo in structures usando google_place_id
-  if (suggestion.structure_id && suggestion.structure_id.startsWith("g_")) {
-    const { data: existing, error: findError } = await sb
-      .from("structures")
+ const approveTag=async(suggestion)=>{
+  // 🌿 Se è locale Google, crealo in structures
+  if(suggestion.structure_id && suggestion.structure_id.startsWith("g_")){
+    const {data:existing}=await sb.from("structures")
       .select("id")
-      .eq("google_place_id", suggestion.structure_id)
+      .eq("id",suggestion.structure_id)
       .maybeSingle();
-
-    if (findError) {
-      showMsg("❌ Errore ricerca locale: " + findError.message);
-      return;
-    }
-
-    if (existing) {
-      targetStructureId = existing.id;
-    } else {
+    
+    if(!existing){
+      // Crea oggetto con tag attivo
       const tagToActivate = suggestion.tag;
-
       const newStructure = {
-        google_place_id: suggestion.structure_id,
+        id: suggestion.structure_id,
         name: suggestion.structure_name || "Locale Google",
         city: "Italia",
-        country: "Italia",
         type: "ristorante",
         source: "google",
         pending: false,
-
         gluten_free: tagToActivate === "gluten_free",
         lactose_free: tagToActivate === "lactose_free",
         vegan: tagToActivate === "vegan",
@@ -184,43 +172,26 @@ function AdminScreen({user,lang,go,sb}){
         pet_friendly: tagToActivate === "pet_friendly",
         combo_free: tagToActivate === "combo_free"
       };
-
-      const { data: inserted, error: insertError } = await sb
-        .from("structures")
-        .insert(newStructure)
-        .select("id")
-        .single();
-
-      if (insertError) {
+      
+      const {error: insertError} = await sb.from("structures").insert(newStructure);
+      
+      if(insertError){
         showMsg("❌ Errore creazione locale: " + insertError.message);
         return;
       }
-
-      targetStructureId = inserted.id;
     }
   }
-
-  const r1 = await sb.from("community_tags").upsert(
-    {
-      structure_id: targetStructureId,
-      tag: suggestion.tag,
-      count: 1
-    },
-    {
-      onConflict: "structure_id,tag",
-      ignoreDuplicates: false
-    }
+  
+  const r1=await sb.from("community_tags").upsert(
+    {structure_id:suggestion.structure_id,tag:suggestion.tag,count:1},
+    {onConflict:"structure_id,tag",ignoreDuplicates:false}
   );
-
-  const r2 = await sb
-    .from("tag_suggestions")
-    .update({ status: "approved" })
-    .eq("id", suggestion.id);
-
-  if (r1.error || r2.error) {
-    showMsg("❌ Errore: " + (r1.error?.message || r2.error?.message));
+  const r2=await sb.from("tag_suggestions").update({status:"approved"}).eq("id",suggestion.id);
+  
+  if(r1.error||r2.error){
+    showMsg("❌ Errore: "+(r1.error?.message||r2.error?.message));
   } else {
-    showMsg("✅ Tag approvato e locale pubblicato!");
+    showMsg("✅ Tag approvato e pubblicato!");
     load();
   }
 };
@@ -505,7 +476,7 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
           ))}
         </div>
         <div style={{...card,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div><p style={{margin:"0 0 3px",fontWeight:700,fontSize:13,color:"#1a5c3a"}}>{t.badgeLabel}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>{t.badgeSub}</p></div>
+          <div><p style={{margin:"0 0 3px",fontWeight:700,fontSize:13,color:"#1a5c3a"}}>{t.badgeLabel} <span style={{color:"#f59e0b",fontSize:11}}>({lang==="it"?"Funzione in arrivo":"Coming soon"})</span></p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>{t.badgeSub}</p></div>
           <div onClick={()=>setForm(f=>({...f,certified:!f.certified}))} style={{width:44,height:24,borderRadius:12,background:form.certified?"#1a5c3a":"#e5e7eb",cursor:"pointer",position:"relative",flexShrink:0}}>
             <div style={{width:18,height:18,borderRadius:"50%",background:"white",position:"absolute",top:3,left:form.certified?23:3,transition:"left 0.2s"}}/>
           </div>
@@ -558,6 +529,11 @@ function App(){
   const [loadingData,setLoadingData]=React.useState(true);
   const [searching,setSearching]=React.useState(false);
   const [showWelcomePopup,setShowWelcomePopup]=React.useState(false);
+  const [isPremium,setIsPremium]=React.useState(false);
+  const [subPlan,setSubPlan]=React.useState(null);
+  const [subStatus,setSubStatus]=React.useState(null);
+  const [searchCount,setSearchCount]=React.useState(0);
+  const SEARCH_LIMIT=5;
   const isGuest=!user;
   const GUEST_MAX=2;
 
@@ -565,6 +541,7 @@ function App(){
     const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
       if((event==="SIGNED_IN"||event==="INITIAL_SESSION")&&session?.user){
         setUser({name:session.user.user_metadata?.name||session.user.email.split("@")[0],email:session.user.email,id:session.user.id});
+        loadSearchUsage(session.user.id);
         setALoading(false);
         setScreen(prev=>prev==="welcome"||prev==="auth"||prev==="policy"?"home":prev);
         // Mostra welcome popup solo al primo accesso
@@ -573,13 +550,14 @@ function App(){
           setTimeout(()=>setShowWelcomePopup(true),1000);
         }
       }
-      if(event==="SIGNED_OUT"){setUser(null);setScreen("welcome");}
+      if(event==="SIGNED_OUT"){setUser(null);setIsPremium(false);setSubPlan(null);setSubStatus(null);setSearchCount(0);setScreen("welcome");}
     });
     // Carica abbonamento utente
     sb.auth.getSession().then(({data:{session}})=>{
       if(session?.user){
+        loadSearchUsage(session.user.id);
         sb.from("subscriptions").select("*").eq("user_id",session.user.id).eq("status","active").maybeSingle().then(({data})=>{
-          if(data){setPremium(true);setSubPlan(data.plan);setSubStatus(data.status);}
+          if(data){setIsPremium(true);setSubPlan(data.plan);setSubStatus(data.status);}
         }).catch(()=>{});
       }
     });
@@ -716,7 +694,86 @@ function App(){
   };
 
   // ── RICERCHE MENSILI ──
-  const SEARCH_KEY="juniper_searches";
+  const getMonthKey=()=>{
+    const d=new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
+  };
+
+  const loadSearchUsage=async(userId)=>{
+    if(!userId)return;
+    const monthKey=getMonthKey();
+    const {data}=await sb
+      .from("user_search_usage")
+      .select("search_count")
+      .eq("user_id",userId)
+      .eq("month_key",monthKey)
+      .maybeSingle();
+
+    setSearchCount(data?.search_count||0);
+  };
+
+  const incrementSearchUsage=async(userId)=>{
+    if(!userId)return false;
+
+    const monthKey=getMonthKey();
+
+    const {data:existing,error:readError}=await sb
+      .from("user_search_usage")
+      .select("id,search_count")
+      .eq("user_id",userId)
+      .eq("month_key",monthKey)
+      .maybeSingle();
+
+    if(readError){
+      showP(
+        lang==="it"?"Errore ricerca":"Search error",
+        lang==="it"?"Riprova tra poco.":"Please try again shortly.",
+        "searchLimit"
+      );
+      return false;
+    }
+
+    const currentCount=existing?.search_count||0;
+
+    if(!isPremium && user?.email!==ADMIN_EMAIL && currentCount>=SEARCH_LIMIT){
+      showP(
+        lang==="it"?"Ricerche gratuite terminate 🔍":"Free searches used up 🔍",
+        lang==="it"
+          ?"Hai usato le 5 ricerche gratuite di questo mese. Premium in arrivo!"
+          :"You used your 5 free searches this month. Premium coming soon!",
+        "searchLimit"
+      );
+      setSearchCount(currentCount);
+      return false;
+    }
+
+    if(existing){
+      const newCount=currentCount+1;
+      const {error:updateError}=await sb
+        .from("user_search_usage")
+        .update({
+          search_count:newCount,
+          updated_at:new Date().toISOString()
+        })
+        .eq("id",existing.id);
+
+      if(updateError)return false;
+      setSearchCount(newCount);
+      return true;
+    } else {
+      const {error:insertError}=await sb
+        .from("user_search_usage")
+        .insert({
+          user_id:userId,
+          month_key:monthKey,
+          search_count:1
+        });
+
+      if(insertError)return false;
+      setSearchCount(1);
+      return true;
+    }
+  };
 
   const doForgotPassword=async()=>{
     if(!aEmail)return;
@@ -789,6 +846,10 @@ function App(){
 
   const doSearch=async()=>{
     if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
+
+    const canSearch=await incrementSearchUsage(user.id);
+    if(!canSearch)return;
+
     setSearching(true);
     let res=structs.filter(s=>{
       const mf=tagFilters.length===0||tagFilters.every(f=>s.tags&&s.tags.includes(f));
@@ -993,6 +1054,16 @@ function App(){
           <div style={{fontSize:44,marginBottom:10}}>🌿</div>
           <h3 style={{margin:"0 0 8px",fontSize:17,fontWeight:800}}>{popup.title}</h3>
           <p style={{margin:"0 0 20px",fontSize:14,color:"#6b7280",lineHeight:1.5}}>{popup.sub}</p>
+          {popup.type==="searchLimit"&&<>
+            <button onClick={closeP} style={{...btnG,marginBottom:10,fontSize:14}}>
+              {lang==="it"?"Ho capito":"Got it"}
+            </button>
+            <p style={{margin:"0 0 8px",fontSize:12,color:"#9ca3af",lineHeight:1.5}}>
+              {lang==="it"
+                ?"Presto potrai sbloccare ricerche illimitate con Premium."
+                :"Soon you will be able to unlock unlimited searches with Premium."}
+            </p>
+          </>}
           {popup.type==="register"&&<>
             <button onClick={()=>{closeP();setAuthMode("register");go("auth");}} style={{...btnG,marginBottom:10,fontSize:14}}>🌿 {t.regFree}</button>
             <p style={{margin:"0 0 8px",fontSize:13,color:"#9ca3af"}}>{t.orLogin}</p>
@@ -1179,6 +1250,16 @@ function App(){
             <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={t.wherePh} style={{...inp,flex:1,fontSize:14}}/>
           </div>
         </div>
+        {!isGuest&&!isPremium&&user?.email!==ADMIN_EMAIL&&
+          <div style={{background:"#fff7ed",border:"1.5px solid #fed7aa",borderRadius:12,padding:"10px 12px",marginBottom:10}}>
+            <p style={{margin:0,fontSize:12,color:"#92400e",fontWeight:700}}>
+              🔍 {lang==="it"?"Ricerche gratuite questo mese":"Free searches this month"}: {searchCount}/{SEARCH_LIMIT}
+            </p>
+            <p style={{margin:"4px 0 0",fontSize:11,color:"#9a3412"}}>
+              {lang==="it"?"Premium con ricerche illimitate in arrivo.":"Premium with unlimited searches coming soon."}
+            </p>
+          </div>
+        }
         <FilterPanel/>
         {loadingData&&<div style={{textAlign:"center",padding:"20px",color:"#6b7280",fontSize:14}}>🔄 {lang==="it"?"Caricamento...":"Loading..."}</div>}
       </div>
