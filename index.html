@@ -987,6 +987,26 @@ function App(){
     }
   };
 
+  const getLocationTokens=(query="")=>{
+    const stop=new Set([
+      "gluten","free","glutine","senza","lattosio","lactose","latte",
+      "vegan","vegano","vegana","vegetariano","vegetariana","pet","friendly",
+      "ristorante","ristoranti","bar","caffe","caffè","pizzeria","pizzerie",
+      "gelateria","gelaterie","pasticceria","pasticcerie","agriturismo",
+      "hotel","locale","locali","food","italia"
+    ]);
+    return normalizeText(query)
+      .split(" ")
+      .filter(tok=>tok.length>2&&!stop.has(tok));
+  };
+
+  const matchesSearchLocation=(place,query="")=>{
+    const tokens=getLocationTokens(query);
+    if(tokens.length===0)return true;
+    const hay=normalizeText(`${place.name||""} ${place.city||""} ${place.address||""}`);
+    return tokens.every(tok=>hay.includes(tok));
+  };
+
   const searchGooglePlaces=async(query,tags)=>{
     // NON aggiungo i tag alla query - trovo TUTTI i locali e filtro dalle recensioni
     const loc=(query||"Maremma Grosseto")+" Italia";
@@ -1039,6 +1059,8 @@ function App(){
         if(seen.has(p.name.toLowerCase()))return false;
         seen.add(p.name.toLowerCase());
         if(venueType&&p.type!==venueType)return false;
+        // Se l'utente ha scritto una città/zona, non mostrare locali di altre città.
+        if(!matchesSearchLocation(p,query))return false;
         return true;
       }).slice(0,20);
       saveGooglePlacesToSupabase(finalResults);
@@ -1058,8 +1080,16 @@ function App(){
       return mf&&mm&&mt;
     });
     if(q){
-      const qRes=res.filter(s=>(s.name&&s.name.toLowerCase().includes(q.toLowerCase()))||(s.city&&s.city.toLowerCase().includes(q.toLowerCase()))||(s.address&&s.address.toLowerCase().includes(q.toLowerCase())));
-      if(qRes.length>0)res=qRes;
+      const nq=normalizeText(q);
+      const qTokens=getLocationTokens(q);
+      const qRes=res.filter(s=>{
+        const hay=normalizeText(`${s.name||""} ${s.city||""} ${s.address||""}`);
+        if(hay.includes(nq))return true;
+        if(qTokens.length>0)return qTokens.every(tok=>hay.includes(tok));
+        return false;
+      });
+      // Importante: se l'utente cerca una città, non tenere risultati globali di altre città.
+      res=qRes;
     }
     
     // Se ci sono filtri tags, memorizzo i locali Google per scannerizzarli
