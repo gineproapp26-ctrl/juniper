@@ -390,6 +390,8 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
   const [sent,setSent]=React.useState(false);
   const [disclaimer,setDisclaimer]=React.useState(false);
   const [sending,setSending]=React.useState(false);
+  const [wantsBadge,setWantsBadge]=React.useState(false);
+  const [badgeOpening,setBadgeOpening]=React.useState(false);
   const [form,setForm]=React.useState({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",vat:"",sdi:"",legal_name:"",owner_name:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
   
   React.useEffect(()=>{
@@ -424,6 +426,53 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
       disclaimer_accepted:true,disclaimer_accepted_at:new Date().toISOString(),
     });
     setSending(false);setSent(true);
+  };
+
+  const openBusinessBadgePayment=async(plan)=>{
+    if(!form.name||!form.city||!form.address||!form.phone||!form.email||!form.vat||!form.sdi||!form.legal_name||!form.owner_name||!disclaimer){
+      alert(lang==="it"?"Compila prima i dati obbligatori e accetta la dichiarazione di responsabilità.":"Please complete the required fields and accept the liability declaration first.");
+      return;
+    }
+    setBadgeOpening(true);
+    try{
+      const {data:{user:currentUser}}=await sb.auth.getUser();
+      if(!currentUser){
+        alert(lang==="it"?"Accedi o registrati prima di attivare il badge.":"Sign in or register before activating the badge.");
+        setBadgeOpening(false);
+        return;
+      }
+
+      // Salviamo comunque la registrazione base prima di mandare a Stripe.
+      await sb.from("business_requests").insert({
+        structure_id:sel?.id&&!String(sel.id).startsWith("d")&&!String(sel.id).startsWith("g_")?sel.id:null,
+        google_place_id:sel?.id&&String(sel.id).startsWith("g_")?String(sel.id).replace("g_",""):null,
+        name:form.name,type:form.type,city:form.city,address:form.address,
+        phone:form.phone,email:form.email,
+        vat_number:form.vat,sdi_code:form.sdi,legal_name:form.legal_name,owner_name:form.owner_name,
+        website:form.website,instagram:form.instagram,
+        description:form.description,tags:[],meals:form.meals,
+        kitchen_safety:null,certified_request:true,
+        disclaimer_accepted:true,disclaimer_accepted_at:new Date().toISOString(),
+      });
+
+      const STRIPE_BUSINESS_LINKS={
+        monthly:"https://buy.stripe.com/6oU7sN8cUabvfer34U7bW03",
+        yearly:"https://buy.stripe.com/8x2bJ3dxe3N78Q3gVK7bW04"
+      };
+      const base=STRIPE_BUSINESS_LINKS[plan];
+      const structureId=sel?.id||`new_${Date.now()}`;
+      const structureName=form.name||sel?.name||"Locale";
+      const clientRef=`business|${currentUser.id||""}|${structureId}|${encodeURIComponent(structureName)}`;
+      const params=new URLSearchParams();
+      params.set("prefilled_email",currentUser.email||form.email);
+      params.set("client_reference_id",clientRef);
+      window.open(`${base}?${params.toString()}`,"_blank");
+    }catch(e){
+      console.error(e);
+      alert(lang==="it"?"Non riesco ad aprire Stripe. Riprova tra poco.":"Unable to open Stripe. Please try again.");
+    }finally{
+      setBadgeOpening(false);
+    }
   };
   if(sent) return(
     <div style={{minHeight:"100vh",background:"#f9fafb"}}>
@@ -494,16 +543,31 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
         <div style={{...card,background:"#f0fdf4",border:"1.5px solid #bbf7d0"}}>
           <p style={{margin:"0 0 6px",fontWeight:800,fontSize:14,color:"#065f46"}}>{t.badgeLabel}</p>
           <p style={{margin:"0 0 10px",fontSize:12,color:"#166534",lineHeight:1.45}}>{t.badgeSub}</p>
-          <div style={{display:"grid",gap:8}}>
+          <div style={{display:"grid",gap:8,marginBottom:12}}>
             <div style={{background:"white",border:"1px solid #bbf7d0",borderRadius:12,padding:10}}>
               <p style={{margin:"0 0 3px",fontSize:12,fontWeight:700,color:"#1a5c3a"}}>🔒 {t.offersLabel}</p>
-              <p style={{margin:0,fontSize:11,color:"#6b7280"}}>{lang==="it"?"Gluten Free, Lactose Free, Vegano, Pet Friendly e altri tag sono riservati ai locali con badge attivo.":"Gluten Free, Lactose Free, Vegan, Pet Friendly and other tags are reserved for venues with an active badge."}</p>
+              <p style={{margin:0,fontSize:11,color:"#6b7280"}}>{lang==="it"?"Gluten Free, Lactose Free, Vegano, Pet Friendly e altri tag si possono dichiarare solo con badge attivo.":"Gluten Free, Lactose Free, Vegan, Pet Friendly and other tags can be declared only with an active badge."}</p>
             </div>
             <div style={{background:"white",border:"1px solid #bbf7d0",borderRadius:12,padding:10}}>
               <p style={{margin:"0 0 3px",fontSize:12,fontWeight:700,color:"#1a5c3a"}}>🔒 {t.kitchenLabel}</p>
               <p style={{margin:0,fontSize:11,color:"#6b7280"}}>{lang==="it"?"Cucina dedicata, attenzione massima o cucina condivisa si possono dichiarare solo con badge attivo.":"Dedicated kitchen, extra care or shared kitchen can be declared only with an active badge."}</p>
             </div>
           </div>
+          <label style={{display:"flex",gap:10,alignItems:"flex-start",cursor:"pointer",background:"white",border:"1px solid #bbf7d0",borderRadius:12,padding:12,marginBottom:wantsBadge?12:0}}>
+            <input type="checkbox" checked={wantsBadge} onChange={e=>setWantsBadge(e.target.checked)} style={{marginTop:2,accentColor:"#1a5c3a",width:17,height:17,flexShrink:0}}/>
+            <span style={{fontSize:12,color:"#065f46",fontWeight:700,lineHeight:1.45}}>
+              {lang==="it"?"Voglio attivare il badge “Locale verificato e iscritto a Juniper”.":"I want to activate the “Verified venue subscribed to Juniper” badge."}
+              <br/><span style={{fontWeight:500,color:"#166534"}}>{lang==="it"?"Se selezioni questa opzione, dopo aver compilato i dati potrai procedere al pagamento Stripe.":"If you select this option, after completing the form you can proceed to Stripe payment."}</span>
+            </span>
+          </label>
+          {wantsBadge&&<div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <button type="button" onClick={()=>openBusinessBadgePayment("monthly")} disabled={badgeOpening} style={{background:"#1a5c3a",color:"white",border:"none",padding:"12px 10px",borderRadius:12,fontWeight:800,fontSize:13,cursor:"pointer",opacity:badgeOpening?.7:1}}>
+              {badgeOpening?"⏳":"✅"} {lang==="it"?"10€/mese":"€10/month"}
+            </button>
+            <button type="button" onClick={()=>openBusinessBadgePayment("yearly")} disabled={badgeOpening} style={{background:"white",color:"#1a5c3a",border:"1.5px solid #86efac",padding:"12px 10px",borderRadius:12,fontWeight:800,fontSize:13,cursor:"pointer",opacity:badgeOpening?.7:1}}>
+              {badgeOpening?"⏳":"✅"} {lang==="it"?"110€/anno":"€110/year"}
+            </button>
+          </div>}
         </div>
         <div style={{background:"#fef9ec",borderRadius:14,padding:16,marginBottom:14,border:"1.5px solid #fed7aa"}}>
           <p style={{margin:"0 0 8px",fontSize:12,fontWeight:700,color:"#92400e"}}>⚖️ {t.disclaimerTitle}</p>
