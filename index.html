@@ -697,7 +697,7 @@ function App(){
         if(data) setRevs(r=>({...r,[sel.id]:data.map(r=>({id:r.id,user:r.user_name,rating:r.rating,text:r.text,date:r.created_at?.split("T")[0]}))}));
       });
     }
-    if(sel.source==="google"&&sel.id.startsWith("g_")){
+    if(false && sel.source==="google"&&sel.id.startsWith("g_")){
       const placeId=sel.id.replace("g_","");
       fetch(`https://places.googleapis.com/v1/places/${placeId}`,{headers:{"X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"reviews"}})
         .then(r=>r.json()).then(data=>{
@@ -1014,7 +1014,7 @@ function App(){
     // Se c'è un filtro tipo locale, cerca solo quel tipo
     const queries=venueType
       ?[venueType+" "+loc]
-      :hasFood?[query+" "+loc]:["ristorante "+loc,"bar caffè "+loc,"pizzeria trattoria osteria agriturismo "+loc,"gelateria pasticceria "+loc];
+      :[query ? query+" "+loc : "ristoranti bar pizzerie gelaterie "+loc];
     const mapPlace=(p)=>{
       const pt=p.primaryType||"";
       let type="ristorante",emoji="🍽️";
@@ -1095,17 +1095,13 @@ function App(){
     // Se ci sono filtri tags, memorizzo i locali Google per scannerizzarli
     let pendingGooglePlaces=[];
     try{
-      const gRes=await Promise.race([searchGooglePlaces(q||"ristorante",tagFilters),new Promise(r=>setTimeout(()=>r([]),5000))]);
+      const gRes=await Promise.race([searchGooglePlaces(q||"ristorante",tagFilters),new Promise(r=>setTimeout(()=>r([]),2500))]);
       if(gRes&&gRes.length>0){
         const existing=new Set(res.map(s=>(s.name||"").toLowerCase()));
         const newGooglePlaces=gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase()));
-        // Se NON ci sono filtri tags, aggiungi subito i locali Google
-        if(tagFilters.length===0){
-          res=[...res,...newGooglePlaces];
-        } else {
-          // Altrimenti li scannerizzeremo e aggiungeremo solo quelli che matchano
-          pendingGooglePlaces=newGooglePlaces;
-        }
+        // Modalità notte/costi: mostra subito i locali Google anche con filtri.
+        // I tag da recensioni sono temporaneamente disattivati se la quota GetPlace è esaurita.
+        res=[...res,...newGooglePlaces];
       }
     }catch(e){}
     setSearching(false);setResults(res);setTab("explore");go("results","home");
@@ -1117,7 +1113,7 @@ function App(){
     // - massimo 10 locali per ricerca
     // - cache locale 7 giorni per non richiamare Google sullo stesso locale
     const googleRes=res.filter(r=>r.source==="google"&&r.id.startsWith("g_"));
-    const shouldScanReviews=tagFilters.some(f=>DIET_TAGS.includes(f));
+    const shouldScanReviews=false; // disattivato temporaneamente: quota GetPlace esaurita
     const allToScan=shouldScanReviews?[...googleRes,...pendingGooglePlaces].slice(0,10):[];
     allToScan.forEach(async(venue)=>{
       try{
@@ -1496,7 +1492,7 @@ function App(){
       {searching&&<div style={{position:"fixed",inset:0,background:"rgba(255,255,255,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500,gap:14}}>
         <div style={{fontSize:48,animation:"spin 1.5s linear infinite"}}>🌿</div>
         <p style={{fontSize:16,fontWeight:700,color:"#1a5c3a"}}>{lang==="it"?"Sto cercando i locali...":"Finding venues..."}</p>
-        <p style={{fontSize:13,color:"#6b7280"}}>{lang==="it"?"Cerco su Google Places...":"Searching Google Places..."}</p>
+        <p style={{fontSize:13,color:"#6b7280"}}>{lang==="it"?"Cerco i locali...":"Searching Google Places..."}</p>
       </div>}
     </div>
   );
