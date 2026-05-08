@@ -343,68 +343,124 @@ function AdminScreen({user,lang,go,sb}){
   );
 }
 
-function BusinessScreen({lang,go,preselected,clearPreselected}){
+function BusinessScreen({lang,go,preselected,clearPreselected,user,setAuthMode}){
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const btnG2={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
   const tx={
-    it:{back:"Indietro",title:"Registra la tua attività",sub:"Raggiungi chi cerca esattamente quello che offri. Badge Verificato incluso! ✨",searchPh:"Cerca per nome o città...",claim:"Sono il titolare",addNew:"Aggiungi da zero",baseInfo:"📋 Info base",typeLabel:"🏪 Tipo",openLabel:"🍽️ Quando siete aperti?",offersLabel:"✅ Cosa offrite?",kitchenLabel:"🔬 Sicurezza in cucina",kitchenSub:"Sii onesto — è importante per i tuoi clienti",badgeLabel:"✨ Badge Verificato Incluso",badgeSub:"Distintivo esclusivo per i locali registrati. Aumenta la fiducia dei clienti!",send:"Invia richiesta",sent:"Richiesta inviata!",sentSub:"Ti contatteremo a",backHome:"Torna alla home",disclaimerTitle:"⚖️ Dichiarazione di responsabilità",disclaimerText:"Il titolare dichiara sotto la propria responsabilità che le informazioni inserite sono veritiere e aggiornate. Juniper non è responsabile per eventuali inesattezze. L'utente finale è sempre invitato a confermare direttamente con il locale prima di consumare.",disclaimerCheck:"Ho letto e accetto. Confermo che le informazioni sono veritiere e mi assumo la piena responsabilità dei contenuti pubblicati.",cancel:"Annulla"},
-    en:{back:"Back",title:"Register your business",sub:"Reach those looking for exactly what you offer. Verified Badge included! ✨",searchPh:"Search by name or city...",claim:"I'm the owner",addNew:"Add from scratch",baseInfo:"📋 Basic info",typeLabel:"🏪 Type",openLabel:"🍽️ When are you open?",offersLabel:"✅ What do you offer?",kitchenLabel:"🔬 Kitchen safety",kitchenSub:"Be honest — it matters to your customers",badgeLabel:"✨ Verified Badge Included",badgeSub:"Exclusive badge for registered venues. Build customer trust!",send:"Send request",sent:"Request sent!",sentSub:"We'll contact you at",backHome:"Back to home",disclaimerTitle:"⚖️ Liability Declaration",disclaimerText:"The owner declares under their own responsibility that the information provided is truthful and up to date. Juniper is not liable for any inaccuracies. End users are always encouraged to confirm directly with the venue before consuming.",disclaimerCheck:"I have read and agree. I confirm the information is truthful and take full responsibility for the published content.",cancel:"Cancel"},
+    it:{back:"Indietro",title:"Registra la tua attività",sub:"Cerca il tuo locale, selezionalo e richiedi il badge attività. Nessuno può modificare una scheda gratis.",searchPh:"Cerca nome attività e città...",claim:"Seleziona",baseInfo:"📋 Dati referente",typeLabel:"🏪 Tipo locale",openLabel:"🍽️ Quando siete aperti?",badgeTitle:"✅ Locale verificato e iscritto a Juniper",badgeSub:"Dopo il pagamento la richiesta va in verifica. Juniper ti contatterà alla mail o al numero fornito per confermare che sei il proprietario.",payMonthly:"Attiva a 10€/mese",payYearly:"Attiva a 110€/anno",loginTitle:"Accedi per registrare la tua attività",loginSub:"Prima crea o accedi al tuo account Juniper. Poi potrai cercare e verificare il tuo locale.",loginBtn:"Accedi",registerBtn:"Registrati",selected:"Locale selezionato",notFound:"Non trovi il tuo locale?",notFoundSub:"Scrivici a help@juniperapp.eu: lo aggiungeremo noi senza dare accesso automatico alla scheda.",disclaimerTitle:"Dichiarazione di responsabilità",disclaimerText:"Confermo di essere autorizzato a rappresentare questa attività. Le informazioni dichiarate dal proprietario saranno pubblicate sotto la sua responsabilità. Il badge sarà visibile solo dopo verifica Juniper.",disclaimerCheck:"Confermo di essere autorizzato a rappresentare questa attività e accetto la dichiarazione di responsabilità.",required:"Compila i campi obbligatori e accetta la dichiarazione.",stripeErr:"Non riesco ad aprire Stripe. Riprova tra poco.",searchEmpty:"Cerca il nome del tuo locale e la città.",searching:"Cerco...",noResults:"Nessun locale trovato. Prova con nome + città."},
+    en:{back:"Back",title:"Register your business",sub:"Search your venue, select it and request the business badge. No one can edit a listing for free.",searchPh:"Search business name and city...",claim:"Select",baseInfo:"📋 Contact details",typeLabel:"🏪 Venue type",openLabel:"🍽️ When are you open?",badgeTitle:"✅ Verified venue subscribed to Juniper",badgeSub:"After payment, the request is reviewed. Juniper will contact you by email or phone to confirm you own the business.",payMonthly:"Activate €10/month",payYearly:"Activate €110/year",loginTitle:"Sign in to register your business",loginSub:"Create or sign in to your Juniper account first. Then you can search and verify your venue.",loginBtn:"Sign in",registerBtn:"Register",selected:"Selected venue",notFound:"Can’t find your venue?",notFoundSub:"Email help@juniperapp.eu: we will add it without granting automatic access to the listing.",disclaimerTitle:"Liability declaration",disclaimerText:"I confirm I am authorized to represent this business. Information declared by the owner will be published under their responsibility. The badge becomes visible only after Juniper approval.",disclaimerCheck:"I confirm I am authorized to represent this business and accept the liability declaration.",required:"Complete required fields and accept the declaration.",stripeErr:"Unable to open Stripe. Please try again.",searchEmpty:"Search venue name and city.",searching:"Searching...",noResults:"No venue found. Try name + city."},
   };
-  const t=tx[lang];
-  const [step,setStep]=React.useState(preselected?"form":"search");
+  const t=tx[lang]||tx.it;
+  const [step,setStep]=React.useState(preselected?"verify":"search");
   const [q,setQ]=React.useState("");
   const [found,setFound]=React.useState([]);
   const [sel,setSel]=React.useState(preselected||null);
-  const [sent,setSent]=React.useState(false);
+  const [loading,setLoading]=React.useState(false);
+  const [opening,setOpening]=React.useState(false);
   const [disclaimer,setDisclaimer]=React.useState(false);
-  const [sending,setSending]=React.useState(false);
-  const [form,setForm]=React.useState({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",vat:"",sdi:"",legal_name:"",owner_name:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
-  
+  const [form,setForm]=React.useState({owner_name:"",email:user?.email||"",phone:"",vat:"",legal_name:"",website:"",instagram:"",type:"ristorante",meals:[]});
+
   React.useEffect(()=>{
     if(preselected){
       setSel(preselected);
-      setForm(f=>({...f,name:preselected.name,city:preselected.city||"",address:preselected.address||"",phone:preselected.phone||"",tags:(preselected.tags||[]).filter(k=>DIET_TAGS.includes(k)),meals:preselected.meals||[],cross:(preselected.tags||[]).find(k=>CROSS_TAGS.includes(k))||""}));
-      setStep("form");
-      clearPreselected();
+      setForm(f=>({...f,type:preselected.type||"ristorante",meals:preselected.meals||[],email:user?.email||f.email}));
+      setStep("verify");
+      clearPreselected&&clearPreselected();
     }
-  },[preselected,clearPreselected]);
-  const doSearch=()=>{const lq=q.toLowerCase();setFound(DEMO.filter(s=>s.name.toLowerCase().includes(lq)||s.city.toLowerCase().includes(lq)));};
-  const claim=(s)=>{
-    setSel(s);
-    if(s) setForm(f=>({...f,name:s.name,city:s.city,address:s.address||"",phone:s.phone||"",tags:(s.tags||[]).filter(k=>DIET_TAGS.includes(k)),meals:s.meals||[],cross:(s.tags||[]).find(k=>CROSS_TAGS.includes(k))||""}));
-    else setForm({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",vat:"",sdi:"",legal_name:"",owner_name:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
-    setStep("form");
+  },[preselected,clearPreselected,user?.email]);
+
+  if(!user){
+    return(
+      <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
+        <div style={{background:GREEN,padding:"20px",color:"white"}}>
+          <button onClick={()=>go("welcome")} style={{...ghost2,marginBottom:10,display:"block"}}>← {t.back}</button>
+          <Logo size={24}/>
+          <h2 style={{margin:"8px 0 2px",fontSize:17,fontWeight:700}}>🏢 {t.title}</h2>
+          <p style={{margin:0,fontSize:13,opacity:.8}}>{t.sub}</p>
+        </div>
+        <div style={{padding:16}}>
+          <div style={{...card,textAlign:"center",padding:24}}>
+            <div style={{fontSize:44,marginBottom:10}}>🌿</div>
+            <h3 style={{margin:"0 0 8px",fontSize:17,fontWeight:800,color:"#1a5c3a"}}>{t.loginTitle}</h3>
+            <p style={{margin:"0 0 18px",fontSize:13,color:"#6b7280",lineHeight:1.6}}>{t.loginSub}</p>
+            <button onClick={()=>{setAuthMode&&setAuthMode("register");go("auth");}} style={{...btnG2,marginBottom:10}}>🌿 {t.registerBtn}</button>
+            <button onClick={()=>{setAuthMode&&setAuthMode("login");go("auth");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer"}}>{t.loginBtn}</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const normalizeText=(txt="")=>txt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^\w\s]/g," ").replace(/\s+/g," ").trim();
+  const detectType=(name="",primaryType="")=>{
+    const x=(name+" "+primaryType).toLowerCase();
+    if(x.includes("gelat")||x.includes("ice_cream"))return {type:"gelateria",emoji:"🍦"};
+    if(x.includes("pizza"))return {type:"pizzeria",emoji:"🍕"};
+    if(x.includes("bar")||x.includes("cafe")||x.includes("caff"))return {type:"bar",emoji:"☕"};
+    if(x.includes("pastic")||x.includes("bakery")||x.includes("pastry"))return {type:"pasticceria",emoji:"🧁"};
+    if(x.includes("agritur")||x.includes("farm"))return {type:"agriturismo",emoji:"🌾"};
+    return {type:"ristorante",emoji:"🍽️"};
   };
-  const toggleTag=k=>setForm(f=>({...f,tags:f.tags.includes(k)?f.tags.filter(x=>x!==k):[...f.tags,k]}));
+  const cityFromAddress=(formatted="")=>{
+    const parts=formatted.split(",").map(s=>s.trim()).filter(Boolean);
+    if(parts.length>=3){const c=parts[parts.length-3]; if(c&&!/^\d+$/.test(c))return c;}
+    if(parts.length>=2){const c=parts[parts.length-2]; if(c&&c!=="Italia"&&!/^\d+$/.test(c))return c;}
+    return "Italia";
+  };
+  const searchGoogleBusiness=async()=>{
+    if(!q.trim()){alert(t.searchEmpty);return;}
+    setLoading(true);
+    try{
+      const resp=await fetch("https://places.googleapis.com/v1/places:searchText",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.shortFormattedAddress,places.primaryType,places.rating,places.userRatingCount,places.location"},
+        body:JSON.stringify({textQuery:q+" Italia",languageCode:"it",maxResultCount:10})
+      });
+      const data=await resp.json();
+      const rows=(data.places||[]).map(p=>{
+        const name=p.displayName?.text||p.displayName||"Locale";
+        const d=detectType(name,p.primaryType||"");
+        const address=p.shortFormattedAddress||p.formattedAddress||"";
+        return {id:"g_"+p.id,name,city:cityFromAddress(p.formattedAddress||address),country:"Italia",address,type:d.type,emoji:d.emoji,source:"google",unverified:true,rating:p.rating||null,reviewCount:p.userRatingCount||0,meals:d.type==="bar"?["breakfast","aperitivo"]:d.type==="gelateria"||d.type==="pasticceria"?["breakfast","lunch","aperitivo"]:["lunch","dinner"],tags:[]};
+      });
+      const seen=new Set();
+      setFound(rows.filter(r=>{const k=normalizeText(r.name+" "+r.address); if(seen.has(k))return false; seen.add(k); return true;}));
+    }catch(e){setFound([]);} finally{setLoading(false);}
+  };
+  const chooseVenue=(venue)=>{
+    setSel(venue);
+    setForm(f=>({...f,type:venue.type||"ristorante",meals:venue.meals||[],email:user?.email||f.email}));
+    setStep("verify");
+  };
   const toggleMeal=k=>setForm(f=>({...f,meals:f.meals.includes(k)?f.meals.filter(x=>x!==k):[...f.meals,k]}));
-  const submit=async()=>{
-    if(!form.name||!form.city||!form.address||!form.phone||!form.email||!form.vat||!form.sdi||!form.legal_name||!form.owner_name||!disclaimer)return;
-    setSending(true);
-    await sb.from("business_requests").insert({
-      structure_id:sel?.id&&!sel.id.startsWith("d")&&!sel.id.startsWith("g_")?sel.id:null,
-      google_place_id:sel?.id&&sel.id.startsWith("g_")?sel.id.replace("g_",""):null,
-      name:form.name,type:form.type,city:form.city,address:form.address,
-      phone:form.phone,email:form.email,
-      vat_number:form.vat,sdi_code:form.sdi,legal_name:form.legal_name,owner_name:form.owner_name,
-      website:form.website,instagram:form.instagram,
-      description:form.description,tags:form.tags,meals:form.meals,
-      kitchen_safety:form.cross,certified_request:form.certified,
-      disclaimer_accepted:true,disclaimer_accepted_at:new Date().toISOString(),
-    });
-    setSending(false);setSent(true);
+  const openBusinessBadgePayment=async(plan)=>{
+    if(!sel||!form.owner_name||!form.email||!form.phone||!disclaimer){alert(t.required);return;}
+    setOpening(true);
+    try{
+      const STRIPE_BUSINESS_LINKS={monthly:"https://buy.stripe.com/6oU7sN8cUabvfer34U7bW03",yearly:"https://buy.stripe.com/8x2bJ3dxe3N78Q3gVK7bW04"};
+      const base=STRIPE_BUSINESS_LINKS[plan];
+      const structureId=sel.id;
+      const structureName=sel.name||"Locale";
+      const clientRef=`business|${user.id||""}|${structureId}|${encodeURIComponent(structureName)}`;
+      const params=new URLSearchParams();
+      params.set("prefilled_email",user.email||form.email);
+      params.set("client_reference_id",clientRef);
+      params.set("locale","it");
+      await sb.from("business_requests").insert({
+        structure_id:sel.id&&!String(sel.id).startsWith("g_")?sel.id:null,
+        google_place_id:sel.id&&String(sel.id).startsWith("g_")?String(sel.id).replace("g_",""):null,
+        name:sel.name,type:form.type,city:sel.city,address:sel.address,
+        phone:form.phone,email:form.email,
+        vat_number:form.vat||null,sdi_code:null,legal_name:form.legal_name||null,owner_name:form.owner_name,
+        website:form.website||null,instagram:form.instagram||null,
+        description:"Richiesta verifica attività",tags:[],meals:form.meals,
+        kitchen_safety:null,certified_request:true,status:"pending",
+        disclaimer_accepted:true,disclaimer_accepted_at:new Date().toISOString(),
+      }).catch(()=>{});
+      window.location.href=`${base}?${params.toString()}`;
+    }catch(e){console.error(e);alert(t.stripeErr);setOpening(false);}
   };
-  if(sent) return(
-    <div style={{minHeight:"100vh",background:"#f9fafb"}}>
-      <div style={{background:GREEN,padding:"20px",color:"white"}}><button onClick={()=>go("welcome")} style={{...ghost2,display:"block"}}>← {t.back}</button></div>
-      <div style={{padding:16}}><div style={{...card,textAlign:"center",padding:28}}>
-        <div style={{fontSize:52,marginBottom:12}}>✅</div>
-        <h3 style={{margin:"0 0 8px",fontSize:18,fontWeight:800,color:"#1a5c3a"}}>{t.sent}</h3>
-        <p style={{margin:"0 0 20px",fontSize:14,color:"#6b7280"}}>{t.sentSub} <strong>{form.email}</strong></p>
-        <button onClick={()=>go("welcome")} style={btnG2}>{t.backHome}</button>
-      </div></div>
-    </div>
-  );
-  if(step==="search") return(
+  if(step==="search")return(
     <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
       <div style={{background:GREEN,padding:"20px",color:"white"}}>
         <button onClick={()=>go("welcome")} style={{...ghost2,marginBottom:10,display:"block"}}>← {t.back}</button>
@@ -414,17 +470,24 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
       </div>
       <div style={{padding:16}}>
         <div style={card}>
+          <p style={{margin:"0 0 10px",fontSize:13,fontWeight:800,color:"#1a5c3a"}}>🔍 {lang==="it"?"Cerca la tua attività":"Search your business"}</p>
+          <p style={{margin:"0 0 12px",fontSize:12,color:"#6b7280",lineHeight:1.5}}>{lang==="it"?"Inserisci nome del locale e città. Seleziona solo la tua attività reale: Juniper verificherà la richiesta prima di mostrare il badge.":"Enter venue name and city. Select only your real business: Juniper reviews the request before showing the badge."}</p>
           <div style={{display:"flex",gap:8,marginBottom:12}}>
-            <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={t.searchPh} style={{...inp,flex:1}}/>
-            <button onClick={doSearch} style={{background:"#1a5c3a",color:"white",border:"none",padding:"10px 16px",borderRadius:10,cursor:"pointer",fontWeight:700}}>🔍</button>
+            <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&searchGoogleBusiness()} placeholder={t.searchPh} style={{...inp,flex:1}}/>
+            <button onClick={searchGoogleBusiness} disabled={loading} style={{background:"#1a5c3a",color:"white",border:"none",padding:"10px 16px",borderRadius:10,cursor:"pointer",fontWeight:700}}>{loading?"⏳":"🔍"}</button>
           </div>
+          {loading&&<p style={{fontSize:13,color:"#6b7280",textAlign:"center",padding:12}}>{t.searching}</p>}
+          {!loading&&found.length===0&&q&&<p style={{fontSize:13,color:"#9ca3af",textAlign:"center",padding:12}}>{t.noResults}</p>}
           {found.map(s=>(
             <div key={s.id} style={{border:"1.5px solid #e5e7eb",borderRadius:12,padding:12,marginBottom:8,display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
-              <div><p style={{margin:"0 0 2px",fontWeight:700,fontSize:13}}>{s.emoji} {s.name}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>📍 {s.city}</p></div>
-              <button onClick={()=>claim(s)} style={{background:"#1a5c3a",color:"white",border:"none",padding:"8px 12px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>{t.claim}</button>
+              <div><p style={{margin:"0 0 2px",fontWeight:700,fontSize:13}}>{s.emoji} {s.name}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>📍 {s.address||s.city}</p></div>
+              <button onClick={()=>chooseVenue(s)} style={{background:"#1a5c3a",color:"white",border:"none",padding:"8px 12px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700,whiteSpace:"nowrap"}}>{t.claim}</button>
             </div>
           ))}
-          <button onClick={()=>claim(null)} style={{width:"100%",background:"#f9fafb",border:"1.5px solid #e5e7eb",padding:12,borderRadius:12,cursor:"pointer",fontSize:13,fontWeight:600,color:"#374151",marginTop:found.length>0?8:0}}>+ {t.addNew}</button>
+          <div style={{background:"#fff7ed",border:"1px solid #fed7aa",borderRadius:12,padding:12,marginTop:12}}>
+            <p style={{margin:"0 0 4px",fontSize:12,fontWeight:800,color:"#92400e"}}>❓ {t.notFound}</p>
+            <p style={{margin:0,fontSize:12,color:"#9a3412",lineHeight:1.5}}>{t.notFoundSub}</p>
+          </div>
         </div>
       </div>
     </div>
@@ -436,16 +499,15 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
       <div style={{background:GREEN,padding:"20px",color:"white"}}>
         <button onClick={()=>setStep("search")} style={{...ghost2,marginBottom:10,display:"block"}}>← {t.back}</button>
         <Logo size={24}/>
-        <h2 style={{margin:"8px 0 0",fontSize:17,fontWeight:700}}>🏢 {t.title}</h2>
+        <h2 style={{margin:"8px 0 0",fontSize:17,fontWeight:700}}>🏢 {lang==="it"?"Verifica il tuo locale":"Verify your venue"}</h2>
       </div>
       <div style={{padding:16}}>
-        {sel&&<div style={{background:"#f0fdf4",borderRadius:12,padding:12,marginBottom:12,border:"1.5px solid #bbf7d0"}}><p style={{margin:0,fontWeight:700,fontSize:13,color:"#1a5c3a"}}>{sel.emoji} {sel.name} — {lang==="it"?"dati precompilati":"pre-filled data"}</p></div>}
+        {sel&&<div style={{background:"#f0fdf4",borderRadius:12,padding:12,marginBottom:12,border:"1.5px solid #bbf7d0"}}><p style={{margin:"0 0 3px",fontWeight:800,fontSize:13,color:"#1a5c3a"}}>✅ {t.selected}</p><p style={{margin:0,fontSize:13,color:"#065f46"}}>{sel.emoji} {sel.name}</p><p style={{margin:"3px 0 0",fontSize:11,color:"#6b7280"}}>📍 {sel.address||sel.city}</p></div>}
         <div style={card}>
           <p style={{margin:"0 0 10px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.baseInfo}</p>
-          {[{k:"name",p:lang==="it"?"Nome attività *":"Business name *"},{k:"city",p:lang==="it"?"Città *":"City *"},{k:"address",p:lang==="it"?"Indirizzo *":"Address *"},{k:"phone",p:lang==="it"?"Telefono *":"Phone *"},{k:"email",p:"Email *"},{k:"vat",p:lang==="it"?"Partita IVA *":"VAT Number *"},{k:"sdi",p:lang==="it"?"Codice Univoco / SDI *":"SDI / Unique Code *"},{k:"legal_name",p:lang==="it"?"Ragione Sociale *":"Legal Business Name *"},{k:"owner_name",p:lang==="it"?"Nome Titolare *":"Owner Name *"},{k:"website",p:lang==="it"?"Sito web":"Website"},{k:"instagram",p:"Instagram"}].map(f=>(
+          {[{k:"owner_name",p:lang==="it"?"Nome referente / proprietario *":"Owner / contact name *"},{k:"email",p:"Email *"},{k:"phone",p:lang==="it"?"Telefono / cellulare *":"Phone *"},{k:"legal_name",p:lang==="it"?"Ragione sociale":"Legal business name"},{k:"vat",p:lang==="it"?"Partita IVA":"VAT number"},{k:"website",p:lang==="it"?"Sito web":"Website"},{k:"instagram",p:"Instagram"}].map(f=>(
             <input key={f.k} value={form[f.k]} onChange={e=>setForm(fm=>({...fm,[f.k]:e.target.value}))} placeholder={f.p} style={{...inp,marginBottom:10,fontSize:13}}/>
           ))}
-          <textarea value={form.description} onChange={e=>setForm(f=>({...f,description:e.target.value}))} placeholder={lang==="it"?"Descrizione":"Description"} style={{...inp,resize:"none",height:70,fontSize:13}}/>
         </div>
         <div style={card}>
           <p style={{margin:"0 0 8px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.typeLabel}</p>
@@ -459,28 +521,6 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
             {Object.entries(MEALS).map(([k,m])=><button key={k} onClick={()=>toggleMeal(k)} style={{background:form.meals.includes(k)?"#1f2937":"#f3f4f6",color:form.meals.includes(k)?"white":"#374151",border:"none",padding:"7px 12px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:form.meals.includes(k)?700:400}}>{m.icon} {m[lang==="it"?"it":"en"]}</button>)}
           </div>
         </div>
-        <div style={card}>
-          <p style={{margin:"0 0 8px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.offersLabel}</p>
-          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-            {DIET_TAGS.map(k=><button key={k} onClick={()=>toggleTag(k)} style={{background:form.tags.includes(k)?TAGS[k].color:"#f3f4f6",color:form.tags.includes(k)?"white":"#374151",border:"none",padding:"7px 12px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:form.tags.includes(k)?700:400}}>{TAGS[k].icon} {TAGS[k][lang==="it"?"it":"en"]}</button>)}
-          </div>
-        </div>
-        <div style={card}>
-          <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.kitchenLabel}</p>
-          <p style={{margin:"0 0 10px",fontSize:12,color:"#9ca3af"}}>{t.kitchenSub}</p>
-          {CROSS_TAGS.map(k=>(
-            <div key={k} onClick={()=>setForm(f=>({...f,cross:f.cross===k?"":k}))} style={{border:"2px solid "+(form.cross===k?TAGS[k].color:"#e5e7eb"),borderRadius:12,padding:"10px 14px",cursor:"pointer",marginBottom:8,background:form.cross===k?TAGS[k].color+"11":"white",display:"flex",alignItems:"center",gap:10}}>
-              <span style={{fontSize:18}}>{TAGS[k].icon}</span>
-              <div><p style={{margin:"0 0 2px",fontWeight:700,fontSize:13,color:TAGS[k].color}}>{TAGS[k][lang==="it"?"it":"en"]}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>{CROSS_DESC[lang][k]}</p></div>
-            </div>
-          ))}
-        </div>
-        <div style={{...card,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div><p style={{margin:"0 0 3px",fontWeight:700,fontSize:13,color:"#1a5c3a"}}>{t.badgeLabel}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>{t.badgeSub}</p></div>
-          <div onClick={()=>setForm(f=>({...f,certified:!f.certified}))} style={{width:44,height:24,borderRadius:12,background:form.certified?"#1a5c3a":"#e5e7eb",cursor:"pointer",position:"relative",flexShrink:0}}>
-            <div style={{width:18,height:18,borderRadius:"50%",background:"white",position:"absolute",top:3,left:form.certified?23:3,transition:"left 0.2s"}}/>
-          </div>
-        </div>
         <div style={{background:"#fef9ec",borderRadius:14,padding:16,marginBottom:14,border:"1.5px solid #fed7aa"}}>
           <p style={{margin:"0 0 8px",fontSize:12,fontWeight:700,color:"#92400e"}}>⚖️ {t.disclaimerTitle}</p>
           <p style={{margin:"0 0 12px",fontSize:12,color:"#374151",lineHeight:1.6}}>{t.disclaimerText}</p>
@@ -489,9 +529,14 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
             <span style={{fontSize:12,color:"#374151",fontWeight:600,lineHeight:1.5}}>{t.disclaimerCheck}</span>
           </label>
         </div>
-        <button onClick={submit} disabled={!form.email||!disclaimer||sending} style={{...btnG2,opacity:(form.email&&disclaimer)?1:0.5,fontSize:16,padding:"15px"}}>
-          {sending?"⏳ Invio...":`🌿 ${t.send}`}
-        </button>
+        <div style={{...card,background:"#f0fdf4",border:"1.5px solid #bbf7d0"}}>
+          <p style={{margin:"0 0 6px",fontWeight:800,fontSize:14,color:"#065f46"}}>{t.badgeTitle}</p>
+          <p style={{margin:"0 0 10px",fontSize:12,color:"#166534",lineHeight:1.45}}>{t.badgeSub}</p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+            <button type="button" onClick={()=>openBusinessBadgePayment("monthly")} disabled={opening} style={{background:"#1a5c3a",color:"white",border:"none",padding:"12px 10px",borderRadius:12,fontWeight:800,fontSize:13,cursor:"pointer",opacity:opening?.7:1}}>{opening?"⏳":"✅"} {t.payMonthly}</button>
+            <button type="button" onClick={()=>openBusinessBadgePayment("yearly")} disabled={opening} style={{background:"white",color:"#1a5c3a",border:"1.5px solid #86efac",padding:"12px 10px",borderRadius:12,fontWeight:800,fontSize:13,cursor:"pointer",opacity:opening?.7:1}}>{opening?"⏳":"✅"} {t.payYearly}</button>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1290,7 +1335,7 @@ function App(){
     </div>
   );
 
-  if(screen==="business")return <BusinessScreen lang={lang} go={go} preselected={businessClaim} clearPreselected={()=>setBusinessClaim(null)}/>;
+  if(screen==="business")return <BusinessScreen lang={lang} go={go} user={user} setAuthMode={setAuthMode} preselected={businessClaim} clearPreselected={()=>setBusinessClaim(null)}/>;
   if(screen==="admin"){if(user?.email!==ADMIN_EMAIL){go("home");return null;}return <AdminScreen user={user} lang={lang} go={go} sb={sb}/>;}
   if(screen==="policy")return <PolicyScreen lang={lang} go={go}/>;
 
