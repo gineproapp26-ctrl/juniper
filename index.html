@@ -147,24 +147,36 @@ function AdminScreen({user,lang,go,sb}){
     if(rTags.data)setTagSuggestions(rTags.data);
     setLoading(false);
   };
- const approveTag=async(suggestion)=>{
-  // 🌿 Se è locale Google, crealo in structures
-  if(suggestion.structure_id && suggestion.structure_id.startsWith("g_")){
-    const {data:existing}=await sb.from("structures")
+ const approveTag = async (suggestion) => {
+  let targetStructureId = suggestion.structure_id;
+
+  // Se è un locale Google, salvalo in structures usando google_place_id
+  if (suggestion.structure_id && suggestion.structure_id.startsWith("g_")) {
+    const { data: existing, error: findError } = await sb
+      .from("structures")
       .select("id")
-      .eq("id",suggestion.structure_id)
+      .eq("google_place_id", suggestion.structure_id)
       .maybeSingle();
-    
-    if(!existing){
-      // Crea oggetto con tag attivo
+
+    if (findError) {
+      showMsg("❌ Errore ricerca locale: " + findError.message);
+      return;
+    }
+
+    if (existing) {
+      targetStructureId = existing.id;
+    } else {
       const tagToActivate = suggestion.tag;
+
       const newStructure = {
-        id: suggestion.structure_id,
+        google_place_id: suggestion.structure_id,
         name: suggestion.structure_name || "Locale Google",
         city: "Italia",
+        country: "Italia",
         type: "ristorante",
         source: "google",
         pending: false,
+
         gluten_free: tagToActivate === "gluten_free",
         lactose_free: tagToActivate === "lactose_free",
         vegan: tagToActivate === "vegan",
@@ -172,26 +184,43 @@ function AdminScreen({user,lang,go,sb}){
         pet_friendly: tagToActivate === "pet_friendly",
         combo_free: tagToActivate === "combo_free"
       };
-      
-      const {error: insertError} = await sb.from("structures").insert(newStructure);
-      
-      if(insertError){
+
+      const { data: inserted, error: insertError } = await sb
+        .from("structures")
+        .insert(newStructure)
+        .select("id")
+        .single();
+
+      if (insertError) {
         showMsg("❌ Errore creazione locale: " + insertError.message);
         return;
       }
+
+      targetStructureId = inserted.id;
     }
   }
-  
-  const r1=await sb.from("community_tags").upsert(
-    {structure_id:suggestion.structure_id,tag:suggestion.tag,count:1},
-    {onConflict:"structure_id,tag",ignoreDuplicates:false}
+
+  const r1 = await sb.from("community_tags").upsert(
+    {
+      structure_id: targetStructureId,
+      tag: suggestion.tag,
+      count: 1
+    },
+    {
+      onConflict: "structure_id,tag",
+      ignoreDuplicates: false
+    }
   );
-  const r2=await sb.from("tag_suggestions").update({status:"approved"}).eq("id",suggestion.id);
-  
-  if(r1.error||r2.error){
-    showMsg("❌ Errore: "+(r1.error?.message||r2.error?.message));
+
+  const r2 = await sb
+    .from("tag_suggestions")
+    .update({ status: "approved" })
+    .eq("id", suggestion.id);
+
+  if (r1.error || r2.error) {
+    showMsg("❌ Errore: " + (r1.error?.message || r2.error?.message));
   } else {
-    showMsg("✅ Tag approvato e pubblicato!");
+    showMsg("✅ Tag approvato e locale pubblicato!");
     load();
   }
 };
