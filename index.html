@@ -1095,7 +1095,7 @@ function App(){
     // Se ci sono filtri tags, memorizzo i locali Google per scannerizzarli
     let pendingGooglePlaces=[];
     try{
-      const gRes=await Promise.race([searchGooglePlaces(q||"ristorante",tagFilters),new Promise(r=>setTimeout(()=>r([]),5000))]);
+      const gRes=await Promise.race([searchGooglePlaces(q||"ristorante",tagFilters),new Promise(r=>setTimeout(()=>r([]),2500))]);
       if(gRes&&gRes.length>0){
         const existing=new Set(res.map(s=>(s.name||"").toLowerCase()));
         const newGooglePlaces=gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase()));
@@ -1114,11 +1114,11 @@ function App(){
     
     // Scansione recensioni Google CONTROLLATA:
     // - solo quando l'utente usa filtri alimentari/pet
-    // - massimo 10 locali per ricerca
+    // - massimo 5 locali per ricerca
     // - cache locale 7 giorni per non richiamare Google sullo stesso locale
     const googleRes=res.filter(r=>r.source==="google"&&r.id.startsWith("g_"));
     const shouldScanReviews=tagFilters.some(f=>DIET_TAGS.includes(f));
-    const allToScan=shouldScanReviews?[...googleRes,...pendingGooglePlaces].slice(0,10):[];
+    const allToScan=shouldScanReviews?[...googleRes,...pendingGooglePlaces].slice(0,5):[];
     allToScan.forEach(async(venue)=>{
       try{
         const placeId=venue.id.replace("g_","");
