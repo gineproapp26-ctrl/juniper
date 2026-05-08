@@ -55,7 +55,7 @@ const MEALS = {
 };
 const SOURCES = {
   registered:{it:"Registrata",en:"Registered",icon:"🏢",color:"#1a5c3a",bg:"#e8f5ee"},
-  verified:  {it:"Verificata",en:"Verified",icon:"🌿",color:"#2563eb",bg:"#dbeafe"},
+  verified:  {it:"Locale verificato e iscritto a Juniper",en:"Verified venue subscribed to Juniper",icon:"✅",color:"#065f46",bg:"#d1fae5"},
   google:    {it:"Non Verificato",en:"Not Verified",icon:"⚠️",color:"#b45309",bg:"#fef3c7"},
 };
 // Badge speciale per locali con tag approvati da Juniper
@@ -90,7 +90,7 @@ function PolicyScreen({lang,go}){
       s1title:"⚖️ Responsabilità dei contenuti",s1:"Ogni locale registrato su Juniper è responsabile in prima persona delle informazioni inserite nella propria scheda, incluse le caratteristiche alimentari dichiarate (gluten free, vegano, senza lattosio, ecc.). Juniper non verifica in modo autonomo e continuativo le informazioni pubblicate dai locali.",
       s2title:"🌿 Ruolo di Juniper",s2:"Juniper è una piattaforma di ricerca e scoperta. Mettiamo in contatto utenti con esigenze alimentari specifiche e locali che dichiarano di soddisfarle. Non siamo responsabili di eventuali errori, omissioni o cambiamenti nelle informazioni fornite dai locali.",
       s3title:"⚠️ Avviso per gli utenti",s3:"Ti consigliamo sempre di confermare direttamente con il locale prima di consumare, soprattutto in caso di allergie o intolleranze gravi. Le informazioni presenti su Juniper sono fornite a titolo indicativo e non costituiscono garanzia medica o legale.",
-      s4title:"🏅 Badge Verificato",s4:"Il badge Verificato da Juniper indica che il locale ha fornito documentazione a supporto delle proprie dichiarazioni ed ha sottoscritto la nostra dichiarazione di responsabilità. Tuttavia, anche i locali verificati rimangono gli unici responsabili della veridicità delle informazioni.",
+      s4title:"🏅 Badge Verificato",s4:"Il badge “Locale verificato e iscritto a Juniper” indica che il proprietario ha dichiarato e sottoscritto le informazioni pubblicate. Il locale rimane l’unico responsabile della veridicità e dell’aggiornamento delle informazioni.",
       s5title:"📋 Registrazione dei locali",s5:"I locali che si registrano su Juniper accettano esplicitamente di fornire informazioni veritiere e aggiornate. La pubblicazione di informazioni false o fuorvianti comporta la rimozione immediata dalla piattaforma.",
       s6title:"📬 Contatti",s6:"Per segnalazioni, richieste di verifica o rimozione di contenuti: help@juniperapp.eu",
       updated:"Ultimo aggiornamento: aprile 2026"},
@@ -318,12 +318,12 @@ function AdminScreen({user,lang,go,sb}){
                   <p style={{margin:0,fontSize:12,color:"#6b7280"}}>📍 {s.city} · {s.type}</p>
                 </div>
                 <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:s.source==="verified"?"#dbeafe":s.source==="registered"?"#e8f5ee":"#f3f4f6",color:s.source==="verified"?"#2563eb":s.source==="registered"?"#1a5c3a":"#6b7280"}}>
-                  {s.source==="verified"?"🌿 Verificato":s.source==="registered"?"🏢 Registrato":"📍 Google"}
+                  {s.source==="verified"?"✅ Locale verificato":s.source==="registered"?"🏢 Registrato":"📍 Google"}
                 </span>
               </div>
               <div style={{display:"flex",gap:8}}>
                 <button onClick={()=>verifyStructure(s.id,s.source!=="verified")} style={{flex:1,background:s.source==="verified"?"#fef3c7":"#dbeafe",color:s.source==="verified"?"#92400e":"#2563eb",border:"none",padding:"7px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700}}>
-                  {s.source==="verified"?"🏢 Rimuovi badge":"🌿 Assegna Verificato"}
+                  {s.source==="verified"?"🏢 Rimuovi badge":"✅ Assegna badge"}
                 </button>
                 <button onClick={()=>deleteStructure(s.id)} style={{background:"#fee2e2",color:"#dc2626",border:"none",padding:"7px 12px",borderRadius:10,cursor:"pointer",fontSize:13}}>🗑️</button>
               </div>
@@ -379,8 +379,8 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const btnG2={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
   const tx={
-    it:{back:"Indietro",title:"Registra la tua attività",sub:"Raggiungi chi cerca esattamente quello che offri. Badge Verificato incluso! ✨",searchPh:"Cerca per nome o città...",claim:"Sono il titolare",addNew:"Aggiungi da zero",baseInfo:"📋 Info base",typeLabel:"🏪 Tipo",openLabel:"🍽️ Quando siete aperti?",offersLabel:"✅ Cosa offrite?",kitchenLabel:"🔬 Sicurezza in cucina",kitchenSub:"Sii onesto — è importante per i tuoi clienti",badgeLabel:"✨ Badge Verificato Incluso",badgeSub:"Distintivo esclusivo per i locali registrati. Aumenta la fiducia dei clienti!",send:"Invia richiesta",sent:"Richiesta inviata!",sentSub:"Ti contatteremo a",backHome:"Torna alla home",disclaimerTitle:"⚖️ Dichiarazione di responsabilità",disclaimerText:"Il titolare dichiara sotto la propria responsabilità che le informazioni inserite sono veritiere e aggiornate. Juniper non è responsabile per eventuali inesattezze. L'utente finale è sempre invitato a confermare direttamente con il locale prima di consumare.",disclaimerCheck:"Ho letto e accetto. Confermo che le informazioni sono veritiere e mi assumo la piena responsabilità dei contenuti pubblicati.",cancel:"Annulla"},
-    en:{back:"Back",title:"Register your business",sub:"Reach those looking for exactly what you offer. Verified Badge included! ✨",searchPh:"Search by name or city...",claim:"I'm the owner",addNew:"Add from scratch",baseInfo:"📋 Basic info",typeLabel:"🏪 Type",openLabel:"🍽️ When are you open?",offersLabel:"✅ What do you offer?",kitchenLabel:"🔬 Kitchen safety",kitchenSub:"Be honest — it matters to your customers",badgeLabel:"✨ Verified Badge Included",badgeSub:"Exclusive badge for registered venues. Build customer trust!",send:"Send request",sent:"Request sent!",sentSub:"We'll contact you at",backHome:"Back to home",disclaimerTitle:"⚖️ Liability Declaration",disclaimerText:"The owner declares under their own responsibility that the information provided is truthful and up to date. Juniper is not liable for any inaccuracies. End users are always encouraged to confirm directly with the venue before consuming.",disclaimerCheck:"I have read and agree. I confirm the information is truthful and take full responsibility for the published content.",cancel:"Cancel"},
+    it:{back:"Indietro",title:"Registra la tua attività",sub:"Raggiungi chi cerca esattamente quello che offri. Il badge verificato è disponibile come opzione a pagamento. ✨",searchPh:"Cerca per nome o città...",claim:"Sono il titolare",addNew:"Aggiungi da zero",baseInfo:"📋 Info base",typeLabel:"🏪 Tipo",openLabel:"🍽️ Quando siete aperti?",offersLabel:"✅ Cosa offrite?",kitchenLabel:"🔬 Sicurezza in cucina",kitchenSub:"Sii onesto — è importante per i tuoi clienti",badgeLabel:"✨ Badge verificato opzionale",badgeSub:"Disponibile con abbonamento attività: 10€/mese oppure 110€/anno.",send:"Invia richiesta",sent:"Richiesta inviata!",sentSub:"Ti contatteremo a",backHome:"Torna alla home",disclaimerTitle:"⚖️ Dichiarazione di responsabilità",disclaimerText:"Il titolare dichiara sotto la propria responsabilità che le informazioni inserite sono veritiere e aggiornate. Juniper non è responsabile per eventuali inesattezze. L'utente finale è sempre invitato a confermare direttamente con il locale prima di consumare.",disclaimerCheck:"Ho letto e accetto. Confermo che le informazioni sono veritiere e mi assumo la piena responsabilità dei contenuti pubblicati.",cancel:"Annulla"},
+    en:{back:"Back",title:"Register your business",sub:"Reach those looking for exactly what you offer. The verified badge is available as a paid option. ✨",searchPh:"Search by name or city...",claim:"I'm the owner",addNew:"Add from scratch",baseInfo:"📋 Basic info",typeLabel:"🏪 Type",openLabel:"🍽️ When are you open?",offersLabel:"✅ What do you offer?",kitchenLabel:"🔬 Kitchen safety",kitchenSub:"Be honest — it matters to your customers",badgeLabel:"✨ Optional verified badge",badgeSub:"Available with a business subscription: €10/month or €110/year.",send:"Send request",sent:"Request sent!",sentSub:"We'll contact you at",backHome:"Back to home",disclaimerTitle:"⚖️ Liability Declaration",disclaimerText:"The owner declares under their own responsibility that the information provided is truthful and up to date. Juniper is not liable for any inaccuracies. End users are always encouraged to confirm directly with the venue before consuming.",disclaimerCheck:"I have read and agree. I confirm the information is truthful and take full responsibility for the published content.",cancel:"Cancel"},
   };
   const t=tx[lang];
   const [step,setStep]=React.useState(preselected?"form":"search");
@@ -568,7 +568,9 @@ function App(){
   const SEARCH_LIMIT=5;
   const STRIPE_LINKS={
     user_monthly:"https://buy.stripe.com/6oU4gBfFmabvc2f0WM7bW01",
-    user_yearly:"https://buy.stripe.com/bJe7sN2SA3N7d6jeNC7bW02"
+    user_yearly:"https://buy.stripe.com/bJe7sN2SA3N7d6jeNC7bW02",
+    business_monthly:"https://buy.stripe.com/6oU7sN8cUabvfer34U7bW03",
+    business_yearly:"https://buy.stripe.com/8x2bJ3dxe3N78Q3gVK7bW04"
   };
   const isGuest=!user;
   const GUEST_MAX=2;
@@ -787,6 +789,23 @@ function App(){
     const params=new URLSearchParams();
     if(user.email)params.set("prefilled_email",user.email);
     if(user.id)params.set("client_reference_id",user.id);
+
+    window.open(`${base}?${params.toString()}`,"_blank");
+  };
+
+  const openBusinessStripeLink=(plan,structure)=>{
+    if(!user){showP(t.popGuest,t.popGuestSub,"register");return;}
+
+    const base=STRIPE_LINKS[plan];
+    if(!base||!structure)return;
+
+    const structureId=structure.id||"";
+    const structureName=structure.name||"";
+    const clientRef=`business|${user.id||""}|${structureId}|${encodeURIComponent(structureName)}`;
+
+    const params=new URLSearchParams();
+    if(user.email)params.set("prefilled_email",user.email);
+    params.set("client_reference_id",clientRef);
 
     window.open(`${base}?${params.toString()}`,"_blank");
   };
@@ -1685,11 +1704,30 @@ function App(){
             {communityTags[s.id]&&Object.keys(communityTags[s.id]).filter(k=>communityTags[s.id][k].count>0).length>0&&<div style={{marginTop:8,background:"#f0fdf4",borderRadius:10,padding:"8px 10px",border:"1px solid #bbf7d0"}}><p style={{margin:"0 0 6px",fontSize:11,color:"#1a5c3a",fontWeight:700}}>👥 {lang==="it"?"Segnalato dalla community:":"Reported by community:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{Object.entries(communityTags[s.id]).filter(([k,v])=>v.count>0).map(([k,v])=><span key={k} style={{background:"white",color:"#1a5c3a",fontSize:11,padding:"3px 8px",borderRadius:20,border:"1px solid #bbf7d0",fontWeight:600}}>{TAGS[k]?.icon} {TAGS[k]?.[lang]} · {v.count}</span>)}</div><p style={{margin:"6px 0 0",fontSize:10,color:"#6b7280"}}>{lang==="it"?"Segnalato dagli utenti, non garantito":"Reported by users, not guaranteed"}</p></div>}
             <div style={{marginTop:8}}><p style={{margin:"0 0 6px",fontSize:11,color:"#9ca3af"}}>{lang==="it"?"+ Segnala una caratteristica:":"+ Report a feature:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{DIET_TAGS.map(k=>{const ct=communityTags[s.id]?.[k];const hasVoted=ct?.users?.includes(user?.id);return <button key={k} onClick={()=>addCommunityTag(s.id,s.name,s.city,s.address,k)} style={{background:hasVoted?"#fef3c7":"#f9fafb",color:hasVoted?"#92400e":"#9ca3af",border:`1px solid ${hasVoted?"#fcd34d":"#e5e7eb"}`,padding:"4px 10px",borderRadius:20,fontSize:11,cursor:"pointer"}}>{TAGS[k].icon} {TAGS[k]?.[lang]}{ct?.count>0?` (${ct.count})`:""}</button>;})} </div></div>
           </div>
-          {s.source==="google"&&!isGuest&&<div onClick={()=>{setBusinessClaim(s);go("business");}} style={{...card,background:"#fff7ed",border:"2px dashed #fb923c",cursor:"pointer",textAlign:"center",padding:20}}>
+          {s.source!=="verified"&&!isGuest&&<div style={{...card,background:"#fff7ed",border:"2px dashed #fb923c",textAlign:"center",padding:20}}>
             <div style={{fontSize:36,marginBottom:8}}>🏪</div>
             <h3 style={{margin:"0 0 8px",fontSize:15,fontWeight:800,color:"#c2410c"}}>{lang==="it"?"Sei il proprietario?":"Are you the owner?"}</h3>
-            <p style={{margin:"0 0 12px",fontSize:13,color:"#9a3412"}}>{lang==="it"?"Registra questo locale per verificare le informazioni e ottenere il badge Verificato!":"Register this venue to verify information and get the Verified badge!"}</p>
-            <div style={{background:"#ea580c",color:"white",padding:"10px 16px",borderRadius:10,display:"inline-block",fontWeight:700,fontSize:14}}>📝 {lang==="it"?"Registra Ora":"Register Now"}</div>
+            <p style={{margin:"0 0 12px",fontSize:13,color:"#9a3412",lineHeight:1.45}}>
+              {lang==="it"
+                ?"Registra il locale gratis oppure richiedi il badge a pagamento: ✅ Locale verificato e iscritto a Juniper."
+                :"Register the venue for free or request the paid badge: ✅ Verified venue subscribed to Juniper."}
+            </p>
+            <div style={{display:"flex",flexDirection:"column",gap:8}}>
+              <button onClick={()=>{setBusinessClaim(s);go("business");}} style={{background:"#ea580c",color:"white",border:"none",padding:"10px 16px",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer"}}>
+                📝 {lang==="it"?"Registra gratis":"Register for free"}
+              </button>
+              <button onClick={()=>openBusinessStripeLink("business_monthly",s)} style={{background:"#1a5c3a",color:"white",border:"none",padding:"10px 16px",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer"}}>
+                ✅ {lang==="it"?"Badge locale 10€/mese":"Venue badge €10/month"}
+              </button>
+              <button onClick={()=>openBusinessStripeLink("business_yearly",s)} style={{background:"#f0fdf4",color:"#1a5c3a",border:"1px solid #bbf7d0",padding:"10px 16px",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer"}}>
+                ✨ {lang==="it"?"Badge locale 110€/anno":"Venue badge €110/year"}
+              </button>
+            </div>
+            <p style={{margin:"10px 0 0",fontSize:11,color:"#9a3412",lineHeight:1.35}}>
+              {lang==="it"
+                ?"Dopo il pagamento, la richiesta resta in attesa di approvazione. Le informazioni sono dichiarate dal proprietario del locale."
+                :"After payment, the request stays pending approval. Information is declared by the venue owner."}
+            </p>
           </div>}
           <div style={card}>
             <p style={{margin:"0 0 10px",fontSize:14,color:"#374151",lineHeight:1.6}}>{s.description}</p>
