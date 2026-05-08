@@ -147,24 +147,37 @@ function AdminScreen({user,lang,go,sb}){
     if(rTags.data)setTagSuggestions(rTags.data);
     setLoading(false);
   };
- const approveTag=async(suggestion)=>{
-  // 🌿 Se è locale Google, crealo in structures
-  if(suggestion.structure_id && suggestion.structure_id.startsWith("g_")){
-    const {data:existing}=await sb.from("structures")
+ const approveTag = async (suggestion) => {
+  let targetStructureId = suggestion.structure_id;
+
+  // Se è un locale Google, salvalo in structures usando google_place_id
+  if (suggestion.structure_id && suggestion.structure_id.startsWith("g_")) {
+    const { data: existing, error: findError } = await sb
+      .from("structures")
       .select("id")
-      .eq("id",suggestion.structure_id)
+      .eq("google_place_id", suggestion.structure_id)
       .maybeSingle();
-    
-    if(!existing){
-      // Crea oggetto con tag attivo
+
+    if (findError) {
+      showMsg("❌ Errore ricerca locale: " + findError.message);
+      return;
+    }
+
+    if (existing) {
+      targetStructureId = existing.id;
+    } else {
       const tagToActivate = suggestion.tag;
+
       const newStructure = {
-        id: suggestion.structure_id,
+        google_place_id: suggestion.structure_id,
         name: suggestion.structure_name || "Locale Google",
-        city: "Italia",
+        city: suggestion.structure_city || "Italia",
+        country: "Italia",
+        address: suggestion.structure_address || "",
         type: "ristorante",
         source: "google",
         pending: false,
+
         gluten_free: tagToActivate === "gluten_free",
         lactose_free: tagToActivate === "lactose_free",
         vegan: tagToActivate === "vegan",
@@ -172,26 +185,43 @@ function AdminScreen({user,lang,go,sb}){
         pet_friendly: tagToActivate === "pet_friendly",
         combo_free: tagToActivate === "combo_free"
       };
-      
-      const {error: insertError} = await sb.from("structures").insert(newStructure);
-      
-      if(insertError){
+
+      const { data: inserted, error: insertError } = await sb
+        .from("structures")
+        .insert(newStructure)
+        .select("id")
+        .single();
+
+      if (insertError) {
         showMsg("❌ Errore creazione locale: " + insertError.message);
         return;
       }
+
+      targetStructureId = inserted.id;
     }
   }
-  
-  const r1=await sb.from("community_tags").upsert(
-    {structure_id:suggestion.structure_id,tag:suggestion.tag,count:1},
-    {onConflict:"structure_id,tag",ignoreDuplicates:false}
+
+  const r1 = await sb.from("community_tags").upsert(
+    {
+      structure_id: targetStructureId,
+      tag: suggestion.tag,
+      count: 1
+    },
+    {
+      onConflict: "structure_id,tag",
+      ignoreDuplicates: false
+    }
   );
-  const r2=await sb.from("tag_suggestions").update({status:"approved"}).eq("id",suggestion.id);
-  
-  if(r1.error||r2.error){
-    showMsg("❌ Errore: "+(r1.error?.message||r2.error?.message));
+
+  const r2 = await sb
+    .from("tag_suggestions")
+    .update({ status: "approved" })
+    .eq("id", suggestion.id);
+
+  if (r1.error || r2.error) {
+    showMsg("❌ Errore: " + (r1.error?.message || r2.error?.message));
   } else {
-    showMsg("✅ Tag approvato e pubblicato!");
+    showMsg("✅ Tag approvato e locale pubblicato!");
     load();
   }
 };
@@ -308,6 +338,8 @@ function AdminScreen({user,lang,go,sb}){
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                 <div>
                   <p style={{margin:"0 0 2px",fontWeight:700,fontSize:14}}>{TAGS[s.tag]?.icon} {TAGS[s.tag]?.it} per <em>{s.structure_name||s.structure_id}</em></p>
+                  <p style={{margin:"0 0 2px",fontSize:12,color:"#6b7280"}}>📍 {s.structure_city || "Città non disponibile"}</p>
+                  {s.structure_address&&<p style={{margin:"0 0 2px",fontSize:12,color:"#6b7280"}}>🏠 {s.structure_address}</p>}
                   <p style={{margin:"0 0 2px",fontSize:12,color:"#6b7280"}}>👤 {s.user_name} · {s.created_at?.split("T")[0]}</p>
                 </div>
                 <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:s.status==="pending"?"#fef3c7":s.status==="approved"?"#d1fae5":"#fee2e2",color:s.status==="pending"?"#92400e":s.status==="approved"?"#065f46":"#dc2626"}}>
@@ -1093,7 +1125,7 @@ function App(){
     }catch(e){}
   };
 
-  const addCommunityTag=async(structId,structName,tag)=>{
+  const addCommunityTag=async(structId,structName,structCity,structAddress,tag)=>{
     if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
     const alreadySent=communityTags[structId]?.pending?.includes(user.id+"_"+tag);
     if(alreadySent){
@@ -1101,8 +1133,14 @@ function App(){
       return;
     }
     const {error}=await sb.from("tag_suggestions").insert({
-      structure_id:structId,structure_name:structName||"",
-      tag,user_id:user.id,user_name:user.name,status:"pending"
+      structure_id:structId,
+      structure_name:structName||"",
+      structure_city:structCity||"",
+      structure_address:structAddress||"",
+      tag,
+      user_id:user.id,
+      user_name:user.name,
+      status:"pending"
     });
     if(error){alert(lang==="it"?"Errore. Riprova.":"Error. Try again.");return;}
     setCommunityTags(prev=>({
@@ -1545,7 +1583,7 @@ function App(){
             </div>
             {s.reviewTags&&s.reviewTags.length>0&&<div style={{marginTop:8}}><p style={{margin:"0 0 6px",fontSize:11,color:"#6b7280",fontWeight:700}}>💬 {lang==="it"?"Segnalato nelle recensioni:":"Mentioned in reviews:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{s.reviewTags.map(k=><span key={k} style={{background:"#fef9ec",color:"#92400e",fontSize:11,padding:"3px 8px",borderRadius:20,border:"1px dashed #fcd34d"}}>💬 {TAGS[k]?.[lang]}</span>)}</div><p style={{margin:"6px 0 0",fontSize:10,color:"#9ca3af"}}>{lang==="it"?"Dalle recensioni Google, non verificato":"From Google reviews, not verified"}</p></div>}
             {communityTags[s.id]&&Object.keys(communityTags[s.id]).filter(k=>communityTags[s.id][k].count>0).length>0&&<div style={{marginTop:8,background:"#f0fdf4",borderRadius:10,padding:"8px 10px",border:"1px solid #bbf7d0"}}><p style={{margin:"0 0 6px",fontSize:11,color:"#1a5c3a",fontWeight:700}}>👥 {lang==="it"?"Segnalato dalla community:":"Reported by community:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{Object.entries(communityTags[s.id]).filter(([k,v])=>v.count>0).map(([k,v])=><span key={k} style={{background:"white",color:"#1a5c3a",fontSize:11,padding:"3px 8px",borderRadius:20,border:"1px solid #bbf7d0",fontWeight:600}}>{TAGS[k]?.icon} {TAGS[k]?.[lang]} · {v.count}</span>)}</div><p style={{margin:"6px 0 0",fontSize:10,color:"#6b7280"}}>{lang==="it"?"Segnalato dagli utenti, non garantito":"Reported by users, not guaranteed"}</p></div>}
-            <div style={{marginTop:8}}><p style={{margin:"0 0 6px",fontSize:11,color:"#9ca3af"}}>{lang==="it"?"+ Segnala una caratteristica:":"+ Report a feature:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{DIET_TAGS.map(k=>{const ct=communityTags[s.id]?.[k];const hasVoted=ct?.users?.includes(user?.id);return <button key={k} onClick={()=>addCommunityTag(s.id,s.name,k)} style={{background:hasVoted?"#fef3c7":"#f9fafb",color:hasVoted?"#92400e":"#9ca3af",border:`1px solid ${hasVoted?"#fcd34d":"#e5e7eb"}`,padding:"4px 10px",borderRadius:20,fontSize:11,cursor:"pointer"}}>{TAGS[k].icon} {TAGS[k]?.[lang]}{ct?.count>0?` (${ct.count})`:""}</button>;})} </div></div>
+            <div style={{marginTop:8}}><p style={{margin:"0 0 6px",fontSize:11,color:"#9ca3af"}}>{lang==="it"?"+ Segnala una caratteristica:":"+ Report a feature:"}</p><div style={{display:"flex",gap:5,flexWrap:"wrap"}}>{DIET_TAGS.map(k=>{const ct=communityTags[s.id]?.[k];const hasVoted=ct?.users?.includes(user?.id);return <button key={k} onClick={()=>addCommunityTag(s.id,s.name,s.city,s.address,k)} style={{background:hasVoted?"#fef3c7":"#f9fafb",color:hasVoted?"#92400e":"#9ca3af",border:`1px solid ${hasVoted?"#fcd34d":"#e5e7eb"}`,padding:"4px 10px",borderRadius:20,fontSize:11,cursor:"pointer"}}>{TAGS[k].icon} {TAGS[k]?.[lang]}{ct?.count>0?` (${ct.count})`:""}</button>;})} </div></div>
           </div>
           {s.source==="google"&&!isGuest&&<div onClick={()=>{setBusinessClaim(s);go("business");}} style={{...card,background:"#fff7ed",border:"2px dashed #fb923c",cursor:"pointer",textAlign:"center",padding:20}}>
             <div style={{fontSize:36,marginBottom:8}}>🏪</div>
@@ -1556,7 +1594,7 @@ function App(){
           <div style={card}>
             <p style={{margin:"0 0 10px",fontSize:14,color:"#374151",lineHeight:1.6}}>{s.description}</p>
             <div style={{borderTop:"1px solid #f3f4f6",paddingTop:10,display:"flex",flexDirection:"column",gap:5}}>
-              <p style={{margin:0,fontSize:13,color:"#6b7280"}}>📍 {s.address}</p>
+              <p style={{margin:0,fontSize:13,color:"#6b7280"}}>📍 {s.address || s.city || "Indirizzo non disponibile"}</p>
               {s.phone&&<p style={{margin:0,fontSize:13,color:"#6b7280"}}>📞 {s.phone}</p>}
               {s.rating&&<div style={{display:"flex",alignItems:"center",gap:5}}><span style={{color:"#f59e0b"}}>{"⭐".repeat(Math.round(s.rating))}</span><span style={{fontSize:13,fontWeight:700}}>{s.rating}</span><span style={{fontSize:12,color:"#9ca3af"}}>({s.reviewCount} {t.reviews})</span></div>}
             </div>
