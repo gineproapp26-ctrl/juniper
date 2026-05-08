@@ -566,6 +566,10 @@ function App(){
   const [subStatus,setSubStatus]=React.useState(null);
   const [searchCount,setSearchCount]=React.useState(0);
   const SEARCH_LIMIT=5;
+  const STRIPE_LINKS={
+    user_monthly:"https://buy.stripe.com/6oU4gBfFmabvc2f0WM7bW01",
+    user_yearly:"https://buy.stripe.com/bJe7sN2SA3N7d6jeNC7bW02"
+  };
   const isGuest=!user;
   const GUEST_MAX=2;
 
@@ -574,6 +578,7 @@ function App(){
       if((event==="SIGNED_IN"||event==="INITIAL_SESSION")&&session?.user){
         setUser({name:session.user.user_metadata?.name||session.user.email.split("@")[0],email:session.user.email,id:session.user.id});
         loadSearchUsage(session.user.id);
+        loadPremiumStatus(session.user.id,session.user.email);
         setALoading(false);
         setScreen(prev=>prev==="welcome"||prev==="auth"||prev==="policy"?"home":prev);
         // Mostra welcome popup solo al primo accesso
@@ -588,9 +593,7 @@ function App(){
     sb.auth.getSession().then(({data:{session}})=>{
       if(session?.user){
         loadSearchUsage(session.user.id);
-        sb.from("subscriptions").select("*").eq("user_id",session.user.id).eq("status","active").maybeSingle().then(({data})=>{
-          if(data){setIsPremium(true);setSubPlan(data.plan);setSubStatus(data.status);}
-        }).catch(()=>{});
+        loadPremiumStatus(session.user.id,session.user.email);
       }
     });
     sb.from("structures").select("*").eq("pending",false).then(async({data})=>{
@@ -731,6 +734,63 @@ function App(){
     return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}`;
   };
 
+  const loadPremiumStatus=async(userId,email)=>{
+    if(!userId&&!email)return;
+
+    try{
+      let query=sb
+        .from("subscriptions")
+        .select("*")
+        .eq("status","active")
+        .eq("role","user")
+        .limit(1);
+
+      if(userId&&email){
+        query=query.or(`user_id.eq.${userId},email.eq.${email}`);
+      } else if(userId){
+        query=query.eq("user_id",userId);
+      } else if(email){
+        query=query.eq("email",email);
+      }
+
+      const {data,error}=await query.maybeSingle();
+
+      if(error){
+        setIsPremium(false);
+        setSubPlan(null);
+        setSubStatus(null);
+        return;
+      }
+
+      if(data){
+        setIsPremium(true);
+        setSubPlan(data.plan);
+        setSubStatus(data.status);
+      } else {
+        setIsPremium(false);
+        setSubPlan(null);
+        setSubStatus(null);
+      }
+    }catch(e){
+      setIsPremium(false);
+      setSubPlan(null);
+      setSubStatus(null);
+    }
+  };
+
+  const openStripeLink=(plan)=>{
+    if(!user){showP(t.popGuest,t.popGuestSub,"register");return;}
+
+    const base=STRIPE_LINKS[plan];
+    if(!base)return;
+
+    const params=new URLSearchParams();
+    if(user.email)params.set("prefilled_email",user.email);
+    if(user.id)params.set("client_reference_id",user.id);
+
+    window.open(`${base}?${params.toString()}`,"_blank");
+  };
+
   const loadSearchUsage=async(userId)=>{
     if(!userId)return;
     const monthKey=getMonthKey();
@@ -771,8 +831,8 @@ function App(){
       showP(
         lang==="it"?"Ricerche gratuite terminate 🔍":"Free searches used up 🔍",
         lang==="it"
-          ?"Hai usato le 5 ricerche gratuite di questo mese. Premium in arrivo!"
-          :"You used your 5 free searches this month. Premium coming soon!",
+          ?"Hai usato le 5 ricerche gratuite di questo mese. Passa a Premium per continuare."
+          :"You used your 5 free searches this month. Upgrade to Premium to continue.",
         "searchLimit"
       );
       setSearchCount(currentCount);
@@ -1317,13 +1377,16 @@ function App(){
           <h3 style={{margin:"0 0 8px",fontSize:17,fontWeight:800}}>{popup.title}</h3>
           <p style={{margin:"0 0 20px",fontSize:14,color:"#6b7280",lineHeight:1.5}}>{popup.sub}</p>
           {popup.type==="searchLimit"&&<>
-            <button onClick={closeP} style={{...btnG,marginBottom:10,fontSize:14}}>
-              {lang==="it"?"Ho capito":"Got it"}
+            <button onClick={()=>openStripeLink("user_monthly")} style={{...btnG,marginBottom:10,fontSize:14}}>
+              🌿 {lang==="it"?"Premium 3€/mese":"Premium €3/month"}
+            </button>
+            <button onClick={()=>openStripeLink("user_yearly")} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10}}>
+              ✨ {lang==="it"?"Premium 30€/anno":"Premium €30/year"}
             </button>
             <p style={{margin:"0 0 8px",fontSize:12,color:"#9ca3af",lineHeight:1.5}}>
               {lang==="it"
-                ?"Presto potrai sbloccare ricerche illimitate con Premium."
-                :"Soon you will be able to unlock unlimited searches with Premium."}
+                ?"Dopo il pagamento lo sblocco automatico sarà completato con il webhook Stripe. Se paghi ora e non si sblocca subito, scrivici a help@juniperapp.eu."
+                :"Automatic unlock will be completed with the Stripe webhook. If you pay now and it does not unlock immediately, contact help@juniperapp.eu."}
             </p>
           </>}
           {popup.type==="register"&&<>
@@ -1518,7 +1581,7 @@ function App(){
               🔍 {lang==="it"?"Ricerche gratuite questo mese":"Free searches this month"}: {searchCount}/{SEARCH_LIMIT}
             </p>
             <p style={{margin:"4px 0 0",fontSize:11,color:"#9a3412"}}>
-              {lang==="it"?"Premium con ricerche illimitate in arrivo.":"Premium with unlimited searches coming soon."}
+              {lang==="it"?"Passa a Premium per ricerche illimitate.":"Upgrade to Premium for unlimited searches."}
             </p>
           </div>
         }
@@ -1641,6 +1704,29 @@ function App(){
       </div>
       <div style={{padding:"0 16px",marginTop:-18}}>
         <div style={card}>
+          <h3 style={{margin:"0 0 8px",fontSize:15,fontWeight:800,color:"#1a5c3a"}}>🌿 Premium Juniper</h3>
+          {isPremium
+            ?<div style={{background:"#d1fae5",border:"1px solid #bbf7d0",borderRadius:12,padding:12}}>
+              <p style={{margin:"0 0 4px",fontSize:13,fontWeight:800,color:"#065f46"}}>✅ {lang==="it"?"Premium attivo":"Premium active"}</p>
+              <p style={{margin:0,fontSize:12,color:"#047857"}}>{lang==="it"?"Ricerche illimitate sbloccate.":"Unlimited searches unlocked."}</p>
+            </div>
+            :<>
+              <p style={{margin:"0 0 10px",fontSize:13,color:"#6b7280",lineHeight:1.5}}>
+                {lang==="it"
+                  ?`Hai ${Math.max(0,SEARCH_LIMIT-searchCount)} ricerche gratuite rimaste questo mese. Passa a Premium per ricerche illimitate.`
+                  :`You have ${Math.max(0,SEARCH_LIMIT-searchCount)} free searches left this month. Upgrade to Premium for unlimited searches.`}
+              </p>
+              <div style={{display:"flex",gap:8,flexDirection:"column"}}>
+                <button onClick={()=>openStripeLink("user_monthly")} style={{...btnG,fontSize:14,padding:12}}>🌿 {lang==="it"?"Premium 3€/mese":"Premium €3/month"}</button>
+                <button onClick={()=>openStripeLink("user_yearly")} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"1px solid #bbf7d0",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer"}}>✨ {lang==="it"?"Premium 30€/anno":"Premium €30/year"}</button>
+              </div>
+              <p style={{margin:"10px 0 0",fontSize:11,color:"#9ca3af",lineHeight:1.5}}>
+                {lang==="it"
+                  ?"Dopo il pagamento, torna su Juniper e aggiorna la pagina: Premium si attiverà automaticamente appena Stripe conferma l'abbonamento."
+                  :"After payment, return to Juniper and refresh the page: Premium will activate automatically once Stripe confirms the subscription."}
+              </p>
+            </>
+          }
         </div>
         <div style={card}>
           <button onClick={tl} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>🌐 {lang==="it"?"Switch to English":"Passa all'italiano"}</button>
