@@ -791,6 +791,43 @@ function App(){
     window.open(`${base}?${params.toString()}`,"_blank");
   };
 
+  const openBillingPortal=async()=>{
+    if(!user){showP(t.popGuest,t.popGuestSub,"register");return;}
+
+    try{
+      const {data:{session}}=await sb.auth.getSession();
+
+      if(!session?.access_token){
+        alert(lang==="it"?"Accedi di nuovo per gestire l'abbonamento.":"Please sign in again to manage your subscription.");
+        return;
+      }
+
+      const resp=await fetch("https://krxqmvkillgqpdlhvfxv.supabase.co/functions/v1/create-portal-session",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "Authorization":`Bearer ${session.access_token}`
+        },
+        body:JSON.stringify({})
+      });
+
+      const data=await resp.json().catch(()=>({}));
+
+      if(!resp.ok||!data.url){
+        alert(lang==="it"
+          ?"Non riesco ad aprire la gestione abbonamento. Scrivici a help@juniperapp.eu."
+          :"Unable to open subscription management. Please contact help@juniperapp.eu.");
+        return;
+      }
+
+      window.open(data.url,"_blank");
+    }catch(e){
+      alert(lang==="it"
+        ?"Errore apertura gestione abbonamento. Scrivici a help@juniperapp.eu."
+        :"Error opening subscription management. Please contact help@juniperapp.eu.");
+    }
+  };
+
   const loadSearchUsage=async(userId)=>{
     if(!userId)return;
     const monthKey=getMonthKey();
@@ -1708,7 +1745,10 @@ function App(){
           {isPremium
             ?<div style={{background:"#d1fae5",border:"1px solid #bbf7d0",borderRadius:12,padding:12}}>
               <p style={{margin:"0 0 4px",fontSize:13,fontWeight:800,color:"#065f46"}}>✅ {lang==="it"?"Premium attivo":"Premium active"}</p>
-              <p style={{margin:0,fontSize:12,color:"#047857"}}>{lang==="it"?"Ricerche illimitate sbloccate.":"Unlimited searches unlocked."}</p>
+              <p style={{margin:"0 0 10px",fontSize:12,color:"#047857"}}>{lang==="it"?"Ricerche illimitate sbloccate.":"Unlimited searches unlocked."}</p>
+              <button onClick={openBillingPortal} style={{width:"100%",background:"white",color:"#065f46",border:"1px solid #86efac",padding:10,borderRadius:10,fontWeight:700,fontSize:13,cursor:"pointer"}}>
+                ⚙️ {lang==="it"?"Gestisci abbonamento":"Manage subscription"}
+              </button>
             </div>
             :<>
               <p style={{margin:"0 0 10px",fontSize:13,color:"#6b7280",lineHeight:1.5}}>
