@@ -788,63 +788,170 @@ function App(){
 
   const GKEY="AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck";
   const searchGooglePlaces=async(query,tags)=>{
-    // NON aggiungo i tag alla query - trovo TUTTI i locali e filtro dalle recensioni
-    const loc=(query||"Maremma Grosseto")+" Italia";
-    const hasFood=query&&["ristorante","bar","pizzeria","agriturismo"].some(w=>query.toLowerCase().includes(w));
-    // Se c'è un filtro tipo locale, cerca solo quel tipo
-    const queries=venueType
-      ?[venueType+" "+loc]
-      :hasFood?[query+" "+loc]:["ristorante "+loc,"bar caffè "+loc,"pizzeria trattoria osteria agriturismo "+loc,"gelateria pasticceria "+loc];
-    const mapPlace=(p)=>{
-      const pt=p.primaryType||"";
-      let type="ristorante",emoji="🍽️";
-      if(pt.includes("bar")||pt.includes("cafe")){type="bar";emoji="☕";}
-      else if(pt.includes("bakery")||pt.includes("pastry")){type="pasticceria";emoji="🧁";}
-      else if(pt.includes("lodging")||pt.includes("hotel")){type="hotel";emoji="🏨";}
-      else if(pt.includes("farm")||pt.includes("campground")){type="agriturismo";emoji="🌾";}
-      else if(pt.includes("pizza")){type="pizzeria";emoji="🍕";}
-      else if(pt.includes("ice_cream")||pt.includes("gelat")){type="gelateria";emoji="🍦";}
-      const name=(p.displayName?.text||p.displayName||"Locale");
-      const nl=name.toLowerCase();
-      if(nl.includes("gelat")||nl.includes("gelateria")){type="gelateria";emoji="🍦";}
-      const addr=p.shortFormattedAddress||p.formattedAddress||"";
-      const parts=(p.formattedAddress||"").split(",").map(s=>s.trim());
-      // Cerca la città: ultimo elemento prima di provincia e Italia
-      // Formato tipico: "Via X, 123, Città, Provincia, Italia"
-      let city="Italia";
-      if(parts.length>=3){
-        // Terzo dalla fine è la città (prima di provincia e paese)
-        const candidate=parts[parts.length-3];
-        if(candidate&&!/^\d+$/.test(candidate)){city=candidate;}
-      }
-      // Fallback: se city è ancora "Italia" o numero, prova secondo dalla fine
-      if(city==="Italia"||/^\d+$/.test(city)){
-        if(parts.length>=2){
-          const candidate=parts[parts.length-2];
-          if(candidate&&candidate!=="Italia"&&!/^\d+$/.test(candidate)){city=candidate;}
-        }
-      }
-      return{id:"g_"+(p.id||Math.random().toString(36)),name,type,city,country:"Italia",address:addr,phone:"",description:type+" · "+city,emoji,tags:[],lat:p.location?.latitude||null,lng:p.location?.longitude||null,meals:type==="bar"?["breakfast","aperitivo"]:type==="gelateria"||type==="pasticceria"?["breakfast","lunch","aperitivo"]:["lunch","dinner"],source:"google",certified:false,sponsored:false,rating:p.rating||null,reviewCount:p.userRatingCount||0,unverified:true};
-    };
-    try{
-      const results=await Promise.all(queries.map(textQuery=>
-        fetch("https://places.googleapis.com/v1/places:searchText",{
-          method:"POST",
-          headers:{"Content-Type":"application/json","X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryType,places.shortFormattedAddress,places.location"},
-          body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:20})
-        }).then(r=>r.ok?r.json():{places:[]}).then(d=>(d.places||[]).map(mapPlace)).catch(()=>[])
-      ));
-      const seen=new Set();
-      return results.flat().filter(p=>{
-        if(seen.has(p.name.toLowerCase()))return false;
-        seen.add(p.name.toLowerCase());
-        if(venueType&&p.type!==venueType)return false;
-        return true;
-      });
-    }catch(e){return[];}
+  const normalizeText=(txt="")=>
+    txt.toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g,"")
+      .replace(/[^\w\s]/g," ")
+      .replace(/\s+/g," ")
+      .trim();
+
+  const genericWords=[
+    "ristorante","ristoranti","bar","caffe","caffè","pizzeria","pizzerie",
+    "trattoria","osteria","agriturismo","agriturismi","gelateria","gelaterie",
+    "pasticceria","pasticcerie","locale","locali","gluten","free","lactose",
+    "senza","glutine","lattosio","vegano","vegana","vegan","vegetariano",
+    "vegetariana","pet","friendly"
+  ];
+
+  const queryTokens=normalizeText(query||"")
+    .split(" ")
+    .filter(w=>w.length>2&&!genericWords.includes(w));
+
+  const shouldRestrictByLocation=queryTokens.length>0;
+
+  const matchesRequestedPlace=(place)=>{
+    if(!shouldRestrictByLocation)return true;
+
+    const haystack=normalizeText(
+      `${place.name||""} ${place.city||""} ${place.address||""} ${place.country||""}`
+    );
+
+    return queryTokens.every(token=>haystack.includes(token));
   };
 
-  const doSearch=async()=>{
+  const loc=(query||"Maremma Grosseto")+" Italia";
+  const hasFood=query&&["ristorante","bar","pizzeria","agriturismo","gelateria","pasticceria"].some(w=>query.toLowerCase().includes(w));
+
+  const queries=venueType
+    ?[venueType+" "+loc]
+    :hasFood
+      ?[query+" "+loc]
+      :["ristorante "+loc,"bar caffè "+loc,"pizzeria trattoria osteria agriturismo "+loc,"gelateria pasticceria "+loc];
+
+  const mapPlace=(p)=>{
+    const pt=p.primaryType||"";
+    let type="ristorante",emoji="🍽️";
+
+    if(pt.includes("bar")||pt.includes("cafe")){
+      type="bar";emoji="☕";
+    } else if(pt.includes("bakery")||pt.includes("pastry")){
+      type="pasticceria";emoji="🧁";
+    } else if(pt.includes("lodging")||pt.includes("hotel")){
+      type="hotel";emoji="🏨";
+    } else if(pt.includes("farm")||pt.includes("campground")){
+      type="agriturismo";emoji="🌾";
+    } else if(pt.includes("pizza")){
+      type="pizzeria";emoji="🍕";
+    } else if(pt.includes("ice_cream")||pt.includes("gelat")){
+      type="gelateria";emoji="🍦";
+    }
+
+    const name=(p.displayName?.text||p.displayName||"Locale");
+    const nl=name.toLowerCase();
+
+    if(nl.includes("gelat")||nl.includes("gelateria")){
+      type="gelateria";emoji="🍦";
+    }
+    if(nl.includes("pizzeria")||nl.includes("pizza")){
+      type="pizzeria";emoji="🍕";
+    }
+    if(nl.includes("bar")||nl.includes("caffè")||nl.includes("caffe")){
+      type="bar";emoji="☕";
+    }
+    if(nl.includes("pasticceria")){
+      type="pasticceria";emoji="🧁";
+    }
+
+    const addr=p.shortFormattedAddress||p.formattedAddress||"";
+    const parts=(p.formattedAddress||"").split(",").map(s=>s.trim());
+
+    let city="Italia";
+
+    if(parts.length>=3){
+      const candidate=parts[parts.length-3];
+      if(candidate&&!/^\d+$/.test(candidate)){
+        city=candidate;
+      }
+    }
+
+    if(city==="Italia"||/^\d+$/.test(city)){
+      if(parts.length>=2){
+        const candidate=parts[parts.length-2];
+        if(candidate&&candidate!=="Italia"&&!/^\d+$/.test(candidate)){
+          city=candidate;
+        }
+      }
+    }
+
+    return {
+      id:"g_"+(p.id||Math.random().toString(36)),
+      name,
+      type,
+      city,
+      country:"Italia",
+      address:addr,
+      phone:"",
+      description:type+" · "+city,
+      emoji,
+      tags:[],
+      lat:p.location?.latitude||null,
+      lng:p.location?.longitude||null,
+      meals:type==="bar"
+        ?["breakfast","aperitivo"]
+        :type==="gelateria"||type==="pasticceria"
+          ?["breakfast","lunch","aperitivo"]
+          :["lunch","dinner"],
+      source:"google",
+      certified:false,
+      sponsored:false,
+      rating:p.rating||null,
+      reviewCount:p.userRatingCount||0,
+      unverified:true
+    };
+  };
+
+  try{
+    const results=await Promise.all(queries.map(textQuery=>
+      fetch("https://places.googleapis.com/v1/places:searchText",{
+        method:"POST",
+        headers:{
+          "Content-Type":"application/json",
+          "X-Goog-Api-Key":GKEY,
+          "X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryType,places.shortFormattedAddress,places.location"
+        },
+        body:JSON.stringify({
+          textQuery,
+          languageCode:"it",
+          maxResultCount:20
+        })
+      })
+      .then(r=>r.ok?r.json():{places:[]})
+      .then(d=>(d.places||[]).map(mapPlace))
+      .catch(()=>[])
+    ));
+
+    const seen=new Set();
+
+    return results.flat().filter(p=>{
+      if(!p||!p.name)return false;
+
+      const key=(p.id||p.name).toLowerCase();
+      if(seen.has(key))return false;
+      seen.add(key);
+
+      if(venueType&&p.type!==venueType)return false;
+
+      if(!matchesRequestedPlace(p))return false;
+
+      return true;
+    });
+  }catch(e){
+    return[];
+  }
+};
+
+    const doSearch=async()=>{
     if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
 
     const canSearch=await incrementSearchUsage(user.id);
@@ -988,55 +1095,137 @@ function App(){
     if(!s||!s.name)return null;
     if(!s.tags)s={...s,tags:[]};
     if(!s.meals)s={...s,meals:[]};
+
     const locked=guestMode&&index>=GUEST_MAX;
+
+    const officialDietTags=[...new Set((s.tags||[]).filter(k=>DIET_TAGS.includes(k)))];
+    const officialCrossTags=[...new Set((s.tags||[]).filter(k=>CROSS_TAGS.includes(k)))];
+
+    const communityApprovedTags=[...new Set(
+      DIET_TAGS.filter(k=>communityTags[s.id]?.[k]?.count>0)
+    )];
+
+    const reviewOnlyTags=[...new Set(
+      (s.reviewTags||[]).filter(k=>
+        DIET_TAGS.includes(k) &&
+        !officialDietTags.includes(k) &&
+        !communityApprovedTags.includes(k)
+      )
+    )];
+
+    const communityCountTags=communityApprovedTags;
+
     return(
-      <div onClick={()=>{if(locked){showP(t.popGuest,t.popGuestSub,"register");return;}setSel(s);go("detail",screen);}}
+      <div onClick={()=>{
+          if(locked){
+            showP(t.popGuest,t.popGuestSub,"register");
+            return;
+          }
+          setSel(s);
+          go("detail",screen);
+        }}
         style={{...card,border:s.sponsored?"2px solid #f59e0b":"2px solid transparent",cursor:"pointer",position:"relative",filter:locked?"blur(3px)":"none"}}>
-        {locked&&<div style={{position:"absolute",inset:0,background:"rgba(255,255,255,0.6)",borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",zIndex:2,flexDirection:"column",gap:5}}>
-          <span style={{fontSize:26}}>🔒</span><span style={{fontSize:11,color:"#1a5c3a",fontWeight:700,background:"#d1fae5",padding:"3px 10px",borderRadius:10}}>{t.regFree}</span>
-        </div>}
-        {s.unverified&&<div style={{background:"#fef9ec",borderRadius:10,padding:"6px 10px",marginBottom:8,display:"flex",alignItems:"center",gap:6,border:"1px solid #fcd34d"}}>
-          <span style={{fontSize:12}}>⚠️</span>
-          <span style={{fontSize:11,color:"#92400e",fontWeight:600}}>{lang==="it"?"Locale non verificato — conferma prima di andare":"Unverified venue — confirm before visiting"}</span>
-        </div>}
+        
+        {locked&&
+          <div style={{position:"absolute",inset:0,background:"rgba(255,255,255,0.6)",borderRadius:14,display:"flex",alignItems:"center",justifyContent:"center",zIndex:2,flexDirection:"column",gap:5}}>
+            <span style={{fontSize:26}}>🔒</span>
+            <span style={{fontSize:11,color:"#1a5c3a",fontWeight:700,background:"#d1fae5",padding:"3px 10px",borderRadius:10}}>
+              {t.regFree}
+            </span>
+          </div>
+        }
+
+        {s.unverified&&
+          <div style={{background:"#fef9ec",borderRadius:10,padding:"6px 10px",marginBottom:8,display:"flex",alignItems:"center",gap:6,border:"1px solid #fcd34d"}}>
+            <span style={{fontSize:12}}>⚠️</span>
+            <span style={{fontSize:11,color:"#92400e",fontWeight:600}}>
+              {lang==="it"?"Locale non verificato — conferma prima di andare":"Unverified venue — confirm before visiting"}
+            </span>
+          </div>
+        }
+
         <div style={{display:"flex",gap:12}}>
-          <div style={{fontSize:30,background:"#f0fdf4",borderRadius:12,width:54,height:54,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>{s.emoji}</div>
+          <div style={{fontSize:30,background:"#f0fdf4",borderRadius:12,width:54,height:54,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>
+            {s.emoji}
+          </div>
+
           <div style={{flex:1,minWidth:0}}>
             <div style={{display:"flex",justifyContent:"space-between",gap:4,marginBottom:3}}>
-              <h4 style={{margin:0,fontSize:14,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>{s.name}</h4>
+              <h4 style={{margin:0,fontSize:14,fontWeight:700,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}}>
+                {s.name}
+              </h4>
+
               <div style={{display:"flex",gap:3,flexShrink:0}}>
-                {s.sponsored&&<span style={{background:"#fef3c7",color:"#d97706",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:10}}>📢</span>}
-                {s.certified&&<span style={{background:"#d1fae5",color:"#065f46",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:10}}>✅</span>}
+                {s.sponsored&&
+                  <span style={{background:"#fef3c7",color:"#d97706",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:10}}>📢</span>
+                }
+                {s.certified&&
+                  <span style={{background:"#d1fae5",color:"#065f46",fontSize:10,fontWeight:700,padding:"2px 6px",borderRadius:10}}>✅</span>
+                }
                 <SrcBadge source={s.source}/>
               </div>
             </div>
-            <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280"}}>📍 {s.city}, {s.country}</p>
+
+            <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280"}}>
+              📍 {s.city}, {s.country}
+            </p>
+
             <div style={{display:"flex",gap:3,flexWrap:"wrap",marginBottom:3}}>
-              {s.meals.map(m=><span key={m} style={{background:"#fef9ec",color:"#d97706",fontSize:10,padding:"2px 6px",borderRadius:10}}>{MEALS[m]?.icon} {MEALS[m]?.[lang]}</span>)}
+              {(s.meals||[]).map(m=>
+                <span key={m} style={{background:"#fef9ec",color:"#d97706",fontSize:10,padding:"2px 6px",borderRadius:10}}>
+                  {MEALS[m]?.icon} {MEALS[m]?.[lang]}
+                </span>
+              )}
             </div>
+
             <div style={{display:"flex",gap:3,flexWrap:"wrap",marginBottom:3}}>
-              {s.tags.filter(k=>DIET_TAGS.includes(k)).map(k=><span key={k} style={{background:TAGS[k].color+"22",color:TAGS[k].color,fontSize:10,padding:"2px 6px",borderRadius:10}}>{TAGS[k].icon} {TAGS[k][lang]}</span>)}
-              {s.tags.filter(k=>CROSS_TAGS.includes(k)).map(k=><span key={k} style={{background:TAGS[k].color+"22",color:TAGS[k].color,fontSize:10,padding:"2px 6px",borderRadius:10}}>{TAGS[k].icon}</span>)}
+              {officialDietTags.map(k=>
+                <span key={k} style={{background:TAGS[k].color+"22",color:TAGS[k].color,fontSize:10,padding:"2px 6px",borderRadius:10}}>
+                  {TAGS[k].icon} {TAGS[k][lang]}
+                </span>
+              )}
+
+              {officialCrossTags.map(k=>
+                <span key={k} style={{background:TAGS[k].color+"22",color:TAGS[k].color,fontSize:10,padding:"2px 6px",borderRadius:10}}>
+                  {TAGS[k].icon}
+                </span>
+              )}
             </div>
-            {s.rating&&<div style={{display:"flex",alignItems:"center",gap:4}}><span style={{color:"#f59e0b",fontSize:11}}>⭐</span><span style={{fontSize:12,fontWeight:600}}>{s.rating}</span><span style={{fontSize:11,color:"#9ca3af"}}>({s.reviewCount})</span></div>}
-            {s.reviewTags&&s.reviewTags.length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap",marginTop:3}}>{s.reviewTags.map(k=><span key={k} style={{background:"#fef9ec",color:"#92400e",fontSize:10,padding:"2px 6px",borderRadius:10,border:"1px dashed #fcd34d"}}>💬 {TAGS[k]?.[lang]}</span>)}</div>}
-            {communityTags[s.id]&&DIET_TAGS.filter(k=>communityTags[s.id]?.[k]?.count>0).length>0&&<div style={{display:"flex",gap:3,flexWrap:"wrap",marginTop:3}}>{DIET_TAGS.filter(k=>communityTags[s.id]?.[k]?.count>0).map(k=><span key={k} style={{background:"#f0fdf4",color:"#1a5c3a",fontSize:10,padding:"2px 6px",borderRadius:10,border:"1px solid #bbf7d0"}}>👥 {TAGS[k]?.[lang]}</span>)}</div>}
-            {communityTags[s.id]&&Object.keys(communityTags[s.id]).filter(k=>communityTags[s.id][k].count>0).length>0&&(
+
+            {s.rating&&
+              <div style={{display:"flex",alignItems:"center",gap:4}}>
+                <span style={{color:"#f59e0b",fontSize:11}}>⭐</span>
+                <span style={{fontSize:12,fontWeight:600}}>{s.rating}</span>
+                <span style={{fontSize:11,color:"#9ca3af"}}>({s.reviewCount})</span>
+              </div>
+            }
+
+            {reviewOnlyTags.length>0&&
+              <div style={{display:"flex",gap:3,flexWrap:"wrap",marginTop:3}}>
+                {reviewOnlyTags.map(k=>
+                  <span key={k} style={{background:"#fef9ec",color:"#92400e",fontSize:10,padding:"2px 6px",borderRadius:10,border:"1px dashed #fcd34d"}}>
+                    💬 {TAGS[k]?.[lang]}
+                  </span>
+                )}
+              </div>
+            }
+
+            {communityCountTags.length>0&&
               <div style={{display:"flex",gap:4,flexWrap:"wrap",marginTop:4}}>
-                {DIET_TAGS.filter(k=>communityTags[s.id]?.[k]?.count>0).map(k=>(
+                {communityCountTags.map(k=>
                   <span key={k} style={{background:"#fef3c7",color:"#92400e",border:"1px solid #fcd34d",padding:"2px 7px",borderRadius:20,fontSize:10,display:"flex",alignItems:"center",gap:3}}>
                     {TAGS[k].icon} {communityTags[s.id][k].count}
                   </span>
-                ))}
+                )}
               </div>
-            )}
+            }
           </div>
         </div>
       </div>
     );
   };
 
-  const BottomNav=()=>(
+    const BottomNav=()=>(
     <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"space-around",padding:"8px 0 10px",zIndex:100,boxShadow:"0 -4px 15px rgba(0,0,0,.06)"}}>
       {[{id:"home",icon:"🏠",lbl:t.home},{id:"explore",icon:"🔍",lbl:t.explore},{id:"profile",icon:"👤",lbl:t.profile}].map(tb=>(
         <button key={tb.id} onClick={()=>{setTab(tb.id);if(tb.id==="home")go("home");else if(tb.id==="profile")isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("profile");else if(tb.id==="explore"&&results.length>0)go("results");}} style={{background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",padding:"4px 20px",color:tab===tb.id?"#1a5c3a":"#9ca3af"}}>
