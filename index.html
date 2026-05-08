@@ -54,7 +54,7 @@ const MEALS = {
   dinner:   {it:"Cena",en:"Dinner",icon:"🌙"},
 };
 const SOURCES = {
-  registered:{it:"Registrata",en:"Registered",icon:"🏢",color:"#1a5c3a",bg:"#e8f5ee"},
+  registered:{it:"Non verificato",en:"Not Verified",icon:"⚠️",color:"#b45309",bg:"#fef3c7"},
   verified:  {it:"Locale verificato e iscritto a Juniper",en:"Verified venue subscribed to Juniper",icon:"✅",color:"#065f46",bg:"#d1fae5"},
   google:    {it:"Non Verificato",en:"Not Verified",icon:"⚠️",color:"#b45309",bg:"#fef3c7"},
 };
@@ -318,7 +318,7 @@ function AdminScreen({user,lang,go,sb}){
                   <p style={{margin:0,fontSize:12,color:"#6b7280"}}>📍 {s.city} · {s.type}</p>
                 </div>
                 <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:s.source==="verified"?"#dbeafe":s.source==="registered"?"#e8f5ee":"#f3f4f6",color:s.source==="verified"?"#2563eb":s.source==="registered"?"#1a5c3a":"#6b7280"}}>
-                  {s.source==="verified"?"✅ Locale verificato":s.source==="registered"?"🏢 Registrato":"📍 Google"}
+                  {s.source==="verified"?"✅ Locale verificato":"⚠️ Non verificato"}
                 </span>
               </div>
               <div style={{display:"flex",gap:8}}>
@@ -379,8 +379,8 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const btnG2={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
   const tx={
-    it:{back:"Indietro",title:"Registra la tua attività",sub:"Raggiungi chi cerca esattamente quello che offri. Il badge verificato è disponibile come opzione a pagamento. ✨",searchPh:"Cerca per nome o città...",claim:"Sono il titolare",addNew:"Aggiungi da zero",baseInfo:"📋 Info base",typeLabel:"🏪 Tipo",openLabel:"🍽️ Quando siete aperti?",offersLabel:"✅ Cosa offrite?",kitchenLabel:"🔬 Sicurezza in cucina",kitchenSub:"Sii onesto — è importante per i tuoi clienti",badgeLabel:"✨ Badge verificato opzionale",badgeSub:"Disponibile con abbonamento attività: 10€/mese oppure 110€/anno.",send:"Invia richiesta",sent:"Richiesta inviata!",sentSub:"Ti contatteremo a",backHome:"Torna alla home",disclaimerTitle:"⚖️ Dichiarazione di responsabilità",disclaimerText:"Il titolare dichiara sotto la propria responsabilità che le informazioni inserite sono veritiere e aggiornate. Juniper non è responsabile per eventuali inesattezze. L'utente finale è sempre invitato a confermare direttamente con il locale prima di consumare.",disclaimerCheck:"Ho letto e accetto. Confermo che le informazioni sono veritiere e mi assumo la piena responsabilità dei contenuti pubblicati.",cancel:"Annulla"},
-    en:{back:"Back",title:"Register your business",sub:"Reach those looking for exactly what you offer. The verified badge is available as a paid option. ✨",searchPh:"Search by name or city...",claim:"I'm the owner",addNew:"Add from scratch",baseInfo:"📋 Basic info",typeLabel:"🏪 Type",openLabel:"🍽️ When are you open?",offersLabel:"✅ What do you offer?",kitchenLabel:"🔬 Kitchen safety",kitchenSub:"Be honest — it matters to your customers",badgeLabel:"✨ Optional verified badge",badgeSub:"Available with a business subscription: €10/month or €110/year.",send:"Send request",sent:"Request sent!",sentSub:"We'll contact you at",backHome:"Back to home",disclaimerTitle:"⚖️ Liability Declaration",disclaimerText:"The owner declares under their own responsibility that the information provided is truthful and up to date. Juniper is not liable for any inaccuracies. End users are always encouraged to confirm directly with the venue before consuming.",disclaimerCheck:"I have read and agree. I confirm the information is truthful and take full responsibility for the published content.",cancel:"Cancel"},
+    it:{back:"Indietro",title:"Registra la tua attività",sub:"Registra gratuitamente le informazioni base. Cosa offrite e sicurezza in cucina sono disponibili solo con badge verificato.",searchPh:"Cerca per nome o città...",claim:"Sono il titolare",addNew:"Aggiungi da zero",baseInfo:"📋 Info base",typeLabel:"🏪 Tipo",openLabel:"🍽️ Quando siete aperti?",offersLabel:"✅ Cosa offrite?",kitchenLabel:"🔬 Sicurezza in cucina",kitchenSub:"Disponibile solo per locali con badge verificato",badgeLabel:"✅ Locale verificato e iscritto a Juniper",badgeSub:"Cosa offrite e sicurezza in cucina si possono dichiarare solo attivando il badge: 10€/mese oppure 110€/anno.",send:"Registra attività",sent:"Attività registrata!",sentSub:"Ti contatteremo a",backHome:"Torna alla home",disclaimerTitle:"⚖️ Dichiarazione di responsabilità",disclaimerText:"Il titolare dichiara sotto la propria responsabilità che le informazioni inserite sono veritiere e aggiornate. Juniper non è responsabile per eventuali inesattezze. L'utente finale è sempre invitato a confermare direttamente con il locale prima di consumare.",disclaimerCheck:"Ho letto e accetto. Confermo che le informazioni sono veritiere e mi assumo la piena responsabilità dei contenuti pubblicati.",cancel:"Annulla"},
+    en:{back:"Back",title:"Register your business",sub:"Register basic information for free. Offers and kitchen safety are available only with a verified badge.",searchPh:"Search by name or city...",claim:"I'm the owner",addNew:"Add from scratch",baseInfo:"📋 Basic info",typeLabel:"🏪 Type",openLabel:"🍽️ When are you open?",offersLabel:"✅ What do you offer?",kitchenLabel:"🔬 Kitchen safety",kitchenSub:"Available only for venues with verified badge",badgeLabel:"✅ Verified venue subscribed to Juniper",badgeSub:"Offers and kitchen safety can be declared only by activating the badge: €10/month or €110/year.",send:"Register business",sent:"Business registered!",sentSub:"We'll contact you at",backHome:"Back to home",disclaimerTitle:"⚖️ Liability Declaration",disclaimerText:"The owner declares under their own responsibility that the information provided is truthful and up to date. Juniper is not liable for any inaccuracies. End users are always encouraged to confirm directly with the venue before consuming.",disclaimerCheck:"I have read and agree. I confirm the information is truthful and take full responsibility for the published content.",cancel:"Cancel"},
   };
   const t=tx[lang];
   const [step,setStep]=React.useState(preselected?"form":"search");
@@ -395,7 +395,7 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
   React.useEffect(()=>{
     if(preselected){
       setSel(preselected);
-      setForm(f=>({...f,name:preselected.name,city:preselected.city||"",address:preselected.address||"",phone:preselected.phone||"",tags:(preselected.tags||[]).filter(k=>DIET_TAGS.includes(k)),meals:preselected.meals||[],cross:(preselected.tags||[]).find(k=>CROSS_TAGS.includes(k))||""}));
+      setForm(f=>({...f,name:preselected.name,city:preselected.city||"",address:preselected.address||"",phone:preselected.phone||"",tags:[],meals:preselected.meals||[],cross:""}));
       setStep("form");
       clearPreselected();
     }
@@ -403,7 +403,7 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
   const doSearch=()=>{const lq=q.toLowerCase();setFound(DEMO.filter(s=>s.name.toLowerCase().includes(lq)||s.city.toLowerCase().includes(lq)));};
   const claim=(s)=>{
     setSel(s);
-    if(s) setForm(f=>({...f,name:s.name,city:s.city,address:s.address||"",phone:s.phone||"",tags:(s.tags||[]).filter(k=>DIET_TAGS.includes(k)),meals:s.meals||[],cross:(s.tags||[]).find(k=>CROSS_TAGS.includes(k))||""}));
+    if(s) setForm(f=>({...f,name:s.name,city:s.city,address:s.address||"",phone:s.phone||"",tags:[],meals:s.meals||[],cross:""}));
     else setForm({name:"",type:"ristorante",city:"",address:"",phone:"",email:"",vat:"",sdi:"",legal_name:"",owner_name:"",website:"",instagram:"",description:"",tags:[],meals:[],cross:"",certified:false});
     setStep("form");
   };
@@ -419,8 +419,8 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
       phone:form.phone,email:form.email,
       vat_number:form.vat,sdi_code:form.sdi,legal_name:form.legal_name,owner_name:form.owner_name,
       website:form.website,instagram:form.instagram,
-      description:form.description,tags:form.tags,meals:form.meals,
-      kitchen_safety:form.cross,certified_request:form.certified,
+      description:form.description,tags:[],meals:form.meals,
+      kitchen_safety:null,certified_request:false,
       disclaimer_accepted:true,disclaimer_accepted_at:new Date().toISOString(),
     });
     setSending(false);setSent(true);
@@ -491,26 +491,18 @@ function BusinessScreen({lang,go,preselected,clearPreselected}){
             {Object.entries(MEALS).map(([k,m])=><button key={k} onClick={()=>toggleMeal(k)} style={{background:form.meals.includes(k)?"#1f2937":"#f3f4f6",color:form.meals.includes(k)?"white":"#374151",border:"none",padding:"7px 12px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:form.meals.includes(k)?700:400}}>{m.icon} {m[lang==="it"?"it":"en"]}</button>)}
           </div>
         </div>
-        <div style={card}>
-          <p style={{margin:"0 0 8px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.offersLabel}</p>
-          <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-            {DIET_TAGS.map(k=><button key={k} onClick={()=>toggleTag(k)} style={{background:form.tags.includes(k)?TAGS[k].color:"#f3f4f6",color:form.tags.includes(k)?"white":"#374151",border:"none",padding:"7px 12px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:form.tags.includes(k)?700:400}}>{TAGS[k].icon} {TAGS[k][lang==="it"?"it":"en"]}</button>)}
-          </div>
-        </div>
-        <div style={card}>
-          <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.kitchenLabel}</p>
-          <p style={{margin:"0 0 10px",fontSize:12,color:"#9ca3af"}}>{t.kitchenSub}</p>
-          {CROSS_TAGS.map(k=>(
-            <div key={k} onClick={()=>setForm(f=>({...f,cross:f.cross===k?"":k}))} style={{border:"2px solid "+(form.cross===k?TAGS[k].color:"#e5e7eb"),borderRadius:12,padding:"10px 14px",cursor:"pointer",marginBottom:8,background:form.cross===k?TAGS[k].color+"11":"white",display:"flex",alignItems:"center",gap:10}}>
-              <span style={{fontSize:18}}>{TAGS[k].icon}</span>
-              <div><p style={{margin:"0 0 2px",fontWeight:700,fontSize:13,color:TAGS[k].color}}>{TAGS[k][lang==="it"?"it":"en"]}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>{CROSS_DESC[lang][k]}</p></div>
+        <div style={{...card,background:"#f0fdf4",border:"1.5px solid #bbf7d0"}}>
+          <p style={{margin:"0 0 6px",fontWeight:800,fontSize:14,color:"#065f46"}}>{t.badgeLabel}</p>
+          <p style={{margin:"0 0 10px",fontSize:12,color:"#166534",lineHeight:1.45}}>{t.badgeSub}</p>
+          <div style={{display:"grid",gap:8}}>
+            <div style={{background:"white",border:"1px solid #bbf7d0",borderRadius:12,padding:10}}>
+              <p style={{margin:"0 0 3px",fontSize:12,fontWeight:700,color:"#1a5c3a"}}>🔒 {t.offersLabel}</p>
+              <p style={{margin:0,fontSize:11,color:"#6b7280"}}>{lang==="it"?"Gluten Free, Lactose Free, Vegano, Pet Friendly e altri tag sono riservati ai locali con badge attivo.":"Gluten Free, Lactose Free, Vegan, Pet Friendly and other tags are reserved for venues with an active badge."}</p>
             </div>
-          ))}
-        </div>
-        <div style={{...card,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
-          <div><p style={{margin:"0 0 3px",fontWeight:700,fontSize:13,color:"#1a5c3a"}}>{t.badgeLabel} <span style={{color:"#f59e0b",fontSize:11}}>({lang==="it"?"Funzione in arrivo":"Coming soon"})</span></p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>{t.badgeSub}</p></div>
-          <div onClick={()=>setForm(f=>({...f,certified:!f.certified}))} style={{width:44,height:24,borderRadius:12,background:form.certified?"#1a5c3a":"#e5e7eb",cursor:"pointer",position:"relative",flexShrink:0}}>
-            <div style={{width:18,height:18,borderRadius:"50%",background:"white",position:"absolute",top:3,left:form.certified?23:3,transition:"left 0.2s"}}/>
+            <div style={{background:"white",border:"1px solid #bbf7d0",borderRadius:12,padding:10}}>
+              <p style={{margin:"0 0 3px",fontSize:12,fontWeight:700,color:"#1a5c3a"}}>🔒 {t.kitchenLabel}</p>
+              <p style={{margin:0,fontSize:11,color:"#6b7280"}}>{lang==="it"?"Cucina dedicata, attenzione massima o cucina condivisa si possono dichiarare solo con badge attivo.":"Dedicated kitchen, extra care or shared kitchen can be declared only with an active badge."}</p>
+            </div>
           </div>
         </div>
         <div style={{background:"#fef9ec",borderRadius:14,padding:16,marginBottom:14,border:"1.5px solid #fed7aa"}}>
@@ -605,7 +597,7 @@ function App(){
           tags:[s.gluten_free&&"gluten_free",s.lactose_free&&"lactose_free",s.combo_free&&"combo_free",s.vegan&&"vegan",s.vegetarian&&"vegetarian",s.pet_friendly&&"pet_friendly",s.kitchen_safety==="no_cross"&&"no_cross",s.kitchen_safety==="low_cross"&&"low_cross",s.kitchen_safety==="high_cross"&&"high_cross"].filter(Boolean),
           meals:[s.breakfast&&"breakfast",s.lunch&&"lunch",s.aperitivo&&"aperitivo",s.dinner&&"dinner"].filter(Boolean),
           reviewCount:s.review_count||0,
-        })).sort((a,b)=>({registered:3,verified:2,google:1}[b.source]||0)-({registered:3,verified:2,google:1}[a.source]||0)||Number(b.sponsored)-Number(a.sponsored));
+        })).sort((a,b)=>({verified:3,registered:2,google:1}[b.source]||0)-({verified:3,registered:2,google:1}[a.source]||0)||Number(b.sponsored)-Number(a.sponsored));
         
         // Carica community_tags approvati e uniscili alle strutture
         try{
@@ -1519,7 +1511,7 @@ function App(){
           <button key={k} onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):toggleTag(k)} style={{background:tagFilters.includes(k)?TAGS[k].color:"#f3f4f6",color:tagFilters.includes(k)?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:tagFilters.includes(k)?700:400}}>{TAGS[k].icon} {TAGS[k][lang]}</button>
         ))}
       </div>
-      <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.kitchenTitle} <span style={{color:"#f59e0b"}}>({lang==="it"?"Funzione in arrivo":"Coming soon"})</span></p>
+      <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.kitchenTitle}</p>
       <p style={{margin:"0 0 8px",fontSize:11,color:"#9ca3af"}}>{t.kitchenSub}</p>
       <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:5}}>
         {CROSS_TAGS.map(k=>(
@@ -1709,24 +1701,24 @@ function App(){
             <h3 style={{margin:"0 0 8px",fontSize:15,fontWeight:800,color:"#c2410c"}}>{lang==="it"?"Sei il proprietario?":"Are you the owner?"}</h3>
             <p style={{margin:"0 0 12px",fontSize:13,color:"#9a3412",lineHeight:1.45}}>
               {lang==="it"
-                ?"Registra il locale gratis oppure richiedi il badge a pagamento: ✅ Locale verificato e iscritto a Juniper."
-                :"Register the venue for free or request the paid badge: ✅ Verified venue subscribed to Juniper."}
+                ?"Registra gratis le informazioni base. Per dichiarare cosa offrite e la sicurezza in cucina serve il badge: ✅ Locale verificato e iscritto a Juniper."
+                :"Register basic information for free. To declare offers and kitchen safety, the badge is required: ✅ Verified venue subscribed to Juniper."}
             </p>
             <div style={{display:"flex",flexDirection:"column",gap:8}}>
               <button onClick={()=>{setBusinessClaim(s);go("business");}} style={{background:"#ea580c",color:"white",border:"none",padding:"10px 16px",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer"}}>
-                📝 {lang==="it"?"Registra gratis":"Register for free"}
+                📝 {lang==="it"?"Registra info base gratis":"Register basic info for free"}
               </button>
               <button onClick={()=>openBusinessStripeLink("business_monthly",s)} style={{background:"#1a5c3a",color:"white",border:"none",padding:"10px 16px",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer"}}>
-                ✅ {lang==="it"?"Badge locale 10€/mese":"Venue badge €10/month"}
+                ✅ {lang==="it"?"Attiva badge 10€/mese":"Activate badge €10/month"}
               </button>
               <button onClick={()=>openBusinessStripeLink("business_yearly",s)} style={{background:"#f0fdf4",color:"#1a5c3a",border:"1px solid #bbf7d0",padding:"10px 16px",borderRadius:10,fontWeight:700,fontSize:14,cursor:"pointer"}}>
-                ✨ {lang==="it"?"Badge locale 110€/anno":"Venue badge €110/year"}
+                ✨ {lang==="it"?"Attiva badge 110€/anno":"Activate badge €110/year"}
               </button>
             </div>
             <p style={{margin:"10px 0 0",fontSize:11,color:"#9a3412",lineHeight:1.35}}>
               {lang==="it"
-                ?"Dopo il pagamento, la richiesta resta in attesa di approvazione. Le informazioni sono dichiarate dal proprietario del locale."
-                :"After payment, the request stays pending approval. Information is declared by the venue owner."}
+                ?"Con il badge potrai dichiarare ufficialmente cosa offri e la sicurezza in cucina. Le informazioni restano dichiarate dal proprietario."
+                :"With the badge you can officially declare offers and kitchen safety. Information remains declared by the venue owner."}
             </p>
           </div>}
           <div style={card}>
