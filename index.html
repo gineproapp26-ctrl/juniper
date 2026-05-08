@@ -1012,9 +1012,7 @@ function App(){
     const loc=(query||"Maremma Grosseto")+" Italia";
     const hasFood=query&&["ristorante","bar","pizzeria","agriturismo"].some(w=>query.toLowerCase().includes(w));
     // Se c'è un filtro tipo locale, cerca solo quel tipo
-    const queries=venueType
-      ?[venueType+" "+loc]
-      :hasFood?[query+" "+loc]:["ristorante "+loc,"bar caffè "+loc,"pizzeria trattoria osteria agriturismo "+loc,"gelateria pasticceria "+loc];
+    const queries=[venueType ? (venueType+" "+loc) : ((query||"ristoranti bar pizzerie gelaterie")+" "+loc)];
     const mapPlace=(p)=>{
       const pt=p.primaryType||"";
       let type="ristorante",emoji="🍽️";
@@ -1073,7 +1071,7 @@ function App(){
     const allowed=await canUseSearch();
     if(!allowed)return;
 
-    setSearching(true);
+    setSearching(false);
 
     // 1) Mostra SUBITO i risultati già presenti in Supabase.
     // Google e recensioni lavorano dopo, in background, così l'app non resta bloccata.
@@ -1118,7 +1116,7 @@ function App(){
         }catch(_){}
 
         const controller=new AbortController();
-        const timeout=setTimeout(()=>controller.abort(),2500);
+        const timeout=setTimeout(()=>controller.abort(),1200);
         const resp=await fetch(`https://places.googleapis.com/v1/places/${placeId}`,{
           signal:controller.signal,
           headers:{"X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"reviews"}
@@ -1141,7 +1139,7 @@ function App(){
 
     (async()=>{
       try{
-        const googleTimeout=new Promise(r=>setTimeout(()=>r([]),3000));
+        const googleTimeout=new Promise(r=>setTimeout(()=>r([]),1200));
         const gRes=await Promise.race([searchGooglePlaces(q||"ristorante",tagFilters),googleTimeout]);
         if(!gRes||gRes.length===0)return;
 
@@ -1163,7 +1161,7 @@ function App(){
         const dietFilters=tagFilters.filter(f=>DIET_TAGS.includes(f));
         if(dietFilters.length===0)return;
 
-        for(const venue of newGooglePlaces.slice(0,5)){
+        for(const venue of newGooglePlaces.slice(0,2)){
           const revTags=await scanReviewTags(venue);
           const matches=dietFilters.every(f=>(venue.tags&&venue.tags.includes(f))||(revTags&&revTags.includes(f)));
           if(matches){
