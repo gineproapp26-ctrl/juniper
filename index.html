@@ -446,7 +446,7 @@ function BusinessScreen({lang,go,preselected,clearPreselected,user,setAuthMode})
       params.set("prefilled_email",user.email||form.email);
       params.set("client_reference_id",clientRef);
       params.set("locale","it");
-      await sb.from("business_requests").insert({
+      const { error: businessRequestError } = await sb.from("business_requests").insert({
         structure_id:sel.id&&!String(sel.id).startsWith("g_")?sel.id:null,
         google_place_id:sel.id&&String(sel.id).startsWith("g_")?String(sel.id).replace("g_",""):null,
         name:sel.name,type:form.type,city:sel.city,address:sel.address,
@@ -456,7 +456,12 @@ function BusinessScreen({lang,go,preselected,clearPreselected,user,setAuthMode})
         description:"Richiesta verifica attività",tags:[],meals:form.meals,
         kitchen_safety:null,certified_request:true,status:"pending",
         disclaimer_accepted:true,disclaimer_accepted_at:new Date().toISOString(),
-      }).catch(()=>{});
+      });
+
+      if (businessRequestError) {
+        console.warn("Business request insert warning:", businessRequestError);
+      }
+
       window.location.href=`${base}?${params.toString()}`;
     }catch(e){console.error(e);alert(t.stripeErr);setOpening(false);}
   };
