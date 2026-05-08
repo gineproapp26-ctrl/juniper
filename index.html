@@ -156,7 +156,8 @@ function AdminScreen({user,lang,go,sb}){
       .maybeSingle();
     
     if(!existing){
-      // Crea oggetto base
+      // Crea oggetto con tag attivo
+      const tagToActivate = suggestion.tag;
       const newStructure = {
         id: suggestion.structure_id,
         name: suggestion.structure_name || "Locale Google",
@@ -164,18 +165,20 @@ function AdminScreen({user,lang,go,sb}){
         type: "ristorante",
         source: "google",
         pending: false,
-        gluten_free: false,
-        lactose_free: false,
-        vegan: false,
-        vegetarian: false,
-        pet_friendly: false,
-        combo_free: false
+        gluten_free: tagToActivate === "gluten_free",
+        lactose_free: tagToActivate === "lactose_free",
+        vegan: tagToActivate === "vegan",
+        vegetarian: tagToActivate === "vegetarian",
+        pet_friendly: tagToActivate === "pet_friendly",
+        combo_free: tagToActivate === "combo_free"
       };
       
-      // Attiva il tag specifico
-      newStructure[suggestion.tag] = true;
+      const {error: insertError} = await sb.from("structures").insert(newStructure);
       
-      await sb.from("structures").insert(newStructure);
+      if(insertError){
+        showMsg("❌ Errore creazione locale: " + insertError.message);
+        return;
+      }
     }
   }
   
