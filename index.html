@@ -1951,7 +1951,7 @@ function App(){
             <p style={{margin:0,fontSize:13,fontWeight:900,color:"#1a5c3a"}}>🔎 Ricerca dettagliata alimentare</p>
             <span style={{background:"#ede9fe",color:"#4338ca",fontSize:9,fontWeight:800,padding:"3px 7px",borderRadius:20,whiteSpace:"nowrap"}}>{isPremium?"Premium":(getFreeDetailUsed()?"Abbonati per sbloccarla":"Gratis: 1 ricerca inclusa")}</span>
           </div>
-          <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280",lineHeight:1.45}}>Inserisci una città e scegli cosa stai cercando. Juniper controlla prima i locali già presenti e, se serve, avvia una ricerca più approfondita su risultati mirati.</p>
+          <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280",lineHeight:1.45}}>Scegli una città e i tag che ti interessano: Juniper cercherà locali più adatti alle tue esigenze.</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 110px",gap:8,marginBottom:10}}>
             <input value={detailCity} onChange={e=>setDetailCity(e.target.value)} placeholder="Città · es. Venezia" style={{...inp,fontSize:13}}/>
             <input value={detailCountry} onChange={e=>setDetailCountry(e.target.value)} placeholder="Italia" style={{...inp,fontSize:13}}/>
