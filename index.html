@@ -36,6 +36,7 @@ const VENUE_TYPES = [
   {id:"agriturismo",label:"Agriturismo",icon:"🌾"},
 ];
 const ADMIN_EMAIL = "help@juniperapp.eu";
+const MAINTENANCE_MODE = true;
 const TAGS = {
   gluten_free: {it:"Gluten Free",en:"Gluten Free",icon:"🌾",color:"#f59e0b"},
   lactose_free:{it:"Lactose Free",en:"Lactose Free",icon:"🥛",color:"#3b82f6"},
@@ -566,6 +567,52 @@ function BusinessScreen({lang,go,preselected,clearPreselected,user,setAuthMode})
             <button type="button" onClick={()=>openBusinessBadgePayment("monthly")} disabled={opening} style={{background:"#1a5c3a",color:"white",border:"none",padding:"12px 10px",borderRadius:12,fontWeight:800,fontSize:13,cursor:"pointer",opacity:opening?.7:1}}>{opening?"⏳":"✅"} {t.payMonthly}</button>
             <button type="button" onClick={()=>openBusinessBadgePayment("yearly")} disabled={opening} style={{background:"white",color:"#1a5c3a",border:"1.5px solid #86efac",padding:"12px 10px",borderRadius:12,fontWeight:800,fontSize:13,cursor:"pointer",opacity:opening?.7:1}}>{opening?"⏳":"✅"} {t.payYearly}</button>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+
+function MaintenanceScreen({lang,user}){
+  const isIt = lang === "it";
+  const logout = async()=>{
+    try{ await sb.auth.signOut(); }
+    catch(e){ console.error("Logout error", e); }
+    window.location.reload();
+  };
+  return(
+    <div style={{minHeight:"100vh",background:"#f9fafb",display:"flex",alignItems:"center",justifyContent:"center",padding:18}}>
+      <div style={{width:"100%",maxWidth:430,background:"white",borderRadius:22,overflow:"hidden",boxShadow:"0 12px 35px rgba(0,0,0,.12)",border:"1px solid #e5e7eb"}}>
+        <div style={{background:GREEN,color:"white",padding:"30px 24px",textAlign:"center"}}>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><Logo size={38}/></div>
+          <h1 style={{margin:"0 0 8px",fontSize:24,fontWeight:900}}>Juniper</h1>
+          <p style={{margin:0,fontSize:14,opacity:.9}}>{isIt?"Aggiornamento in corso":"Update in progress"}</p>
+        </div>
+        <div style={{padding:24,textAlign:"center"}}>
+          <div style={{fontSize:46,marginBottom:12}}>🛠️</div>
+          <h2 style={{margin:"0 0 10px",fontSize:21,fontWeight:900,color:"#1a5c3a"}}>
+            {isIt?"App in lavorazione":"App under maintenance"}
+          </h2>
+          <p style={{margin:"0 0 14px",fontSize:15,lineHeight:1.6,color:"#374151"}}>
+            {isIt
+              ? "Stiamo aggiornando Juniper per migliorare le ricerche e rendere l’app più stabile. Torna tra qualche ora."
+              : "We are updating Juniper to improve searches and app stability. Please come back in a few hours."}
+          </p>
+          <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:14,padding:14,marginBottom:16,textAlign:"left"}}>
+            <p style={{margin:"0 0 5px",fontSize:13,fontWeight:800,color:"#065f46"}}>🌿 {isIt?"Account registrato":"Account saved"}</p>
+            <p style={{margin:0,fontSize:12,color:"#166534",lineHeight:1.45}}>
+              {isIt
+                ? `Ciao ${user?.name || ""}, il tuo account è attivo. Le ricerche e la navigazione sono temporaneamente sospese.`
+                : `Hi ${user?.name || ""}, your account is active. Searches and navigation are temporarily paused.`}
+            </p>
+          </div>
+          <p style={{margin:"0 0 16px",fontSize:12,color:"#6b7280",lineHeight:1.5}}>
+            {isIt?"Per urgenze puoi scrivere a":"For urgent support, contact"} <strong>help@juniperapp.eu</strong>
+          </p>
+          <button onClick={logout} style={{width:"100%",background:"#f3f4f6",border:"none",borderRadius:12,padding:"13px 14px",fontSize:14,fontWeight:800,color:"#374151",cursor:"pointer"}}>
+            {isIt?"Esci":"Sign out"}
+          </button>
         </div>
       </div>
     </div>
@@ -1372,6 +1419,10 @@ function App(){
       </div>
     </div>
   );
+
+  if(MAINTENANCE_MODE && user && !isAdmin){
+    return <MaintenanceScreen lang={lang} user={user}/>;
+  }
 
   if(screen==="business")return <BusinessScreen lang={lang} go={go} user={user} setAuthMode={setAuthMode} preselected={businessClaim} clearPreselected={()=>setBusinessClaim(null)}/>;
   if(screen==="admin"){if(!isAdmin){go("home");return null;}return <AdminScreen user={user} lang={lang} go={go} sb={sb}/>;}
