@@ -36,7 +36,7 @@ const VENUE_TYPES = [
   {id:"agriturismo",label:"Agriturismo",icon:"🌾"},
 ];
 const ADMIN_EMAIL = "help@juniperapp.eu";
-const MAINTENANCE_MODE = true;
+const MAINTENANCE_MODE = false;
 const TAGS = {
   gluten_free: {it:"Gluten Free",en:"Gluten Free",icon:"🌾",color:"#f59e0b"},
   lactose_free:{it:"Lactose Free",en:"Lactose Free",icon:"🥛",color:"#3b82f6"},
@@ -657,11 +657,14 @@ function App(){
   const [searchCount,setSearchCount]=React.useState(0);
   const [annualSearchCount,setAnnualSearchCount]=React.useState(0);
   const [extraCredits,setExtraCredits]=React.useState(0);
+  const [detailName,setDetailName]=React.useState("");
+  const [detailCity,setDetailCity]=React.useState("");
+  const [detailCountry,setDetailCountry]=React.useState("Italia");
   const isGuest=!user;
-  const GUEST_MAX=2;
-  const FREE_SEARCH_LIMIT=2;
-  const MONTHLY_PREMIUM_LIMIT=10;
-  const YEARLY_PREMIUM_LIMIT=120;
+  const GUEST_MAX=3;
+  const FREE_SEARCH_LIMIT=3;
+  const MONTHLY_PREMIUM_LIMIT=50;
+  const YEARLY_PREMIUM_LIMIT=600;
   const EXTRA_SEARCH_LINK="https://buy.stripe.com/5kQ8wR64M4Rb2rFeNC7bW05";
   const STRIPE_LINKS={
     user_monthly:"https://buy.stripe.com/6oU4gBfFmabvc2f0WM7bW01",
@@ -745,7 +748,7 @@ function App(){
         if(data) setRevs(r=>({...r,[sel.id]:data.map(r=>({id:r.id,user:r.user_name,rating:r.rating,text:r.text,date:r.created_at?.split("T")[0]}))}));
       });
     }
-    if(sel.source==="google"&&sel.id.startsWith("g_")){
+    if(false && sel.source==="google"&&sel.id.startsWith("g_")){
       const placeId=sel.id.replace("g_","");
       fetch(`https://places.googleapis.com/v1/places/${placeId}`,{headers:{"X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"reviews"}})
         .then(r=>r.json()).then(data=>{
@@ -1304,8 +1307,8 @@ function App(){
             <button onClick={()=>{closeP();setAuthMode("login");go("auth");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer"}}>{t.login}</button>
           </>}
           {popup.type==="searchLimit"&&<>
-            <button onClick={()=>{closeP();openStripeLink("user_monthly");}} style={{...btnG,marginBottom:10,fontSize:14}}>🌿 Premium 3€/mese · 10 ricerche</button>
-            <button onClick={()=>{closeP();openStripeLink("user_yearly");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10}}>🌿 Annuale 30€ · 120 ricerche/anno</button>
+            <button onClick={()=>{closeP();openStripeLink("user_monthly");}} style={{...btnG,marginBottom:10,fontSize:14}}>🌿 Premium 3€/mese · 50 ricerche leggere + 15 verifiche</button>
+            <button onClick={()=>{closeP();openStripeLink("user_yearly");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10}}>🌿 Annuale 30€ · 600 ricerche + 180 verifiche/anno</button>
             <button onClick={()=>{closeP();openStripeLink("extra_searches");}} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer"}}>➕ Extra +5 ricerche · 2,50€</button>
           </>}
           <button onClick={closeP} style={{width:"100%",background:"none",border:"none",padding:8,fontSize:13,color:"#9ca3af",cursor:"pointer",marginTop:4}}>{t.cancel}</button>
@@ -1469,6 +1472,19 @@ function App(){
     </div>
   );
 
+  const startDetailedVerification=()=>{
+    if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
+    if(!detailName.trim()||!detailCity.trim()){
+      alert(lang==="it"?"Inserisci nome locale e città.":"Enter venue name and city.");
+      return;
+    }
+    if(!(isAdmin||isPremium||(extraCredits||0)>0)){
+      showP("Verifica dettagliata Premium","Questa funzione è disponibile con Premium o crediti extra.","searchLimit");
+      return;
+    }
+    showP("Verifica dettagliata pronta","La scansione delle recensioni sarà attivata solo qui, su un solo locale specifico. Prima riattiviamo Google Places API in modo controllato.","searchLimit");
+  };
+
   if(screen==="home")return(
     <div style={{background:"#f9fafb",minHeight:"100vh",paddingBottom:80}}>
       <div style={{background:GREEN,padding:"18px 20px 20px",color:"white"}}>
@@ -1492,6 +1508,21 @@ function App(){
           <div style={{display:"flex",gap:8}}>
             <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={t.wherePh} style={{...inp,flex:1,fontSize:14}}/>
           </div>
+        </div>
+
+        <div style={{...card,border:"1.5px solid #ddd6fe",background:"#fbfaff"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:8}}>
+            <p style={{margin:0,fontSize:13,fontWeight:900,color:"#1a5c3a"}}>🔎 Verifica un locale specifico</p>
+            <span style={{background:"#ede9fe",color:"#4338ca",fontSize:10,fontWeight:800,padding:"3px 8px",borderRadius:20,whiteSpace:"nowrap"}}>PREMIUM</span>
+          </div>
+          <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280",lineHeight:1.45}}>Inserisci nome locale e città. La scansione recensioni si attiva solo qui, su un solo locale, e consuma 1 verifica dettagliata.</p>
+          <input value={detailName} onChange={e=>setDetailName(e.target.value)} placeholder="Nome locale · es. Ristorante Tizio" style={{...inp,marginBottom:8,fontSize:13}}/>
+          <div style={{display:"grid",gridTemplateColumns:"1fr 110px",gap:8,marginBottom:10}}>
+            <input value={detailCity} onChange={e=>setDetailCity(e.target.value)} placeholder="Città · es. Roma" style={{...inp,fontSize:13}}/>
+            <input value={detailCountry} onChange={e=>setDetailCountry(e.target.value)} placeholder="Italia" style={{...inp,fontSize:13}}/>
+          </div>
+          <button onClick={startDetailedVerification} disabled={!detailName.trim()||!detailCity.trim()} style={{width:"100%",background:(!detailName.trim()||!detailCity.trim())?"#d1d5db":"linear-gradient(135deg,#1a5c3a,#0f3d26)",color:(!detailName.trim()||!detailCity.trim())?"#6b7280":"white",border:"none",padding:"12px",borderRadius:12,fontWeight:800,fontSize:14,cursor:(!detailName.trim()||!detailCity.trim())?"not-allowed":"pointer"}}>🔒 Verifica locale</button>
+          <p style={{margin:"9px 0 0",fontSize:11,color:"#6b7280",lineHeight:1.35}}>Premium 3€/mese: 50 ricerche leggere + 15 verifiche/mese. Annuale: 600 ricerche + 180 verifiche/anno. Extra: +5 verifiche a 2,50€.</p>
         </div>
         <FilterPanel/>
         {loadingData&&<div style={{textAlign:"center",padding:"20px",color:"#6b7280",fontSize:14}}>🔄 {lang==="it"?"Caricamento...":"Loading..."}</div>}
@@ -1634,10 +1665,10 @@ function App(){
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8}}>
               {!isPremium&&<>
-                <button onClick={()=>openStripeLink("user_monthly")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Premium 3€/mese · 10 ricerche</button>
-                <button onClick={()=>openStripeLink("user_yearly")} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"1px solid #bbf7d0",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Annuale 30€ · 120 ricerche/anno</button>
+                <button onClick={()=>openStripeLink("user_monthly")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Premium 3€/mese · 50 ricerche leggere + 15 verifiche</button>
+                <button onClick={()=>openStripeLink("user_yearly")} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"1px solid #bbf7d0",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Annuale 30€ · 600 ricerche + 180 verifiche/anno</button>
               </>}
-              <button onClick={()=>openStripeLink("extra_searches")} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>➕ Compra extra +5 ricerche · 2,50€</button>
+              <button onClick={()=>openStripeLink("extra_searches")} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>➕ Compra extra +5 verifiche dettagliate · 2,50€</button>
             </div>
           </>)}
         </div>
