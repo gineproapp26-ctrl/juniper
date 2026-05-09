@@ -331,39 +331,18 @@ function AdminScreen({user,lang,go,sb}){
     const city=(adminScanCity||"").trim();
     if(!city){alert("Inserisci una città.");return;}
     const limit=Math.min(Math.max(parseInt(adminScanLimit||5,10),1),20);
-    if(!window.confirm(`Confermi scansione alimentare completa di massimo ${limit} locali totali per ${city}? Questa funzione legge recensioni Google solo sui locali finali e può generare costi.`))return;
+    if(!window.confirm(`Confermi scansione admin di ${limit} locali per ${city}? Questa funzione legge recensioni Google e può generare costi.`))return;
     setAdminScanRunning(true);
     setAdminScanSummary(null);
     try{
-      // Scansione mirata ma con limite TOTALE: più query per trovare locali utili,
-      // poi deduplica per place_id e analizza recensioni solo dei primi X locali finali.
-      const country=adminScanCountry||"Italia";
-      const queryList=[
-        `ristoranti senza glutine ${city} ${country}`,
-        `gluten free restaurants ${city} ${country}`,
-        `ristoranti senza lattosio ${city} ${country}`,
-        `lactose free restaurants ${city} ${country}`,
-        `vegan restaurants ${city} ${country}`,
-        `ristoranti vegani ${city} ${country}`,
-        `pet friendly restaurants ${city} ${country}`,
-        `ristoranti cani ammessi ${city} ${country}`
-      ];
-      const foundById=new Map();
-      let textSearchCalls=0;
-      for(const textQuery of queryList){
-        const searchResp=await fetch("https://places.googleapis.com/v1/places:searchText",{
-          method:"POST",
-          headers:{"Content-Type":"application/json","X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.shortFormattedAddress,places.primaryType,places.rating,places.userRatingCount,places.location"},
-          body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:Math.min(limit,10)})
-        });
-        textSearchCalls++;
-        const searchData=await searchResp.json();
-        (searchData.places||[]).forEach(place=>{
-          if(place?.id&&!foundById.has(place.id))foundById.set(place.id,{...place,_query:textQuery});
-        });
-        if(foundById.size>=limit)break;
-      }
-      const places=Array.from(foundById.values()).slice(0,limit);
+      const textQuery=`ristoranti bar pizzerie gelaterie ${city} ${adminScanCountry||"Italia"}`;
+      const searchResp=await fetch("https://places.googleapis.com/v1/places:searchText",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.shortFormattedAddress,places.primaryType,places.rating,places.userRatingCount,places.location"},
+        body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:limit})
+      });
+      const searchData=await searchResp.json();
+      const places=(searchData.places||[]).slice(0,limit);
       const summary=[];
       for(const place of places){
         const detailsResp=await fetch(`https://places.googleapis.com/v1/places/${place.id}`,{
@@ -372,15 +351,9 @@ function AdminScreen({user,lang,go,sb}){
         const detail=detailsResp.ok?await detailsResp.json():place;
         const tags=adminExtractTagsFromReviews(detail.reviews||[]);
         const savedId=await adminSaveScannedPlace({...place,...detail,id:place.id},tags);
-        summary.push({
-          name:detail.displayName?.text||place.displayName?.text||"Locale",
-          tags,
-          savedId,
-          reviews:(detail.reviews||[]).length,
-          query:place._query||""
-        });
+        summary.push({name:detail.displayName?.text||place.displayName?.text||"Locale",tags,savedId,reviews:(detail.reviews||[]).length});
       }
-      setAdminScanSummary({city,limit,analyzed:summary.length,calls:textSearchCalls+summary.length,textSearchCalls,detailsCalls:summary.length,items:summary});
+      setAdminScanSummary({city,limit,analyzed:summary.length,calls:1+summary.length,items:summary});
       showMsg(`✅ Scansione completata: ${summary.length} locali analizzati`);
       load();
     }catch(e){
@@ -481,7 +454,7 @@ function AdminScreen({user,lang,go,sb}){
         {!loading&&tab==="scan"&&isAdminEmail&&<>
           <div style={{...card2,border:"1.5px solid #fde68a",background:"#fffbeb"}}>
             <p style={{margin:"0 0 6px",fontSize:14,fontWeight:900,color:"#92400e"}}>🔐 Admin — Scansione città controllata</p>
-            <p style={{margin:"0 0 12px",fontSize:12,color:"#92400e",lineHeight:1.5}}>Visibile solo al tuo account admin. Fa una scansione alimentare completa con più query mirate, ma analizza al massimo il numero totale di locali scelto.</p>
+            <p style={{margin:"0 0 12px",fontSize:12,color:"#92400e",lineHeight:1.5}}>Visibile solo al tuo account admin. Usa recensioni Google solo sui primi locali scelti e può generare costi: usala con limite basso.</p>
             <input value={adminScanCity} onChange={e=>setAdminScanCity(e.target.value)} placeholder="Città · es. Roma" style={{...inp,marginBottom:8,fontSize:13}}/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 90px",gap:8,marginBottom:8}}>
               <input value={adminScanCountry} onChange={e=>setAdminScanCountry(e.target.value)} placeholder="Italia" style={{...inp,fontSize:13}}/>
@@ -491,14 +464,14 @@ function AdminScreen({user,lang,go,sb}){
                 <option value={20}>20 locali</option>
               </select>
             </div>
-            <button onClick={runAdminCityScan} disabled={adminScanRunning||!adminScanCity.trim()} style={{width:"100%",background:(adminScanRunning||!adminScanCity.trim())?"#d1d5db":"#92400e",color:"white",border:"none",padding:"11px",borderRadius:12,fontWeight:800,fontSize:13,cursor:(adminScanRunning||!adminScanCity.trim())?"not-allowed":"pointer"}}>{adminScanRunning?"⏳ Scansione in corso...":"Avvia scansione alimentare completa"}</button>
+            <button onClick={runAdminCityScan} disabled={adminScanRunning||!adminScanCity.trim()} style={{width:"100%",background:(adminScanRunning||!adminScanCity.trim())?"#d1d5db":"#92400e",color:"white",border:"none",padding:"11px",borderRadius:12,fontWeight:800,fontSize:13,cursor:(adminScanRunning||!adminScanCity.trim())?"not-allowed":"pointer"}}>{adminScanRunning?"⏳ Scansione in corso...":"Avvia scansione controllata"}</button>
           </div>
           {adminScanSummary&&<div style={card2}>
             <p style={{margin:"0 0 8px",fontSize:13,fontWeight:900,color:"#1a5c3a"}}>✅ Riepilogo scansione {adminScanSummary.city}</p>
-            <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280"}}>Locali analizzati: {adminScanSummary.analyzed} · Chiamate Google stimate: {adminScanSummary.calls} · Text Search: {adminScanSummary.textSearchCalls||0} · Details/reviews: {adminScanSummary.detailsCalls||0}</p>
+            <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280"}}>Locali analizzati: {adminScanSummary.analyzed} · Chiamate Google stimate: {adminScanSummary.calls}</p>
             {adminScanSummary.items.map((it,i)=><div key={i} style={{borderTop:"1px solid #e5e7eb",padding:"9px 0"}}>
               <p style={{margin:"0 0 4px",fontSize:13,fontWeight:800}}>{it.name}</p>
-              <p style={{margin:0,fontSize:12,color:it.tags.length?"#065f46":"#9ca3af"}}>{it.tags.length?`Tag trovati: ${it.tags.join(", ")}`:"Nessun tag positivo trovato"} · recensioni lette: {it.reviews}{it.query?` · trovato con: ${it.query}`:""}</p>
+              <p style={{margin:0,fontSize:12,color:it.tags.length?"#065f46":"#9ca3af"}}>{it.tags.length?`Tag trovati: ${it.tags.join(", ")}`:"Nessun tag positivo trovato"} · recensioni lette: {it.reviews}</p>
             </div>)}
           </div>}
         </>}
@@ -839,6 +812,8 @@ function App(){
   const [detailName,setDetailName]=React.useState("");
   const [detailCity,setDetailCity]=React.useState("");
   const [detailCountry,setDetailCountry]=React.useState("Italia");
+  const [detailTags,setDetailTags]=React.useState([]);
+  const [detailRunning,setDetailRunning]=React.useState(false);
   const [businessActiveIds,setBusinessActiveIds]=React.useState(new Set());
   const isGuest=!user;
   const GUEST_MAX=3;
@@ -1532,8 +1507,8 @@ function App(){
             <button onClick={()=>{closeP();setAuthMode("login");go("auth");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer"}}>{t.login}</button>
           </>}
           {popup.type==="searchLimit"&&<>
-            <button onClick={()=>{closeP();openStripeLink("user_monthly");}} style={{...btnG,marginBottom:10,fontSize:14}}>🌿 Premium 3€/mese: 50 ricerche leggere + 15 verifiche/mese</button>
-            <button onClick={()=>{closeP();openStripeLink("user_yearly");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10}}>🌿 Annuale 30€/anno: 600 ricerche + 180 verifiche/anno</button>
+            <button onClick={()=>{closeP();openStripeLink("user_monthly");}} style={{...btnG,marginBottom:10,fontSize:14}}>🌿 Premium 3€/mese: 50 ricerche leggere + 15 dettagliate/mese</button>
+            <button onClick={()=>{closeP();openStripeLink("user_yearly");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10}}>🌿 Annuale 30€/anno: 600 leggere + 180 dettagliate/anno</button>
             <button onClick={()=>{closeP();openStripeLink("extra_searches");}} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer"}}>➕ Extra: +5 verifiche a 2,50€</button>
           </>}
           <button onClick={closeP} style={{width:"100%",background:"none",border:"none",padding:8,fontSize:13,color:"#9ca3af",cursor:"pointer",marginTop:4}}>{t.cancel}</button>
@@ -1697,17 +1672,208 @@ function App(){
     </div>
   );
 
-  const startDetailedVerification=()=>{
+  const DETAIL_FREE_KEY=(userId)=>`juniper_detail_free_used_${userId||"guest"}`;
+  const DETAIL_MONTH_KEY=(userId)=>`juniper_detail_month_${userId||"guest"}_${getMonthKey()}`;
+  const DETAIL_YEAR_KEY=(userId)=>`juniper_detail_year_${userId||"guest"}_${new Date().getFullYear()}`;
+  const DETAIL_TAG_OPTIONS=["gluten_free","lactose_free","vegan","vegetarian","pet_friendly"];
+  const getDetailUsageKey=()=>isPremium&&isYearlyPlan(subPlan)?DETAIL_YEAR_KEY(user?.id):DETAIL_MONTH_KEY(user?.id);
+  const getDetailIncludedLimit=()=>isAdmin?999:(isPremium&&(isYearlyPlan(subPlan)?180:15));
+  const getDetailUsedIncluded=()=>Number(localStorage.getItem(getDetailUsageKey())||0);
+  const getFreeDetailUsed=()=>localStorage.getItem(DETAIL_FREE_KEY(user?.id))==="1";
+  const getDetailResultLimit=()=>isAdmin?20:(isPremium?15:3);
+  const getDetailAvailabilityLabel=()=>{
+    if(isAdmin)return "Admin: fino a 20 locali";
+    if(isPremium){
+      const limit=getDetailIncludedLimit();
+      return `${isYearlyPlan(subPlan)?"Annuale":"Premium"}: ${Math.max(0,limit-getDetailUsedIncluded())}/${limit} dettagliate disponibili`;
+    }
+    return getFreeDetailUsed()?"Prova gratuita già usata":"Gratis: 1 prova inclusa";
+  };
+  const toggleDetailTag=(tag)=>setDetailTags(prev=>prev.includes(tag)?prev.filter(x=>x!==tag):[...prev,tag]);
+
+  const detailNormalize=(txt="")=>String(txt).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
+  const detailDetectType=(name="",primaryType="")=>{
+    const x=detailNormalize(name+" "+primaryType);
+    if(x.includes("gelat")||x.includes("ice_cream"))return {type:"gelateria",emoji:"🍦"};
+    if(x.includes("pizza"))return {type:"pizzeria",emoji:"🍕"};
+    if(x.includes("bar")||x.includes("cafe")||x.includes("caff"))return {type:"bar",emoji:"☕"};
+    if(x.includes("pastic")||x.includes("bakery")||x.includes("pastry"))return {type:"pasticceria",emoji:"🧁"};
+    if(x.includes("agritur")||x.includes("farm"))return {type:"agriturismo",emoji:"🌾"};
+    return {type:"ristorante",emoji:"🍽️"};
+  };
+  const detailCityFromAddress=(formatted="")=>{
+    const parts=(formatted||"").split(",").map(s=>s.trim()).filter(Boolean);
+    if(parts.length>=3){const c=parts[parts.length-3]; if(c&&!/^\d+$/.test(c))return c;}
+    if(parts.length>=2){const c=parts[parts.length-2]; if(c&&c!=="Italia"&&!/^\d+$/.test(c))return c;}
+    return detailCity||"Italia";
+  };
+  const detailHasPositiveMention=(text,terms)=>{
+    const sentences=detailNormalize(text).split(/[.!?;:\n]/).map(s=>s.trim()).filter(Boolean);
+    const negatives=["non","no ","nessun","nessuna","niente","mancano","manca","senza opzioni","peccato","impossibile","non hanno","non fa","non fanno","non disponibile","non adatto","not available","no gluten free","no vegan"];
+    return sentences.some(sentence=>{
+      const has=terms.some(term=>sentence.includes(detailNormalize(term)));
+      if(!has)return false;
+      const neg=negatives.some(n=>sentence.includes(n));
+      return !neg;
+    });
+  };
+  const detailExtractTagsFromReviews=(reviews=[])=>{
+    const text=(reviews||[]).map(r=>r.text?.text||r.originalText?.text||"").join(". ");
+    const tags=[];
+    if(detailHasPositiveMention(text,["senza glutine","gluten free","celiaco","celiaci","celiachia","glutine free"]))tags.push("gluten_free");
+    if(detailHasPositiveMention(text,["senza lattosio","lactose free","lattosio","senza latte"]))tags.push("lactose_free");
+    if(detailHasPositiveMention(text,["vegano","vegana","vegan"]))tags.push("vegan");
+    if(detailHasPositiveMention(text,["vegetariano","vegetariana","vegetarian"]))tags.push("vegetarian");
+    if(detailHasPositiveMention(text,["pet friendly","cani ammessi","accettano cani","animali ammessi","dog friendly"]))tags.push("pet_friendly");
+    return [...new Set(tags)];
+  };
+  const detailQueriesForTags=(city,country,tags)=>{
+    const loc=`${city} ${country||"Italia"}`.trim();
+    const qs=[];
+    if(tags.includes("gluten_free"))qs.push(`ristoranti senza glutine ${loc}`,`gluten free restaurants ${loc}`);
+    if(tags.includes("lactose_free"))qs.push(`ristoranti senza lattosio ${loc}`,`lactose free restaurants ${loc}`);
+    if(tags.includes("vegan"))qs.push(`ristoranti vegani ${loc}`,`vegan restaurants ${loc}`);
+    if(tags.includes("vegetarian"))qs.push(`ristoranti vegetariani ${loc}`,`vegetarian restaurants ${loc}`);
+    if(tags.includes("pet_friendly"))qs.push(`ristoranti pet friendly ${loc}`,`dog friendly restaurants ${loc}`);
+    return qs.length?qs:[`ristoranti ${loc}`];
+  };
+  const detailSavePlace=async(place,tags=[])=>{
+    const googleId=place.id||"";
+    if(!googleId)return null;
+    const name=place.displayName?.text||place.displayName||"Locale";
+    const address=place.formattedAddress||place.shortFormattedAddress||"";
+    const d=detailDetectType(name,place.primaryType||"");
+    const baseRow={
+      google_place_id:googleId,
+      name,
+      type:d.type,
+      city:detailCityFromAddress(address),
+      country:detailCountry||"Italia",
+      address,
+      source:"google",
+      certified:false,
+      sponsored:false,
+      pending:false,
+      review_count:place.userRatingCount||0,
+      gluten_free:tags.includes("gluten_free"),
+      lactose_free:tags.includes("lactose_free"),
+      vegan:tags.includes("vegan"),
+      vegetarian:tags.includes("vegetarian"),
+      pet_friendly:tags.includes("pet_friendly"),
+      combo_free:tags.includes("gluten_free")&&tags.includes("lactose_free"),
+      breakfast:d.type==="bar"||d.type==="pasticceria"||d.type==="gelateria",
+      lunch:true,
+      aperitivo:d.type==="bar"||d.type==="gelateria"||d.type==="pasticceria",
+      dinner:d.type!=="bar"&&d.type!=="pasticceria"&&d.type!=="gelateria"
+    };
+    const {data:existing}=await sb.from("structures").select("id,gluten_free,lactose_free,vegan,vegetarian,pet_friendly,combo_free").eq("google_place_id",googleId).maybeSingle();
+    if(existing?.id){
+      const updateRow={
+        gluten_free:Boolean(existing.gluten_free||baseRow.gluten_free),
+        lactose_free:Boolean(existing.lactose_free||baseRow.lactose_free),
+        vegan:Boolean(existing.vegan||baseRow.vegan),
+        vegetarian:Boolean(existing.vegetarian||baseRow.vegetarian),
+        pet_friendly:Boolean(existing.pet_friendly||baseRow.pet_friendly),
+        combo_free:Boolean(existing.combo_free||baseRow.combo_free),
+        review_count:baseRow.review_count||0
+      };
+      await sb.from("structures").update(updateRow).eq("id",existing.id);
+      return existing.id;
+    }
+    const {data:inserted,error}=await sb.from("structures").insert(baseRow).select("id").single();
+    if(error){console.warn("Errore salvataggio ricerca dettagliata",error);return null;}
+    return inserted?.id;
+  };
+  const consumeDetailedEntitlement=async()=>{
+    if(isAdmin)return true;
+    if(isPremium){
+      const used=getDetailUsedIncluded();
+      const limit=getDetailIncludedLimit();
+      if(used<limit){localStorage.setItem(getDetailUsageKey(),String(used+1));return true;}
+      if((extraCredits||0)>0)return await consumeExtraCredit();
+      showP("Ricerche dettagliate esaurite",isYearlyPlan(subPlan)?"Hai terminato le 180 ricerche dettagliate annuali. Puoi acquistare crediti extra.":"Hai terminato le 15 ricerche dettagliate del mese. Puoi acquistare crediti extra.","searchLimit");
+      return false;
+    }
+    if(!getFreeDetailUsed()){localStorage.setItem(DETAIL_FREE_KEY(user?.id),"1");return true;}
+    if((extraCredits||0)>0)return await consumeExtraCredit();
+    showP("Ricerca dettagliata Premium","Hai usato la prova gratuita. Continua con Premium o acquista crediti extra.","searchLimit");
+    return false;
+  };
+  const runDetailedFoodSearch=async()=>{
     if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
-    if(!detailName.trim()||!detailCity.trim()){
-      alert(lang==="it"?"Inserisci nome locale e città.":"Enter venue name and city.");
-      return;
+    if(!detailCity.trim()){alert(lang==="it"?"Inserisci una città.":"Enter a city.");return;}
+    if(detailTags.length===0){alert(lang==="it"?"Scegli almeno un tag alimentare.":"Choose at least one dietary tag.");return;}
+    const allowed=await consumeDetailedEntitlement();
+    if(!allowed)return;
+    const maxPlaces=getDetailResultLimit();
+    setDetailRunning(true);
+    setSearching(true);
+    try{
+      const queries=detailQueriesForTags(detailCity.trim(),detailCountry.trim(),detailTags).slice(0,10);
+      const searchResults=[];
+      for(const textQuery of queries){
+        const resp=await fetch("https://places.googleapis.com/v1/places:searchText",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.shortFormattedAddress,places.primaryType,places.rating,places.userRatingCount,places.location"},
+          body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:10})
+        });
+        const data=resp.ok?await resp.json():{places:[]};
+        (data.places||[]).forEach(p=>searchResults.push(p));
+      }
+      const seen=new Set();
+      const finalPlaces=[];
+      for(const p of searchResults){
+        if(!p?.id||seen.has(p.id))continue;
+        seen.add(p.id);
+        finalPlaces.push(p);
+        if(finalPlaces.length>=maxPlaces)break;
+      }
+      const detailed=[];
+      for(const place of finalPlaces){
+        const detailsResp=await fetch(`https://places.googleapis.com/v1/places/${place.id}`,{
+          headers:{"X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"id,displayName,formattedAddress,shortFormattedAddress,primaryType,rating,userRatingCount,location,reviews"}
+        });
+        const detail=detailsResp.ok?await detailsResp.json():place;
+        const foundTags=detailExtractTagsFromReviews(detail.reviews||[]);
+        const relevantTags=[...new Set([...foundTags.filter(t=>detailTags.includes(t)),...foundTags])];
+        const savedId=await detailSavePlace({...place,...detail,id:place.id},relevantTags);
+        const name=detail.displayName?.text||place.displayName?.text||"Locale";
+        const d=detailDetectType(name,detail.primaryType||place.primaryType||"");
+        const address=detail.shortFormattedAddress||detail.formattedAddress||place.shortFormattedAddress||place.formattedAddress||"";
+        detailed.push({
+          id:savedId||("g_"+place.id),
+          google_place_id:place.id,
+          name,
+          type:d.type,
+          emoji:d.emoji,
+          city:detailCityFromAddress(detail.formattedAddress||address),
+          country:detailCountry||"Italia",
+          address,
+          tags:relevantTags,
+          meals:d.type==="bar"?["breakfast","aperitivo"]:d.type==="gelateria"||d.type==="pasticceria"?["breakfast","lunch","aperitivo"]:["lunch","dinner"],
+          source:"google",
+          certified:false,
+          sponsored:false,
+          rating:detail.rating||place.rating||null,
+          reviewCount:detail.userRatingCount||place.userRatingCount||0,
+          unverified:true
+        });
+      }
+      setResults(detailed);
+      setTab("explore");
+      go("results","home");
+      detailed.forEach(r=>loadCommunityTags(r.id));
+    }catch(e){
+      console.error(e);
+      alert(lang==="it"?"Errore durante la ricerca dettagliata. Riprova.":"Detailed search error. Try again.");
+    }finally{
+      setDetailRunning(false);
+      setSearching(false);
     }
-    if(!(isAdmin||isPremium||(extraCredits||0)>0)){
-      showP("Verifica dettagliata Premium","Questa funzione è disponibile con Premium o crediti extra.","searchLimit");
-      return;
-    }
-    showP("Funzione Premium","Per usare la verifica dettagliata scegli Premium o acquista crediti extra.","searchLimit");
+  };
+
+  const startDetailedVerification=()=>{
+    runDetailedFoodSearch();
   };
 
   if(screen==="home")return(
@@ -1730,16 +1896,21 @@ function App(){
       <div style={{padding:"12px 16px 0"}}>
         <div style={{...card,border:"1.5px solid #ddd6fe",background:"#fbfaff"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:8}}>
-            <p style={{margin:0,fontSize:13,fontWeight:900,color:"#1a5c3a"}}>🔎 Verifica un locale specifico</p>
-            <span style={{background:"#ede9fe",color:"#4338ca",fontSize:10,fontWeight:800,padding:"3px 8px",borderRadius:20,whiteSpace:"nowrap"}}>PREMIUM</span>
+            <p style={{margin:0,fontSize:13,fontWeight:900,color:"#1a5c3a"}}>🔎 Ricerca dettagliata alimentare</p>
+            <span style={{background:"#ede9fe",color:"#4338ca",fontSize:10,fontWeight:800,padding:"3px 8px",borderRadius:20,whiteSpace:"nowrap"}}>{isPremium?"PREMIUM":(getFreeDetailUsed()?"PREMIUM":"1 PROVA")}</span>
           </div>
-          <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280",lineHeight:1.45}}>Hai già scelto un locale? Inserisci nome e città: Juniper controllerà in modo più approfondito solo quel posto.</p>
-          <input value={detailName} onChange={e=>setDetailName(e.target.value)} placeholder="Nome locale · es. Ristorante Tizio" style={{...inp,marginBottom:8,fontSize:13}}/>
+          <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280",lineHeight:1.45}}>Inserisci una città e scegli cosa stai cercando: Juniper controllerà una selezione di locali più pertinenti.</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 110px",gap:8,marginBottom:10}}>
-            <input value={detailCity} onChange={e=>setDetailCity(e.target.value)} placeholder="Città · es. Roma" style={{...inp,fontSize:13}}/>
+            <input value={detailCity} onChange={e=>setDetailCity(e.target.value)} placeholder="Città · es. Venezia" style={{...inp,fontSize:13}}/>
             <input value={detailCountry} onChange={e=>setDetailCountry(e.target.value)} placeholder="Italia" style={{...inp,fontSize:13}}/>
           </div>
-          <button onClick={startDetailedVerification} disabled={!detailName.trim()||!detailCity.trim()} style={{width:"100%",background:(!detailName.trim()||!detailCity.trim())?"#d1d5db":"linear-gradient(135deg,#1a5c3a,#0f3d26)",color:(!detailName.trim()||!detailCity.trim())?"#6b7280":"white",border:"none",padding:"12px",borderRadius:12,fontWeight:800,fontSize:14,cursor:(!detailName.trim()||!detailCity.trim())?"not-allowed":"pointer"}}>🔒 Verifica locale</button>
+          <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:10}}>
+            {DETAIL_TAG_OPTIONS.map(k=><button key={k} onClick={()=>toggleDetailTag(k)} style={{background:detailTags.includes(k)?"#1a5c3a":"white",color:detailTags.includes(k)?"white":"#374151",border:detailTags.includes(k)?"1.5px solid #1a5c3a":"1.5px solid #e5e7eb",padding:"7px 10px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:detailTags.includes(k)?800:600}}>
+              {TAGS[k].icon} {TAGS[k][lang==="it"?"it":"en"]}
+            </button>)}
+          </div>
+          <p style={{margin:"0 0 10px",fontSize:11,color:"#6b7280",lineHeight:1.4}}>{getDetailAvailabilityLabel()}</p>
+          <button onClick={startDetailedVerification} disabled={detailRunning||!detailCity.trim()||detailTags.length===0} style={{width:"100%",background:(detailRunning||!detailCity.trim()||detailTags.length===0)?"#d1d5db":"linear-gradient(135deg,#1a5c3a,#0f3d26)",color:(detailRunning||!detailCity.trim()||detailTags.length===0)?"#6b7280":"white",border:"none",padding:"12px",borderRadius:12,fontWeight:800,fontSize:14,cursor:(detailRunning||!detailCity.trim()||detailTags.length===0)?"not-allowed":"pointer"}}>{detailRunning?"⏳ Ricerca in corso...":"🔎 Avvia ricerca dettagliata"}</button>
         </div>
 
         <div style={card}>
@@ -1890,7 +2061,7 @@ function App(){
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8}}>
               {!isPremium&&<>
-                <button onClick={()=>openStripeLink("user_monthly")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Premium 3€/mese · 50 ricerche leggere + 15 verifiche</button>
+                <button onClick={()=>openStripeLink("user_monthly")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Premium 3€/mese · 50 leggere + 15 dettagliate</button>
                 <button onClick={()=>openStripeLink("user_yearly")} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"1px solid #bbf7d0",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Annuale 30€/anno · 600 ricerche + 180 verifiche</button>
               </>}
               <button onClick={()=>openStripeLink("extra_searches")} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>➕ Compra extra +5 verifiche dettagliate · 2,50€</button>
