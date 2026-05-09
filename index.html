@@ -581,39 +581,78 @@ function MaintenanceScreen({lang,user}){
     catch(e){ console.error("Logout error", e); }
     window.location.reload();
   };
+  const disabledInput={width:"100%",padding:"11px 13px",borderRadius:12,border:"1.5px solid #e5e7eb",fontSize:13,background:"#f9fafb",color:"#6b7280",outline:"none"};
+  const pill={display:"inline-block",fontSize:10,fontWeight:900,borderRadius:999,padding:"4px 8px",marginBottom:8};
   return(
-    <div style={{minHeight:"100vh",background:"#f9fafb",display:"flex",alignItems:"center",justifyContent:"center",padding:18}}>
-      <div style={{width:"100%",maxWidth:430,background:"white",borderRadius:22,overflow:"hidden",boxShadow:"0 12px 35px rgba(0,0,0,.12)",border:"1px solid #e5e7eb"}}>
-        <div style={{background:GREEN,color:"white",padding:"30px 24px",textAlign:"center"}}>
-          <div style={{display:"flex",justifyContent:"center",marginBottom:12}}><Logo size={38}/></div>
-          <h1 style={{margin:"0 0 8px",fontSize:24,fontWeight:900}}>Juniper</h1>
-          <p style={{margin:0,fontSize:14,opacity:.9}}>{isIt?"Aggiornamento in corso":"Update in progress"}</p>
+    <div style={{minHeight:"100vh",background:"#f9fafb",padding:16}}>
+      <div style={{width:"100%",maxWidth:480,margin:"0 auto",paddingBottom:30}}>
+        <div style={{background:GREEN,color:"white",borderRadius:22,padding:"26px 22px",textAlign:"center",boxShadow:"0 10px 28px rgba(0,0,0,.12)",marginBottom:14}}>
+          <div style={{display:"flex",justifyContent:"center",marginBottom:10}}><Logo size={34}/></div>
+          <h1 style={{margin:"0 0 6px",fontSize:24,fontWeight:900}}>Juniper</h1>
+          <p style={{margin:0,fontSize:14,opacity:.9}}>{isIt?"Anteprima aggiornamento in corso":"Update preview in progress"}</p>
         </div>
-        <div style={{padding:24,textAlign:"center"}}>
-          <div style={{fontSize:46,marginBottom:12}}>🛠️</div>
-          <h2 style={{margin:"0 0 10px",fontSize:21,fontWeight:900,color:"#1a5c3a"}}>
-            {isIt?"App in lavorazione":"App under maintenance"}
-          </h2>
-          <p style={{margin:"0 0 14px",fontSize:15,lineHeight:1.6,color:"#374151"}}>
+
+        <div style={{background:"#fff7ed",border:"1.5px solid #fed7aa",borderRadius:16,padding:14,marginBottom:12}}>
+          <p style={{margin:"0 0 5px",fontSize:13,fontWeight:900,color:"#9a3412"}}>🛠️ {isIt?"App in lavorazione":"App under maintenance"}</p>
+          <p style={{margin:0,fontSize:12,color:"#9a3412",lineHeight:1.5}}>
             {isIt
-              ? "Stiamo aggiornando Juniper per migliorare le ricerche e rendere l’app più stabile. Torna tra qualche ora."
-              : "We are updating Juniper to improve searches and app stability. Please come back in a few hours."}
+              ? "Le ricerche e la navigazione sono temporaneamente sospese. Questa schermata mostra in anteprima il nuovo funzionamento di Juniper."
+              : "Searches and navigation are temporarily paused. This screen previews the new Juniper search flow."}
           </p>
-          <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:14,padding:14,marginBottom:16,textAlign:"left"}}>
-            <p style={{margin:"0 0 5px",fontSize:13,fontWeight:800,color:"#065f46"}}>🌿 {isIt?"Account registrato":"Account saved"}</p>
-            <p style={{margin:0,fontSize:12,color:"#166534",lineHeight:1.45}}>
-              {isIt
-                ? `Il tuo account è attivo. Le ricerche e la navigazione sono temporaneamente sospese.`
-                : `Your account is active. Searches and navigation are temporarily paused.`}
-            </p>
-          </div>
-          <p style={{margin:"0 0 16px",fontSize:12,color:"#6b7280",lineHeight:1.5}}>
-            {isIt?"Per urgenze puoi scrivere a":"For urgent support, contact"} <strong>help@juniperapp.eu</strong>
-          </p>
-          <button onClick={logout} style={{width:"100%",background:"#f3f4f6",border:"none",borderRadius:12,padding:"13px 14px",fontSize:14,fontWeight:800,color:"#374151",cursor:"pointer"}}>
-            {isIt?"Esci":"Sign out"}
-          </button>
         </div>
+
+        <details style={{background:"white",borderRadius:16,padding:14,boxShadow:"0 2px 12px rgba(0,0,0,.07)",border:"1px solid #e5e7eb",marginBottom:12}} open>
+          <summary style={{cursor:"pointer",fontSize:14,fontWeight:900,color:"#1a5c3a"}}>🌿 {isIt?"Come funziona Juniper?":"How does Juniper work?"}</summary>
+          <div style={{fontSize:12,color:"#374151",lineHeight:1.6,marginTop:10}}>
+            <p style={{margin:"0 0 8px"}}>{isIt?"Juniper ti aiuta a trovare locali adatti alle tue esigenze alimentari.":"Juniper helps you find venues that fit your dietary needs."}</p>
+            <p style={{margin:"0 0 6px",fontWeight:800}}>🌍 {isIt?"Ricerca leggera per città o zona":"Light search by city or area"}</p>
+            <p style={{margin:"0 0 8px"}}>{isIt?"Mostra i locali disponibili e i tag già salvati su Juniper: community, admin o locali verificati. Non analizza le recensioni Google.":"Shows available venues and tags already saved in Juniper. It does not scan Google reviews."}</p>
+            <p style={{margin:"0 0 6px",fontWeight:800}}>🔎 {isIt?"Verifica dettagliata locale":"Detailed venue verification"}</p>
+            <p style={{margin:"0 0 8px"}}>{isIt?"Inserisci nome del locale e città. Juniper analizzerà quel singolo locale in modo più approfondito, incluse eventuali informazioni disponibili dalle recensioni. Funzione Premium o crediti extra.":"Enter venue name and city. Juniper checks that single venue more deeply, including available review information. Premium or extra credits required."}</p>
+            <p style={{margin:"0 0 6px",fontWeight:800}}>👥 {isIt?"Aiutaci a migliorare":"Help us improve"}</p>
+            <p style={{margin:"0 0 8px"}}>{isIt?"Puoi segnalare tag mancanti: le segnalazioni vengono controllate prima di essere pubblicate. Puoi anche scriverci a help@juniperapp.eu.":"You can suggest missing tags. Suggestions are reviewed before publishing. You can also email help@juniperapp.eu."}</p>
+            <p style={{margin:0,color:"#92400e",fontWeight:700}}>⚠️ {isIt?"Le informazioni sono indicative: conferma sempre direttamente con il locale prima di consumare.":"Information is indicative: always confirm directly with the venue before consuming."}</p>
+          </div>
+        </details>
+
+        <div style={{background:"white",borderRadius:18,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",border:"1px solid #e5e7eb",marginBottom:12}}>
+          <span style={{...pill,background:"#dcfce7",color:"#166534"}}>GRATIS LIMITATA</span>
+          <h3 style={{margin:"0 0 6px",fontSize:17,fontWeight:900,color:"#1a5c3a"}}>🌍 {isIt?"Cerca per città o zona":"Search by city or area"}</h3>
+          <p style={{margin:"0 0 12px",fontSize:12,color:"#6b7280",lineHeight:1.45}}>
+            {isIt?"Ricerca leggera: mostra locali e tag già presenti su Juniper. Nessuna scansione delle recensioni.":"Light search: shows venues and tags already present on Juniper. No review scanning."}
+          </p>
+          <input disabled placeholder={isIt?"Es. Roma, Grosseto, Parigi Francia":"E.g. Rome, Paris France"} style={disabledInput}/>
+          <button disabled style={{width:"100%",marginTop:10,background:"#d1d5db",color:"#6b7280",border:"none",padding:"12px",borderRadius:12,fontWeight:900,fontSize:14}}>🔍 {isIt?"Cerca locali":"Search venues"}</button>
+          <p style={{margin:"9px 0 0",fontSize:11,color:"#6b7280"}}>{isIt?"Gratis: 3 ricerche leggere al mese.":"Free: 3 light searches per month."}</p>
+        </div>
+
+        <div style={{background:"white",borderRadius:18,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",border:"1px solid #e5e7eb",marginBottom:12}}>
+          <span style={{...pill,background:"#eef2ff",color:"#3730a3"}}>PREMIUM / CREDITI EXTRA</span>
+          <h3 style={{margin:"0 0 6px",fontSize:17,fontWeight:900,color:"#1a5c3a"}}>🔎 {isIt?"Verifica un locale specifico":"Verify a specific venue"}</h3>
+          <p style={{margin:"0 0 12px",fontSize:12,color:"#6b7280",lineHeight:1.45}}>
+            {isIt?"Inserisci nome locale e città. La scansione recensioni si attiva solo qui, su un solo locale, e consuma 1 verifica dettagliata.":"Enter venue name and city. Review scanning runs only here, on one venue, and consumes 1 detailed verification."}
+          </p>
+          <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8}}>
+            <input disabled placeholder={isIt?"Nome locale · es. Ristorante Tizio":"Venue name"} style={disabledInput}/>
+            <input disabled placeholder={isIt?"Città · es. Roma":"City"} style={disabledInput}/>
+            <input disabled placeholder={isIt?"Nazione · Italia":"Country · Italy"} style={disabledInput}/>
+          </div>
+          <button disabled style={{width:"100%",marginTop:10,background:"#d1d5db",color:"#6b7280",border:"none",padding:"12px",borderRadius:12,fontWeight:900,fontSize:14}}>🔒 {isIt?"Verifica locale":"Verify venue"}</button>
+          <p style={{margin:"9px 0 0",fontSize:11,color:"#6b7280",lineHeight:1.45}}>
+            {isIt?"Premium 3€/mese: 50 ricerche leggere + 15 verifiche dettagliate/mese. Annuale 30€: 600 ricerche leggere + 180 verifiche dettagliate/anno, sbloccate subito. Extra: +5 verifiche a 2,50€.":"Premium includes light searches and detailed verifications. Extra credits available."}
+          </p>
+        </div>
+
+        <div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",borderRadius:14,padding:14,marginBottom:14}}>
+          <p style={{margin:"0 0 5px",fontSize:13,fontWeight:800,color:"#065f46"}}>🌿 {isIt?"Account registrato":"Account saved"}</p>
+          <p style={{margin:0,fontSize:12,color:"#166534",lineHeight:1.45}}>
+            {isIt?"Il tuo account è attivo. Le ricerche e la navigazione sono temporaneamente sospese.":"Your account is active. Searches and navigation are temporarily paused."}
+          </p>
+        </div>
+
+        <button onClick={logout} style={{width:"100%",background:"#f3f4f6",border:"none",borderRadius:12,padding:"13px 14px",fontSize:14,fontWeight:800,color:"#374151",cursor:"pointer"}}>
+          {isIt?"Esci":"Sign out"}
+        </button>
       </div>
     </div>
   );
@@ -658,10 +697,10 @@ function App(){
   const [annualSearchCount,setAnnualSearchCount]=React.useState(0);
   const [extraCredits,setExtraCredits]=React.useState(0);
   const isGuest=!user;
-  const GUEST_MAX=2;
-  const FREE_SEARCH_LIMIT=2;
-  const MONTHLY_PREMIUM_LIMIT=10;
-  const YEARLY_PREMIUM_LIMIT=120;
+  const GUEST_MAX=3;
+  const FREE_SEARCH_LIMIT=3;
+  const MONTHLY_PREMIUM_LIMIT=50;
+  const YEARLY_PREMIUM_LIMIT=600;
   const EXTRA_SEARCH_LINK="https://buy.stripe.com/5kQ8wR64M4Rb2rFeNC7bW05";
   const STRIPE_LINKS={
     user_monthly:"https://buy.stripe.com/6oU4gBfFmabvc2f0WM7bW01",
@@ -770,7 +809,7 @@ function App(){
   },[sel?.id]);
 
   const T={
-    it:{appName:"Juniper",hi:"Ciao",login:"Accedi",register:"Registrati",mealFilter:"Tipo di pasto",allMeals:"Tutti i pasti",filters:"Caratteristiche",certified:"Certificato",reviews:"recensioni",leaveReview:"Lascia una recensione",placeholder:"Scrivi la tua recensione...",submit:"Invia",home:"Home",explore:"Esplora",profile:"Profilo",results:"Risultati",found:"trovate",featured:"In evidenza",nearby:"Strutture in Italia",premiumPlan:"Piano Premium",features:"10 ricerche intelligenti/mese · Extra acquistabili",cancel:"Annulla",logout:"Esci",back:"Indietro",reviewAdded:"Recensione aggiunta! ✅",noRev:"Nessuna recensione ancora",searchBtn:"Cerca",whereLabel:"Dove vuoi andare?",wherePh:"Città, zona o nome locale...",kitchenTitle:"🔬 Sicurezza in cucina",kitchenSub:"Il locale garantisce assenza di contaminazione crociata?",kitchenLegend:"✅ cucina separata · ⚠️ non garantisce · ❌ cucina condivisa",tagItLabel:"Segnala caratteristica",popGuest:"Contenuto riservato 🌿",popGuestSub:"Registrati gratis per sbloccare Juniper!",popSearch:"Ricerche esaurite 🔍",popSearchSub:"Hai finito le ricerche disponibili. Passa a Premium o acquista ricerche extra.",popReview:"Vuoi lasciare una recensione? 💬",popReviewSub:"Registrati gratis!",regFree:"Registrati gratis",orLogin:"Hai già un account?",bizBtn:"Registra la tua attività"},
+    it:{appName:"Juniper",hi:"Ciao",login:"Accedi",register:"Registrati",mealFilter:"Tipo di pasto",allMeals:"Tutti i pasti",filters:"Caratteristiche",certified:"Certificato",reviews:"recensioni",leaveReview:"Lascia una recensione",placeholder:"Scrivi la tua recensione...",submit:"Invia",home:"Home",explore:"Esplora",profile:"Profilo",results:"Risultati",found:"trovate",featured:"In evidenza",nearby:"Strutture in Italia",premiumPlan:"Piano Premium",features:"50 ricerche leggere + 15 verifiche dettagliate/mese",cancel:"Annulla",logout:"Esci",back:"Indietro",reviewAdded:"Recensione aggiunta! ✅",noRev:"Nessuna recensione ancora",searchBtn:"Cerca",whereLabel:"Dove vuoi andare?",wherePh:"Città, zona o nome locale...",kitchenTitle:"🔬 Sicurezza in cucina",kitchenSub:"Il locale garantisce assenza di contaminazione crociata?",kitchenLegend:"✅ cucina separata · ⚠️ non garantisce · ❌ cucina condivisa",tagItLabel:"Segnala caratteristica",popGuest:"Contenuto riservato 🌿",popGuestSub:"Registrati gratis per sbloccare Juniper!",popSearch:"Ricerche esaurite 🔍",popSearchSub:"Hai finito le ricerche disponibili. Passa a Premium o acquista ricerche extra.",popReview:"Vuoi lasciare una recensione? 💬",popReviewSub:"Registrati gratis!",regFree:"Registrati gratis",orLogin:"Hai già un account?",bizBtn:"Registra la tua attività"},
     en:{appName:"Juniper",hi:"Hi",login:"Sign In",register:"Register",mealFilter:"Meal type",allMeals:"All meals",filters:"Features",certified:"Certified",reviews:"reviews",leaveReview:"Leave a review",placeholder:"Write your review...",submit:"Submit",home:"Home",explore:"Explore",profile:"Profile",results:"Results",found:"found",featured:"Featured",nearby:"Structures in Italy",premiumPlan:"Premium Plan",features:"10 intelligent searches/month · Extra available",cancel:"Cancel",logout:"Sign Out",back:"Back",reviewAdded:"Review added! ✅",noRev:"No reviews yet",searchBtn:"Search",whereLabel:"Where do you want to go?",wherePh:"City, area or place name...",kitchenTitle:"🔬 Kitchen Safety",kitchenSub:"Does the venue guarantee no cross-contamination?",kitchenLegend:"✅ separate kitchen · ⚠️ not guaranteed · ❌ shared kitchen",popGuest:"Members only 🌿",popGuestSub:"Sign up free to unlock Juniper!",popSearch:"Searches used up 🔍",popSearchSub:"You have used your available searches. Go Premium or buy extra searches.",popReview:"Want to leave a review? 💬",popReviewSub:"Sign up free!",regFree:"Sign up free",orLogin:"Already have an account?",bizBtn:"Register your business"},
   };
   const t=T[lang];
@@ -1304,8 +1343,8 @@ function App(){
             <button onClick={()=>{closeP();setAuthMode("login");go("auth");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer"}}>{t.login}</button>
           </>}
           {popup.type==="searchLimit"&&<>
-            <button onClick={()=>{closeP();openStripeLink("user_monthly");}} style={{...btnG,marginBottom:10,fontSize:14}}>🌿 Premium 3€/mese · 10 ricerche</button>
-            <button onClick={()=>{closeP();openStripeLink("user_yearly");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10}}>🌿 Annuale 30€ · 120 ricerche/anno</button>
+            <button onClick={()=>{closeP();openStripeLink("user_monthly");}} style={{...btnG,marginBottom:10,fontSize:14}}>🌿 Premium 3€/mese · 50 ricerche leggere + 15 verifiche</button>
+            <button onClick={()=>{closeP();openStripeLink("user_yearly");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10}}>🌿 Annuale 30€ · 600 ricerche + 180 verifiche/anno</button>
             <button onClick={()=>{closeP();openStripeLink("extra_searches");}} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer"}}>➕ Extra +5 ricerche · 2,50€</button>
           </>}
           <button onClick={closeP} style={{width:"100%",background:"none",border:"none",padding:8,fontSize:13,color:"#9ca3af",cursor:"pointer",marginTop:4}}>{t.cancel}</button>
@@ -1634,10 +1673,10 @@ function App(){
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8}}>
               {!isPremium&&<>
-                <button onClick={()=>openStripeLink("user_monthly")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Premium 3€/mese · 10 ricerche</button>
-                <button onClick={()=>openStripeLink("user_yearly")} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"1px solid #bbf7d0",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Annuale 30€ · 120 ricerche/anno</button>
+                <button onClick={()=>openStripeLink("user_monthly")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Premium 3€/mese · 50 ricerche leggere + 15 verifiche</button>
+                <button onClick={()=>openStripeLink("user_yearly")} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"1px solid #bbf7d0",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Annuale 30€ · 600 ricerche + 180 verifiche/anno</button>
               </>}
-              <button onClick={()=>openStripeLink("extra_searches")} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>➕ Compra extra +5 ricerche · 2,50€</button>
+              <button onClick={()=>openStripeLink("extra_searches")} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>➕ Extra +5 verifiche dettagliate · 2,50€</button>
             </div>
           </>)}
         </div>
