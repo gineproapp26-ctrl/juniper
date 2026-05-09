@@ -136,7 +136,6 @@ function AdminScreen({user,lang,go,sb}){
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const card2={background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:10};
   const [tagSuggestions,setTagSuggestions]=React.useState([]);
-  const [adminStructureSearch,setAdminStructureSearch]=React.useState("");
   const [adminScanCity,setAdminScanCity]=React.useState("");
   const [adminScanCountry,setAdminScanCountry]=React.useState("Italia");
   const [adminScanLimit,setAdminScanLimit]=React.useState(5);
@@ -332,18 +331,39 @@ function AdminScreen({user,lang,go,sb}){
     const city=(adminScanCity||"").trim();
     if(!city){alert("Inserisci una città.");return;}
     const limit=Math.min(Math.max(parseInt(adminScanLimit||5,10),1),20);
-    if(!window.confirm(`Confermi scansione admin di ${limit} locali per ${city}? Questa funzione legge recensioni Google e può generare costi.`))return;
+    if(!window.confirm(`Confermi scansione alimentare completa di massimo ${limit} locali totali per ${city}? Questa funzione legge recensioni Google solo sui locali finali e può generare costi.`))return;
     setAdminScanRunning(true);
     setAdminScanSummary(null);
     try{
-      const textQuery=`ristoranti bar pizzerie gelaterie ${city} ${adminScanCountry||"Italia"}`;
-      const searchResp=await fetch("https://places.googleapis.com/v1/places:searchText",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.shortFormattedAddress,places.primaryType,places.rating,places.userRatingCount,places.location"},
-        body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:limit})
-      });
-      const searchData=await searchResp.json();
-      const places=(searchData.places||[]).slice(0,limit);
+      // Scansione mirata ma con limite TOTALE: più query per trovare locali utili,
+      // poi deduplica per place_id e analizza recensioni solo dei primi X locali finali.
+      const country=adminScanCountry||"Italia";
+      const queryList=[
+        `ristoranti senza glutine ${city} ${country}`,
+        `gluten free restaurants ${city} ${country}`,
+        `ristoranti senza lattosio ${city} ${country}`,
+        `lactose free restaurants ${city} ${country}`,
+        `vegan restaurants ${city} ${country}`,
+        `ristoranti vegani ${city} ${country}`,
+        `pet friendly restaurants ${city} ${country}`,
+        `ristoranti cani ammessi ${city} ${country}`
+      ];
+      const foundById=new Map();
+      let textSearchCalls=0;
+      for(const textQuery of queryList){
+        const searchResp=await fetch("https://places.googleapis.com/v1/places:searchText",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.shortFormattedAddress,places.primaryType,places.rating,places.userRatingCount,places.location"},
+          body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:Math.min(limit,10)})
+        });
+        textSearchCalls++;
+        const searchData=await searchResp.json();
+        (searchData.places||[]).forEach(place=>{
+          if(place?.id&&!foundById.has(place.id))foundById.set(place.id,{...place,_query:textQuery});
+        });
+        if(foundById.size>=limit)break;
+      }
+      const places=Array.from(foundById.values()).slice(0,limit);
       const summary=[];
       for(const place of places){
         const detailsResp=await fetch(`https://places.googleapis.com/v1/places/${place.id}`,{
@@ -352,9 +372,15 @@ function AdminScreen({user,lang,go,sb}){
         const detail=detailsResp.ok?await detailsResp.json():place;
         const tags=adminExtractTagsFromReviews(detail.reviews||[]);
         const savedId=await adminSaveScannedPlace({...place,...detail,id:place.id},tags);
-        summary.push({name:detail.displayName?.text||place.displayName?.text||"Locale",tags,savedId,reviews:(detail.reviews||[]).length});
+        summary.push({
+          name:detail.displayName?.text||place.displayName?.text||"Locale",
+          tags,
+          savedId,
+          reviews:(detail.reviews||[]).length,
+          query:place._query||""
+        });
       }
-      setAdminScanSummary({city,limit,analyzed:summary.length,calls:1+summary.length,items:summary});
+      setAdminScanSummary({city,limit,analyzed:summary.length,calls:textSearchCalls+summary.length,textSearchCalls,detailsCalls:summary.length,items:summary});
       showMsg(`✅ Scansione completata: ${summary.length} locali analizzati`);
       load();
     }catch(e){
@@ -365,12 +391,6 @@ function AdminScreen({user,lang,go,sb}){
     }
   };
   const tabs=[{id:"requests",label:"📋 Richieste"},{id:"structures",label:"🏢 Locali"},{id:"tags",label:"🏷️ Tag"},{id:"stats",label:"📊 Stats"},...(isAdminEmail?[{id:"scan",label:"🔐 Scan"}]:[])];
-  const filteredStructures=structures.filter(s=>{
-    const q=adminNormalize(adminStructureSearch||"").trim();
-    if(!q)return true;
-    const hay=adminNormalize([s.name,s.city,s.address,s.type,s.source,s.google_place_id,s.id].filter(Boolean).join(" "));
-    return hay.includes(q);
-  });
   return(
     <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
       <div style={{background:GREEN,padding:"20px",color:"white"}}>
@@ -415,20 +435,15 @@ function AdminScreen({user,lang,go,sb}){
           {requests.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessuna richiesta</div>}
         </>}
         {!loading&&tab==="structures"&&<>
-          <div style={{...card2,marginBottom:12}}>
-            <p style={{margin:"0 0 8px",fontSize:13,fontWeight:900,color:"#1a5c3a"}}>🔎 Cerca e gestisci locali</p>
-            <input value={adminStructureSearch} onChange={e=>setAdminStructureSearch(e.target.value)} placeholder="Cerca per nome, città, indirizzo, tipo o ID Google..." style={{...inp,fontSize:13}}/>
-            <p style={{margin:"8px 0 0",fontSize:12,color:"#6b7280"}}>{filteredStructures.length} risultati su {structures.length} locali nel database</p>
-          </div>
-          {filteredStructures.map(s=>(
+          <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{structures.length} locali nel database</p>
+          {structures.map(s=>(
             <div key={s.id} style={card2}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                 <div>
                   <p style={{margin:"0 0 2px",fontWeight:700,fontSize:14}}>{s.name}</p>
                   <p style={{margin:0,fontSize:12,color:"#6b7280"}}>📍 {s.city} · {s.type}</p>
-                  {s.address&&<p style={{margin:"2px 0 0",fontSize:11,color:"#9ca3af"}}>{s.address}</p>}
                 </div>
-                <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:s.source==="verified"?"#dbeafe":s.source==="registered"?"#e8f5ee":"#f3f4f6",color:s.source==="verified"?"#2563eb":s.source==="registered"?"#1a5c3a":"#6b7280",whiteSpace:"nowrap"}}>
+                <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:s.source==="verified"?"#dbeafe":s.source==="registered"?"#e8f5ee":"#f3f4f6",color:s.source==="verified"?"#2563eb":s.source==="registered"?"#1a5c3a":"#6b7280"}}>
                   {s.source==="verified"?"🌿 Verificato":s.source==="registered"?"🏢 Registrato":"📍 Google"}
                 </span>
               </div>
@@ -436,12 +451,11 @@ function AdminScreen({user,lang,go,sb}){
                 <button onClick={()=>verifyStructure(s.id,s.source!=="verified")} style={{flex:1,background:s.source==="verified"?"#fef3c7":"#dbeafe",color:s.source==="verified"?"#92400e":"#2563eb",border:"none",padding:"7px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700}}>
                   {s.source==="verified"?"🏢 Rimuovi badge":"🌿 Assegna Verificato"}
                 </button>
-                <button onClick={()=>deleteStructure(s.id)} title="Elimina locale" style={{background:"#fee2e2",color:"#dc2626",border:"none",padding:"7px 12px",borderRadius:10,cursor:"pointer",fontSize:13}}>🗑️ Elimina</button>
+                <button onClick={()=>deleteStructure(s.id)} style={{background:"#fee2e2",color:"#dc2626",border:"none",padding:"7px 12px",borderRadius:10,cursor:"pointer",fontSize:13}}>🗑️</button>
               </div>
             </div>
           ))}
           {structures.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessun locale</div>}
-          {structures.length>0&&filteredStructures.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessun locale trovato con questa ricerca</div>}
         </>}
         {!loading&&tab==="tags"&&<>
           <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{tagSuggestions.filter(t=>t.status==="pending").length} segnalazioni in attesa</p>
@@ -467,7 +481,7 @@ function AdminScreen({user,lang,go,sb}){
         {!loading&&tab==="scan"&&isAdminEmail&&<>
           <div style={{...card2,border:"1.5px solid #fde68a",background:"#fffbeb"}}>
             <p style={{margin:"0 0 6px",fontSize:14,fontWeight:900,color:"#92400e"}}>🔐 Admin — Scansione città controllata</p>
-            <p style={{margin:"0 0 12px",fontSize:12,color:"#92400e",lineHeight:1.5}}>Visibile solo al tuo account admin. Usa recensioni Google solo sui primi locali scelti e può generare costi: usala con limite basso.</p>
+            <p style={{margin:"0 0 12px",fontSize:12,color:"#92400e",lineHeight:1.5}}>Visibile solo al tuo account admin. Fa una scansione alimentare completa con più query mirate, ma analizza al massimo il numero totale di locali scelto.</p>
             <input value={adminScanCity} onChange={e=>setAdminScanCity(e.target.value)} placeholder="Città · es. Roma" style={{...inp,marginBottom:8,fontSize:13}}/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 90px",gap:8,marginBottom:8}}>
               <input value={adminScanCountry} onChange={e=>setAdminScanCountry(e.target.value)} placeholder="Italia" style={{...inp,fontSize:13}}/>
@@ -477,14 +491,14 @@ function AdminScreen({user,lang,go,sb}){
                 <option value={20}>20 locali</option>
               </select>
             </div>
-            <button onClick={runAdminCityScan} disabled={adminScanRunning||!adminScanCity.trim()} style={{width:"100%",background:(adminScanRunning||!adminScanCity.trim())?"#d1d5db":"#92400e",color:"white",border:"none",padding:"11px",borderRadius:12,fontWeight:800,fontSize:13,cursor:(adminScanRunning||!adminScanCity.trim())?"not-allowed":"pointer"}}>{adminScanRunning?"⏳ Scansione in corso...":"Avvia scansione controllata"}</button>
+            <button onClick={runAdminCityScan} disabled={adminScanRunning||!adminScanCity.trim()} style={{width:"100%",background:(adminScanRunning||!adminScanCity.trim())?"#d1d5db":"#92400e",color:"white",border:"none",padding:"11px",borderRadius:12,fontWeight:800,fontSize:13,cursor:(adminScanRunning||!adminScanCity.trim())?"not-allowed":"pointer"}}>{adminScanRunning?"⏳ Scansione in corso...":"Avvia scansione alimentare completa"}</button>
           </div>
           {adminScanSummary&&<div style={card2}>
             <p style={{margin:"0 0 8px",fontSize:13,fontWeight:900,color:"#1a5c3a"}}>✅ Riepilogo scansione {adminScanSummary.city}</p>
-            <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280"}}>Locali analizzati: {adminScanSummary.analyzed} · Chiamate Google stimate: {adminScanSummary.calls}</p>
+            <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280"}}>Locali analizzati: {adminScanSummary.analyzed} · Chiamate Google stimate: {adminScanSummary.calls} · Text Search: {adminScanSummary.textSearchCalls||0} · Details/reviews: {adminScanSummary.detailsCalls||0}</p>
             {adminScanSummary.items.map((it,i)=><div key={i} style={{borderTop:"1px solid #e5e7eb",padding:"9px 0"}}>
               <p style={{margin:"0 0 4px",fontSize:13,fontWeight:800}}>{it.name}</p>
-              <p style={{margin:0,fontSize:12,color:it.tags.length?"#065f46":"#9ca3af"}}>{it.tags.length?`Tag trovati: ${it.tags.join(", ")}`:"Nessun tag positivo trovato"} · recensioni lette: {it.reviews}</p>
+              <p style={{margin:0,fontSize:12,color:it.tags.length?"#065f46":"#9ca3af"}}>{it.tags.length?`Tag trovati: ${it.tags.join(", ")}`:"Nessun tag positivo trovato"} · recensioni lette: {it.reviews}{it.query?` · trovato con: ${it.query}`:""}</p>
             </div>)}
           </div>}
         </>}
