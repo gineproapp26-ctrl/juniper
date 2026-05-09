@@ -1010,25 +1010,51 @@ function App(){
 
   const saveGooglePlacesToSupabase=async(places=[])=>{
     try{
-      const rows=(places||[]).filter(p=>p?.id?.startsWith("g_")).map(p=>({
-        google_place_id:p.id.replace("g_",""),
-        name:p.name,
-        type:p.type||"ristorante",
-        city:p.city||"Italia",
-        country:p.country||"Italia",
-        address:p.address||"",
-        source:"google",
-        certified:false,
-        sponsored:false,
-        pending:false,
-        review_count:p.reviewCount||0,
-        breakfast:(p.meals||[]).includes("breakfast"),
-        lunch:(p.meals||[]).includes("lunch"),
-        aperitivo:(p.meals||[]).includes("aperitivo"),
-        dinner:(p.meals||[]).includes("dinner")
-      }));
+      const rows=(places||[])
+        .filter(p=>p?.id?.startsWith("g_"))
+        .map(p=>({
+          google_place_id:p.id.replace("g_",""),
+          name:p.name||"Locale",
+          type:p.type||"ristorante",
+          city:p.city||"Italia",
+          country:p.country||"Italia",
+          address:p.address||"",
+          source:"google",
+          certified:false,
+          sponsored:false,
+          pending:false,
+          review_count:p.reviewCount||0,
+          breakfast:(p.meals||[]).includes("breakfast"),
+          lunch:(p.meals||[]).includes("lunch"),
+          aperitivo:(p.meals||[]).includes("aperitivo"),
+          dinner:(p.meals||[]).includes("dinner")
+        }));
+
       if(rows.length===0)return;
-      await sb.from("structures").upsert(rows,{onConflict:"google_place_id",ignoreDuplicates:true});
+
+      // FIX COSTI/SUPABASE: niente upsert con onConflict.
+      // Il 400 che vedevi nasceva da on_conflict=google_place_id quando Supabase
+      // non ha una constraint unique attiva su google_place_id.
+      // Qui facciamo prima una lettura leggera, poi inseriamo solo i nuovi locali.
+      const ids=rows.map(r=>r.google_place_id).filter(Boolean);
+      const {data:existing,error:selectError}=await sb
+        .from("structures")
+        .select("google_place_id")
+        .in("google_place_id",ids);
+
+      if(selectError){
+        console.warn("Salvataggio Google Places saltato: controllo duplicati non riuscito",selectError);
+        return;
+      }
+
+      const already=new Set((existing||[]).map(r=>r.google_place_id));
+      const toInsert=rows.filter(r=>r.google_place_id&&!already.has(r.google_place_id));
+      if(toInsert.length===0)return;
+
+      const {error:insertError}=await sb.from("structures").insert(toInsert);
+      if(insertError){
+        console.warn("Salvataggio Google Places saltato:",insertError);
+      }
     }catch(e){
       console.warn("Salvataggio Google Places ignorato:",e);
     }
