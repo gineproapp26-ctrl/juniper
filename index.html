@@ -1462,7 +1462,7 @@ function App(){
     </div>
   );
 
-  if(MAINTENANCE_MODE && user && !isAdmin && !isPreviewUser){
+  if(MAINTENANCE_MODE && user && !isAdmin){
     return <MaintenanceScreen lang={lang} user={user}/>;
   }
 
