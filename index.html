@@ -94,7 +94,8 @@ function PolicyScreen({lang,go}){
       s4title:"🏅 Badge Verificato",s4:"Il badge Verificato da Juniper indica che il locale ha fornito documentazione a supporto delle proprie dichiarazioni ed ha sottoscritto la nostra dichiarazione di responsabilità. Tuttavia, anche i locali verificati rimangono gli unici responsabili della veridicità delle informazioni.",
       s5title:"📋 Registrazione dei locali",s5:"I locali che si registrano su Juniper accettano esplicitamente di fornire informazioni veritiere e aggiornate. La pubblicazione di informazioni false o fuorvianti comporta la rimozione immediata dalla piattaforma.",
       s6title:"📬 Contatti",s6:"Per segnalazioni, richieste di verifica o rimozione di contenuti: help@juniperapp.eu",
-      updated:"Ultimo aggiornamento: aprile 2026"},
+      s7title:"💳 Pagamenti e rimborsi",s7:"Gli abbonamenti, i crediti extra e le ricerche dettagliate acquistate su Juniper sono servizi digitali. Una volta che il servizio digitale è stato attivato, utilizzato o reso disponibile sull’account, non sono previsti rimborsi, salvo nei casi obbligatori previsti dalla legge. I crediti extra non utilizzati non sono convertibili in denaro. In caso di problemi tecnici, pagamenti duplicati o errori di addebito, puoi contattarci a help@juniperapp.eu: valuteremo la richiesta e, se necessario, procederemo con correzione o rimborso.",
+      updated:"Ultimo aggiornamento: maggio 2026"},
     en:{title:"Policy & Terms",back:"Back",
       s1title:"⚖️ Content Responsibility",s1:"Each venue registered on Juniper is solely responsible for the information in their profile, including declared dietary features. Juniper does not independently and continuously verify the information published by venues.",
       s2title:"🌿 Juniper Role",s2:"Juniper is a search and discovery platform. We connect users with specific dietary needs to venues that declare they can meet them. We are not responsible for errors, omissions or changes in information provided by venues.",
@@ -102,10 +103,11 @@ function PolicyScreen({lang,go}){
       s4title:"🏅 Verified Badge",s4:"The Verified by Juniper badge indicates the venue has provided supporting documentation and signed our liability declaration. However, verified venues remain solely responsible for the accuracy of their information.",
       s5title:"📋 Venue Registration",s5:"Venues registering on Juniper explicitly agree to provide truthful and up-to-date information. Publishing false or misleading information results in immediate removal from the platform.",
       s6title:"📬 Contact",s6:"For reports, verification requests or content removal: help@juniperapp.eu",
-      updated:"Last updated: April 2026"},
+      s7title:"💳 Payments and refunds",s7:"Subscriptions, extra credits and detailed searches purchased on Juniper are digital services. Once the digital service has been activated, used or made available on the account, refunds are not provided, except where required by law. Unused extra credits cannot be converted into cash. For technical issues, duplicate payments or billing errors, contact help@juniperapp.eu: we will review the request and, where appropriate, proceed with a correction or refund.",
+      updated:"Last updated: May 2026"},
   };
   const t=tx[lang]||tx.it;
-  const sections=[{title:t.s1title,text:t.s1},{title:t.s2title,text:t.s2},{title:t.s3title,text:t.s3},{title:t.s4title,text:t.s4},{title:t.s5title,text:t.s5},{title:t.s6title,text:t.s6}];
+  const sections=[{title:t.s1title,text:t.s1},{title:t.s2title,text:t.s2},{title:t.s3title,text:t.s3},{title:t.s4title,text:t.s4},{title:t.s5title,text:t.s5},{title:t.s6title,text:t.s6},{title:t.s7title,text:t.s7}];
   return(
     <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
       <div style={{background:GREEN,padding:"20px",color:"white"}}>
@@ -136,6 +138,7 @@ function AdminScreen({user,lang,go,sb}){
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const card2={background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:10};
   const [tagSuggestions,setTagSuggestions]=React.useState([]);
+  const [adminStructureSearch,setAdminStructureSearch]=React.useState("");
   const [adminScanCity,setAdminScanCity]=React.useState("");
   const [adminScanCountry,setAdminScanCountry]=React.useState("Italia");
   const [adminScanLimit,setAdminScanLimit]=React.useState(5);
@@ -331,18 +334,43 @@ function AdminScreen({user,lang,go,sb}){
     const city=(adminScanCity||"").trim();
     if(!city){alert("Inserisci una città.");return;}
     const limit=Math.min(Math.max(parseInt(adminScanLimit||5,10),1),20);
-    if(!window.confirm(`Confermi scansione admin di ${limit} locali per ${city}? Questa funzione legge recensioni Google e può generare costi.`))return;
+    if(!window.confirm(`Confermi scansione alimentare completa di massimo ${limit} locali totali per ${city}? Questa funzione legge recensioni Google solo sui locali finali e può generare costi.`))return;
     setAdminScanRunning(true);
     setAdminScanSummary(null);
     try{
-      const textQuery=`ristoranti bar pizzerie gelaterie ${city} ${adminScanCountry||"Italia"}`;
-      const searchResp=await fetch("https://places.googleapis.com/v1/places:searchText",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.shortFormattedAddress,places.primaryType,places.rating,places.userRatingCount,places.location"},
-        body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:limit})
-      });
-      const searchData=await searchResp.json();
-      const places=(searchData.places||[]).slice(0,limit);
+      // Scansione mirata con limite TOTALE: più query per trovare locali utili,
+      // deduplica per place_id e recensioni solo dei primi X locali finali.
+      const country=adminScanCountry||"Italia";
+      const queryList=[
+        `locali gluten free ${city} ${country}`,
+        `ristoranti senza glutine ${city} ${country}`,
+        `gluten free restaurants ${city} ${country}`,
+        `locali senza lattosio ${city} ${country}`,
+        `ristoranti senza lattosio ${city} ${country}`,
+        `lactose free restaurants ${city} ${country}`,
+        `locali vegani ${city} ${country}`,
+        `ristoranti vegani ${city} ${country}`,
+        `vegan restaurants ${city} ${country}`,
+        `locali pet friendly ${city} ${country}`,
+        `ristoranti cani ammessi ${city} ${country}`,
+        `dog friendly restaurants ${city} ${country}`
+      ];
+      const foundById=new Map();
+      let textSearchCalls=0;
+      for(const textQuery of queryList){
+        const searchResp=await fetch("https://places.googleapis.com/v1/places:searchText",{
+          method:"POST",
+          headers:{"Content-Type":"application/json","X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.shortFormattedAddress,places.primaryType,places.rating,places.userRatingCount,places.location"},
+          body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:Math.min(limit,10)})
+        });
+        textSearchCalls++;
+        const searchData=await searchResp.json();
+        (searchData.places||[]).forEach(place=>{
+          if(place?.id&&!foundById.has(place.id))foundById.set(place.id,{...place,_query:textQuery});
+        });
+        if(foundById.size>=limit)break;
+      }
+      const places=Array.from(foundById.values()).slice(0,limit);
       const summary=[];
       for(const place of places){
         const detailsResp=await fetch(`https://places.googleapis.com/v1/places/${place.id}`,{
@@ -351,9 +379,9 @@ function AdminScreen({user,lang,go,sb}){
         const detail=detailsResp.ok?await detailsResp.json():place;
         const tags=adminExtractTagsFromReviews(detail.reviews||[]);
         const savedId=await adminSaveScannedPlace({...place,...detail,id:place.id},tags);
-        summary.push({name:detail.displayName?.text||place.displayName?.text||"Locale",tags,savedId,reviews:(detail.reviews||[]).length});
+        summary.push({name:detail.displayName?.text||place.displayName?.text||"Locale",tags,savedId,reviews:(detail.reviews||[]).length,query:place._query||""});
       }
-      setAdminScanSummary({city,limit,analyzed:summary.length,calls:1+summary.length,items:summary});
+      setAdminScanSummary({city,limit,analyzed:summary.length,calls:textSearchCalls+summary.length,textSearchCalls,detailsCalls:summary.length,items:summary});
       showMsg(`✅ Scansione completata: ${summary.length} locali analizzati`);
       load();
     }catch(e){
@@ -364,6 +392,12 @@ function AdminScreen({user,lang,go,sb}){
     }
   };
   const tabs=[{id:"requests",label:"📋 Richieste"},{id:"structures",label:"🏢 Locali"},{id:"tags",label:"🏷️ Tag"},{id:"stats",label:"📊 Stats"},...(isAdminEmail?[{id:"scan",label:"🔐 Scan"}]:[])];
+  const filteredStructures=structures.filter(s=>{
+    const q=adminNormalize(adminStructureSearch||"").trim();
+    if(!q)return true;
+    const hay=adminNormalize([s.name,s.city,s.address,s.type,s.source,s.google_place_id,s.id].filter(Boolean).join(" "));
+    return hay.includes(q);
+  });
   return(
     <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
       <div style={{background:GREEN,padding:"20px",color:"white"}}>
@@ -408,15 +442,20 @@ function AdminScreen({user,lang,go,sb}){
           {requests.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessuna richiesta</div>}
         </>}
         {!loading&&tab==="structures"&&<>
-          <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{structures.length} locali nel database</p>
-          {structures.map(s=>(
+          <div style={{...card2,marginBottom:12}}>
+            <p style={{margin:"0 0 8px",fontSize:13,fontWeight:900,color:"#1a5c3a"}}>🔎 Cerca e gestisci locali</p>
+            <input value={adminStructureSearch} onChange={e=>setAdminStructureSearch(e.target.value)} placeholder="Cerca per nome, città, indirizzo, tipo o ID Google..." style={{...inp,fontSize:13}}/>
+            <p style={{margin:"8px 0 0",fontSize:12,color:"#6b7280"}}>{filteredStructures.length} risultati su {structures.length} locali nel database</p>
+          </div>
+          {filteredStructures.map(s=>(
             <div key={s.id} style={card2}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                 <div>
                   <p style={{margin:"0 0 2px",fontWeight:700,fontSize:14}}>{s.name}</p>
                   <p style={{margin:0,fontSize:12,color:"#6b7280"}}>📍 {s.city} · {s.type}</p>
+                  {s.address&&<p style={{margin:"2px 0 0",fontSize:11,color:"#9ca3af"}}>{s.address}</p>}
                 </div>
-                <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:s.source==="verified"?"#dbeafe":s.source==="registered"?"#e8f5ee":"#f3f4f6",color:s.source==="verified"?"#2563eb":s.source==="registered"?"#1a5c3a":"#6b7280"}}>
+                <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:s.source==="verified"?"#dbeafe":s.source==="registered"?"#e8f5ee":"#f3f4f6",color:s.source==="verified"?"#2563eb":s.source==="registered"?"#1a5c3a":"#6b7280",whiteSpace:"nowrap"}}>
                   {s.source==="verified"?"🌿 Verificato":s.source==="registered"?"🏢 Registrato":"📍 Google"}
                 </span>
               </div>
@@ -424,11 +463,12 @@ function AdminScreen({user,lang,go,sb}){
                 <button onClick={()=>verifyStructure(s.id,s.source!=="verified")} style={{flex:1,background:s.source==="verified"?"#fef3c7":"#dbeafe",color:s.source==="verified"?"#92400e":"#2563eb",border:"none",padding:"7px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700}}>
                   {s.source==="verified"?"🏢 Rimuovi badge":"🌿 Assegna Verificato"}
                 </button>
-                <button onClick={()=>deleteStructure(s.id)} style={{background:"#fee2e2",color:"#dc2626",border:"none",padding:"7px 12px",borderRadius:10,cursor:"pointer",fontSize:13}}>🗑️</button>
+                <button onClick={()=>deleteStructure(s.id)} title="Elimina locale" style={{background:"#fee2e2",color:"#dc2626",border:"none",padding:"7px 12px",borderRadius:10,cursor:"pointer",fontSize:13}}>🗑️ Elimina</button>
               </div>
             </div>
           ))}
           {structures.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessun locale</div>}
+          {structures.length>0&&filteredStructures.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessun locale trovato con questa ricerca</div>}
         </>}
         {!loading&&tab==="tags"&&<>
           <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{tagSuggestions.filter(t=>t.status==="pending").length} segnalazioni in attesa</p>
@@ -454,7 +494,7 @@ function AdminScreen({user,lang,go,sb}){
         {!loading&&tab==="scan"&&isAdminEmail&&<>
           <div style={{...card2,border:"1.5px solid #fde68a",background:"#fffbeb"}}>
             <p style={{margin:"0 0 6px",fontSize:14,fontWeight:900,color:"#92400e"}}>🔐 Admin — Scansione città controllata</p>
-            <p style={{margin:"0 0 12px",fontSize:12,color:"#92400e",lineHeight:1.5}}>Visibile solo al tuo account admin. Usa recensioni Google solo sui primi locali scelti e può generare costi: usala con limite basso.</p>
+            <p style={{margin:"0 0 12px",fontSize:12,color:"#92400e",lineHeight:1.5}}>Visibile solo al tuo account admin. Fa più ricerche mirate e analizza al massimo il numero totale di locali scelto.</p>
             <input value={adminScanCity} onChange={e=>setAdminScanCity(e.target.value)} placeholder="Città · es. Roma" style={{...inp,marginBottom:8,fontSize:13}}/>
             <div style={{display:"grid",gridTemplateColumns:"1fr 90px",gap:8,marginBottom:8}}>
               <input value={adminScanCountry} onChange={e=>setAdminScanCountry(e.target.value)} placeholder="Italia" style={{...inp,fontSize:13}}/>
@@ -464,14 +504,14 @@ function AdminScreen({user,lang,go,sb}){
                 <option value={20}>20 locali</option>
               </select>
             </div>
-            <button onClick={runAdminCityScan} disabled={adminScanRunning||!adminScanCity.trim()} style={{width:"100%",background:(adminScanRunning||!adminScanCity.trim())?"#d1d5db":"#92400e",color:"white",border:"none",padding:"11px",borderRadius:12,fontWeight:800,fontSize:13,cursor:(adminScanRunning||!adminScanCity.trim())?"not-allowed":"pointer"}}>{adminScanRunning?"⏳ Scansione in corso...":"Avvia scansione controllata"}</button>
+            <button onClick={runAdminCityScan} disabled={adminScanRunning||!adminScanCity.trim()} style={{width:"100%",background:(adminScanRunning||!adminScanCity.trim())?"#d1d5db":"#92400e",color:"white",border:"none",padding:"11px",borderRadius:12,fontWeight:800,fontSize:13,cursor:(adminScanRunning||!adminScanCity.trim())?"not-allowed":"pointer"}}>{adminScanRunning?"⏳ Scansione in corso...":"Avvia scansione alimentare completa"}</button>
           </div>
           {adminScanSummary&&<div style={card2}>
             <p style={{margin:"0 0 8px",fontSize:13,fontWeight:900,color:"#1a5c3a"}}>✅ Riepilogo scansione {adminScanSummary.city}</p>
-            <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280"}}>Locali analizzati: {adminScanSummary.analyzed} · Chiamate Google stimate: {adminScanSummary.calls}</p>
+            <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280"}}>Locali analizzati: {adminScanSummary.analyzed} · Chiamate Google stimate: {adminScanSummary.calls} · Text Search: {adminScanSummary.textSearchCalls||0} · Details/reviews: {adminScanSummary.detailsCalls||0}</p>
             {adminScanSummary.items.map((it,i)=><div key={i} style={{borderTop:"1px solid #e5e7eb",padding:"9px 0"}}>
               <p style={{margin:"0 0 4px",fontSize:13,fontWeight:800}}>{it.name}</p>
-              <p style={{margin:0,fontSize:12,color:it.tags.length?"#065f46":"#9ca3af"}}>{it.tags.length?`Tag trovati: ${it.tags.join(", ")}`:"Nessun tag positivo trovato"} · recensioni lette: {it.reviews}</p>
+              <p style={{margin:0,fontSize:12,color:it.tags.length?"#065f46":"#9ca3af"}}>{it.tags.length?`Tag trovati: ${it.tags.join(", ")}`:"Nessun tag positivo trovato"} · recensioni lette: {it.reviews}{it.query?` · trovato con: ${it.query}`:""}</p>
             </div>)}
           </div>}
         </>}
@@ -500,8 +540,8 @@ function BusinessScreen({lang,go,preselected,clearPreselected,user,setAuthMode})
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const btnG2={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
   const tx={
-    it:{back:"Indietro",title:"Registra la tua attività",sub:"Cerca il tuo locale, selezionalo e richiedi il badge attività.",searchPh:"Cerca nome attività e città...",claim:"Seleziona",baseInfo:"📋 Dati referente",typeLabel:"🏪 Tipo locale",openLabel:"🍽️ Quando siete aperti?",badgeTitle:"✅ Locale verificato e iscritto a Juniper",badgeSub:"Dopo il pagamento la richiesta va in verifica. Juniper ti contatterà alla mail o al numero fornito per confermare che sei il proprietario.",payMonthly:"Attiva a 10€/mese",payYearly:"Attiva a 110€/anno",loginTitle:"Accedi per registrare la tua attività",loginSub:"Prima crea o accedi al tuo account Juniper. Poi potrai cercare e verificare il tuo locale.",loginBtn:"Accedi",registerBtn:"Registrati",selected:"Locale selezionato",notFound:"Non trovi il tuo locale?",notFoundSub:"Scrivici a help@juniperapp.eu: lo aggiungeremo noi senza dare accesso automatico alla scheda.",disclaimerTitle:"Dichiarazione di responsabilità",disclaimerText:"Confermo di essere autorizzato a rappresentare questa attività. Le informazioni dichiarate dal proprietario saranno pubblicate sotto la sua responsabilità. Il badge sarà visibile solo dopo verifica Juniper.",disclaimerCheck:"Confermo di essere autorizzato a rappresentare questa attività e accetto la dichiarazione di responsabilità.",required:"Compila i campi obbligatori e accetta la dichiarazione.",stripeErr:"Non riesco a salvare la richiesta. Riprova tra poco oppure contatta l’assistenza: help@juniperapp.eu",searchEmpty:"Cerca il nome del tuo locale e la città.",searching:"Cerco...",noResults:"Nessun locale trovato. Prova con nome + città."},
-    en:{back:"Back",title:"Register your business",sub:"Search your venue, select it and request the business badge.",searchPh:"Search business name and city...",claim:"Select",baseInfo:"📋 Contact details",typeLabel:"🏪 Venue type",openLabel:"🍽️ When are you open?",badgeTitle:"✅ Verified venue subscribed to Juniper",badgeSub:"After payment, the request is reviewed. Juniper will contact you by email or phone to confirm you own the business.",payMonthly:"Activate €10/month",payYearly:"Activate €110/year",loginTitle:"Sign in to register your business",loginSub:"Create or sign in to your Juniper account first. Then you can search and verify your venue.",loginBtn:"Sign in",registerBtn:"Register",selected:"Selected venue",notFound:"Can’t find your venue?",notFoundSub:"Email help@juniperapp.eu: we will add it without granting automatic access to the listing.",disclaimerTitle:"Liability declaration",disclaimerText:"I confirm I am authorized to represent this business. Information declared by the owner will be published under their responsibility. The badge becomes visible only after Juniper approval.",disclaimerCheck:"I confirm I am authorized to represent this business and accept the liability declaration.",required:"Complete required fields and accept the declaration.",stripeErr:"Unable to save the request. Please try again later or contact support: help@juniperapp.eu",searchEmpty:"Search venue name and city.",searching:"Searching...",noResults:"No venue found. Try name + city."},
+    it:{back:"Indietro",title:"Registra la tua attività",sub:"Cerca il tuo locale, selezionalo e richiedi il badge attività.",searchPh:"Cerca nome attività e città...",claim:"Seleziona",baseInfo:"📋 Dati referente",typeLabel:"🏪 Tipo locale",openLabel:"🍽️ Quando siete aperti?",badgeTitle:"✅ Locale verificato e iscritto a Juniper",badgeSub:"Dopo il pagamento la richiesta va in verifica. Juniper ti contatterà alla mail o al numero fornito per confermare che sei il proprietario.",payMonthly:"Attiva a 10€/mese",payYearly:"Attiva a 110€/anno",loginTitle:"Accedi per registrare la tua attività",loginSub:"Prima crea o accedi al tuo account Juniper. Poi potrai cercare e verificare il tuo locale.",loginBtn:"Accedi",registerBtn:"Registrati",selected:"Locale selezionato",notFound:"Non trovi il tuo locale?",notFoundSub:"Scrivici a help@juniperapp.eu: lo aggiungeremo noi senza dare accesso automatico alla scheda.",disclaimerTitle:"Dichiarazione di responsabilità",disclaimerText:"Confermo di essere autorizzato a rappresentare questa attività. Le informazioni dichiarate dal proprietario saranno pubblicate sotto la sua responsabilità. Il badge sarà visibile solo dopo verifica Juniper.",disclaimerCheck:"Confermo di essere autorizzato a rappresentare questa attività e accetto la dichiarazione di responsabilità.",required:"Compila i campi obbligatori e accetta la dichiarazione.",stripeErr:"Non riesco a salvare la richiesta. Riprova tra poco oppure contatta l’assistenza: help@juniperapp.eu",refundConfirm:"Procedendo confermi l’attivazione immediata del servizio digitale e accetti la politica sui rimborsi.",searchEmpty:"Cerca il nome del tuo locale e la città.",searching:"Cerco...",noResults:"Nessun locale trovato. Prova con nome + città."},
+    en:{back:"Back",title:"Register your business",sub:"Search your venue, select it and request the business badge.",searchPh:"Search business name and city...",claim:"Select",baseInfo:"📋 Contact details",typeLabel:"🏪 Venue type",openLabel:"🍽️ When are you open?",badgeTitle:"✅ Verified venue subscribed to Juniper",badgeSub:"After payment, the request is reviewed. Juniper will contact you by email or phone to confirm you own the business.",payMonthly:"Activate €10/month",payYearly:"Activate €110/year",loginTitle:"Sign in to register your business",loginSub:"Create or sign in to your Juniper account first. Then you can search and verify your venue.",loginBtn:"Sign in",registerBtn:"Register",selected:"Selected venue",notFound:"Can’t find your venue?",notFoundSub:"Email help@juniperapp.eu: we will add it without granting automatic access to the listing.",disclaimerTitle:"Liability declaration",disclaimerText:"I confirm I am authorized to represent this business. Information declared by the owner will be published under their responsibility. The badge becomes visible only after Juniper approval.",disclaimerCheck:"I confirm I am authorized to represent this business and accept the liability declaration.",required:"Complete required fields and accept the declaration.",stripeErr:"Unable to save the request. Please try again later or contact support: help@juniperapp.eu",refundConfirm:"By proceeding, you confirm immediate activation of the digital service and accept the refund policy.",searchEmpty:"Search venue name and city.",searching:"Searching...",noResults:"No venue found. Try name + city."},
   };
   const t=tx[lang]||tx.it;
   const [step,setStep]=React.useState(preselected?"verify":"search");
@@ -588,6 +628,7 @@ function BusinessScreen({lang,go,preselected,clearPreselected,user,setAuthMode})
   const toggleMeal=k=>setForm(f=>({...f,meals:f.meals.includes(k)?f.meals.filter(x=>x!==k):[...f.meals,k]}));
   const openBusinessBadgePayment=async(plan)=>{
     if(!sel||!form.owner_name||!form.email||!form.phone||!disclaimer){alert(t.required);return;}
+    if(!window.confirm(t.refundConfirm))return;
     setOpening(true);
     try{
       const STRIPE_BUSINESS_LINKS={monthly:"https://buy.stripe.com/6oU7sN8cUabvfer34U7bW03",yearly:"https://buy.stripe.com/8x2bJ3dxe3N78Q3gVK7bW04"};
@@ -719,6 +760,7 @@ function BusinessScreen({lang,go,preselected,clearPreselected,user,setAuthMode})
             <button type="button" onClick={()=>openBusinessBadgePayment("monthly")} disabled={opening} style={{background:"#1a5c3a",color:"white",border:"none",padding:"12px 10px",borderRadius:12,fontWeight:800,fontSize:13,cursor:"pointer",opacity:opening?.7:1}}>{opening?"⏳":"✅"} {t.payMonthly}</button>
             <button type="button" onClick={()=>openBusinessBadgePayment("yearly")} disabled={opening} style={{background:"white",color:"#1a5c3a",border:"1.5px solid #86efac",padding:"12px 10px",borderRadius:12,fontWeight:800,fontSize:13,cursor:"pointer",opacity:opening?.7:1}}>{opening?"⏳":"✅"} {t.payYearly}</button>
           </div>
+          <p style={{margin:"10px 0 0",fontSize:10,color:"#166534",lineHeight:1.4}}>{t.refundConfirm}</p>
         </div>
       </div>
     </div>
@@ -1212,6 +1254,10 @@ function App(){
 
   const openStripeLink=(plan)=>{
     if(!user){showP(t.popGuest,t.popGuestSub,"register");return;}
+    const refundConfirmText=lang==="it"
+      ? "Procedendo confermi l’attivazione immediata del servizio digitale e accetti la politica sui rimborsi."
+      : "By proceeding, you confirm immediate activation of the digital service and accept the refund policy.";
+    if(!window.confirm(refundConfirmText))return;
     const base=STRIPE_LINKS[plan];
     if(!base)return;
     const params=new URLSearchParams();
@@ -1510,6 +1556,7 @@ function App(){
             <button onClick={()=>{closeP();openStripeLink("user_monthly");}} style={{...btnG,marginBottom:10,fontSize:14}}>🌿 Premium 3€/mese: 50 ricerche leggere + 15 dettagliate/mese</button>
             <button onClick={()=>{closeP();openStripeLink("user_yearly");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10}}>🌿 Annuale 30€/anno: 600 leggere + 180 dettagliate/anno</button>
             <button onClick={()=>{closeP();openStripeLink("extra_searches");}} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer"}}>➕ Extra: +5 verifiche a 2,50€</button>
+            <p style={{margin:"10px 0 0",fontSize:10,color:"#6b7280",lineHeight:1.4}}>{lang==="it"?"Procedendo confermi l’attivazione immediata del servizio digitale e accetti la politica sui rimborsi.":"By proceeding, you confirm immediate activation of the digital service and accept the refund policy."}</p>
           </>}
           <button onClick={closeP} style={{width:"100%",background:"none",border:"none",padding:8,fontSize:13,color:"#9ca3af",cursor:"pointer",marginTop:4}}>{t.cancel}</button>
         </div>
@@ -1567,39 +1614,20 @@ function App(){
 
   const FilterPanel=()=>(
     <div style={card}>
-      <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.mealFilter}</p>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
-        <button onClick={()=>setMealFilter(null)} style={{background:!mealFilter?"#1f2937":"#f3f4f6",color:!mealFilter?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:!mealFilter?700:400}}>🍽️ {t.allMeals}</button>
-        {Object.entries(MEALS).map(([k,m])=>(
-          <button key={k} onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):setMealFilter(mealFilter===k?null:k)} style={{background:mealFilter===k?"#1f2937":"#f3f4f6",color:mealFilter===k?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:mealFilter===k?700:400}}>{m.icon} {m[lang]}</button>
-        ))}
-      </div>
       <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.filters}</p>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
+      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:12}}>
         {DIET_TAGS.map(k=>(
           <button key={k} onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):toggleTag(k)} style={{background:tagFilters.includes(k)?TAGS[k].color:"#f3f4f6",color:tagFilters.includes(k)?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:tagFilters.includes(k)?700:400}}>{TAGS[k].icon} {TAGS[k][lang]}</button>
         ))}
       </div>
-      <p style={{margin:"0 0 4px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{t.kitchenTitle} <span style={{color:"#f59e0b"}}>({lang==="it"?"Funzione in arrivo":"Coming soon"})</span></p>
-      <p style={{margin:"0 0 8px",fontSize:11,color:"#9ca3af"}}>{t.kitchenSub}</p>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:5}}>
-        {CROSS_TAGS.map(k=>(
-          <button key={k} onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):toggleTag(k)} style={{background:tagFilters.includes(k)?TAGS[k].color:"#f3f4f6",color:tagFilters.includes(k)?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:tagFilters.includes(k)?700:400}}>{TAGS[k].icon} {TAGS[k][lang]}</button>
-        ))}
-      </div>
-      <p style={{margin:"0 0 14px",fontSize:10,color:"#9ca3af"}}>{t.kitchenLegend}</p>
-      <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>{lang==="it"?"Tipo di locale":"Venue type"}</p>
-      <p style={{fontSize:11,color:"#f59e0b",margin:"0 0 8px"}}>{lang==="it"?"Seleziona 'Tutti' (filtro in sviluppo)":"Select 'All' (filter in development)"}</p>
-      <div style={{display:"flex",gap:6,flexWrap:"wrap",marginBottom:14}}>
-        <button onClick={()=>setVenueType(null)} style={{background:!venueType?"#1f2937":"#f3f4f6",color:!venueType?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:!venueType?700:400}}>🏪 Tutti</button>
-        {VENUE_TYPES.map(v=>(
-          <button key={v.id} onClick={()=>setVenueType(venueType===v.id?null:v.id)} style={{background:venueType===v.id?"#1f2937":"#f3f4f6",color:venueType===v.id?"white":"#374151",border:"none",padding:"6px 11px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:venueType===v.id?700:400}}>{v.icon} {v.label}</button>
-        ))}
+      <div style={{background:"#f8fafc",border:"1px solid #e5e7eb",borderRadius:12,padding:"10px 12px",marginBottom:14}}>
+        <p style={{margin:"0 0 4px",fontSize:11,color:"#64748b",fontWeight:800}}>🔬 {lang==="it"?"Sicurezza in cucina":"Kitchen safety"} · {lang==="it"?"funzione in arrivo":"coming soon"}</p>
+        <p style={{margin:0,fontSize:11,color:"#94a3b8",lineHeight:1.4}}>{lang==="it"?"Presto aiuterà a distinguere cucina dedicata, attenzione alla contaminazione e cucina condivisa.":"Soon it will help distinguish dedicated kitchen, extra care and shared kitchen."}</p>
       </div>
       <button onClick={doSearch} disabled={searching} style={{...btnG,display:"flex",alignItems:"center",justifyContent:"center",gap:8,fontSize:16,padding:"14px",opacity:searching?0.85:1}}>
         {searching
           ?<><span style={{display:"inline-block",animation:"spin 1s linear infinite",fontSize:18}}>🌿</span>{lang==="it"?"Sto cercando...":"Searching..."}</>
-          :<>🔍 {t.searchBtn}{(tagFilters.length>0||mealFilter||q)&&<span style={{background:"rgba(255,255,255,0.25)",fontSize:12,padding:"2px 9px",borderRadius:10}}>{[q&&1,...tagFilters,mealFilter,venueType].filter(Boolean).length} {lang==="it"?"filtri":"filters"}</span>}</>
+          :<>🔍 {t.searchBtn}{(tagFilters.length>0||q)&&<span style={{background:"rgba(255,255,255,0.25)",fontSize:12,padding:"2px 9px",borderRadius:10}}>{[q&&1,...tagFilters].filter(Boolean).length} {lang==="it"?"filtri":"filters"}</span>}</>
         }
       </button>
     </div>
@@ -1680,14 +1708,14 @@ function App(){
   const getDetailIncludedLimit=()=>isAdmin?999:(isPremium&&(isYearlyPlan(subPlan)?180:15));
   const getDetailUsedIncluded=()=>Number(localStorage.getItem(getDetailUsageKey())||0);
   const getFreeDetailUsed=()=>localStorage.getItem(DETAIL_FREE_KEY(user?.id))==="1";
-  const getDetailResultLimit=()=>isAdmin?20:(isPremium?15:3);
+  const getDetailResultLimit=()=>isAdmin?20:(isPremium?5:3);
   const getDetailAvailabilityLabel=()=>{
     if(isAdmin)return "Admin: fino a 20 locali";
     if(isPremium){
       const limit=getDetailIncludedLimit();
-      return `${isYearlyPlan(subPlan)?"Annuale":"Premium"}: ${Math.max(0,limit-getDetailUsedIncluded())}/${limit} dettagliate disponibili`;
+      return `${isYearlyPlan(subPlan)?"Annuale":"Premium"}: ${Math.max(0,limit-getDetailUsedIncluded())}/${limit} dettagliate disponibili · max 5 locali`;
     }
-    return getFreeDetailUsed()?"Prova gratuita già usata":"Gratis: 1 prova inclusa";
+    return getFreeDetailUsed()?"Abbonati per sbloccarla":"Gratis: 1 ricerca inclusa";
   };
   const toggleDetailTag=(tag)=>setDetailTags(prev=>prev.includes(tag)?prev.filter(x=>x!==tag):[...prev,tag]);
 
@@ -1730,11 +1758,13 @@ function App(){
   const detailQueriesForTags=(city,country,tags)=>{
     const loc=`${city} ${country||"Italia"}`.trim();
     const qs=[];
-    if(tags.includes("gluten_free"))qs.push(`ristoranti senza glutine ${loc}`,`gluten free restaurants ${loc}`);
-    if(tags.includes("lactose_free"))qs.push(`ristoranti senza lattosio ${loc}`,`lactose free restaurants ${loc}`);
-    if(tags.includes("vegan"))qs.push(`ristoranti vegani ${loc}`,`vegan restaurants ${loc}`);
-    if(tags.includes("vegetarian"))qs.push(`ristoranti vegetariani ${loc}`,`vegetarian restaurants ${loc}`);
-    if(tags.includes("pet_friendly"))qs.push(`ristoranti pet friendly ${loc}`,`dog friendly restaurants ${loc}`);
+    // Query mirate: es. "locali gluten free Roma", "ristoranti senza glutine Roma".
+    // Servono a trovare risultati più pertinenti e ridurre chiamate inutili.
+    if(tags.includes("gluten_free"))qs.push(`locali gluten free ${loc}`,`ristoranti senza glutine ${loc}`,`gluten free restaurants ${loc}`);
+    if(tags.includes("lactose_free"))qs.push(`locali senza lattosio ${loc}`,`ristoranti senza lattosio ${loc}`,`lactose free restaurants ${loc}`);
+    if(tags.includes("vegan"))qs.push(`locali vegani ${loc}`,`ristoranti vegani ${loc}`,`vegan restaurants ${loc}`);
+    if(tags.includes("vegetarian"))qs.push(`locali vegetariani ${loc}`,`ristoranti vegetariani ${loc}`,`vegetarian restaurants ${loc}`);
+    if(tags.includes("pet_friendly"))qs.push(`locali pet friendly ${loc}`,`ristoranti cani ammessi ${loc}`,`dog friendly restaurants ${loc}`);
     return qs.length?qs:[`ristoranti ${loc}`];
   };
   const detailSavePlace=async(place,tags=[])=>{
@@ -1796,8 +1826,25 @@ function App(){
     }
     if(!getFreeDetailUsed()){localStorage.setItem(DETAIL_FREE_KEY(user?.id),"1");return true;}
     if((extraCredits||0)>0)return await consumeExtraCredit();
-    showP("Ricerca dettagliata Premium","Hai usato la prova gratuita. Continua con Premium o acquista crediti extra.","searchLimit");
+    showP("Abbonati per sbloccarla","Hai usato la ricerca dettagliata gratuita. Continua con Premium o acquista crediti extra.","searchLimit");
     return false;
+  };
+  const findDetailedMatchesInJuniper=(city,tags,limit)=>{
+    const cityNorm=normalizeSearchText(city||"");
+    return (structs||[])
+      .filter(s=>{
+        if(!s||s.pending)return false;
+        const hay=normalizeSearchText([s.name,s.city,s.address,s.country].filter(Boolean).join(" "));
+        const cityOk=!cityNorm||hay.includes(cityNorm);
+        const tagOk=(tags||[]).some(tag=>(s.tags||[]).includes(tag));
+        return cityOk&&tagOk;
+      })
+      .sort((a,b)=>{
+        const aScore=(a.source==="verified"?4:a.source==="registered"?3:1)+(Number(a.sponsored)||0);
+        const bScore=(b.source==="verified"?4:b.source==="registered"?3:1)+(Number(b.sponsored)||0);
+        return bScore-aScore;
+      })
+      .slice(0,limit);
   };
   const runDetailedFoodSearch=async()=>{
     if(isGuest){showP(t.popGuest,t.popGuestSub,"register");return;}
@@ -1809,57 +1856,62 @@ function App(){
     setDetailRunning(true);
     setSearching(true);
     try{
-      const queries=detailQueriesForTags(detailCity.trim(),detailCountry.trim(),detailTags).slice(0,10);
-      const searchResults=[];
-      for(const textQuery of queries){
-        const resp=await fetch("https://places.googleapis.com/v1/places:searchText",{
-          method:"POST",
-          headers:{"Content-Type":"application/json","X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.shortFormattedAddress,places.primaryType,places.rating,places.userRatingCount,places.location"},
-          body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:10})
-        });
-        const data=resp.ok?await resp.json():{places:[]};
-        (data.places||[]).forEach(p=>searchResults.push(p));
+      // Prima cerchiamo nel database Juniper/Supabase: se ci sono già locali taggati,
+      // li mostriamo senza chiamare Google costoso. Google parte solo per completare i risultati.
+      const dbMatches=findDetailedMatchesInJuniper(detailCity.trim(),detailTags,maxPlaces);
+      const detailed=[...dbMatches];
+      const alreadyIds=new Set(dbMatches.map(s=>String(s.google_place_id||s.id||"")));
+      const remaining=Math.max(0,maxPlaces-detailed.length);
+
+      if(remaining>0){
+        const queries=detailQueriesForTags(detailCity.trim(),detailCountry.trim(),detailTags).slice(0,8);
+        const foundById=new Map();
+        for(const textQuery of queries){
+          const resp=await fetch("https://places.googleapis.com/v1/places:searchText",{
+            method:"POST",
+            headers:{"Content-Type":"application/json","X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.shortFormattedAddress,places.primaryType,places.rating,places.userRatingCount,places.location"},
+            body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:Math.min(10,remaining)})
+          });
+          const data=resp.ok?await resp.json():{places:[]};
+          (data.places||[]).forEach(p=>{
+            if(!p?.id||alreadyIds.has(p.id)||foundById.has(p.id))return;
+            foundById.set(p.id,{...p,_query:textQuery});
+          });
+          if(foundById.size>=remaining)break;
+        }
+        const finalPlaces=Array.from(foundById.values()).slice(0,remaining);
+        for(const place of finalPlaces){
+          const detailsResp=await fetch(`https://places.googleapis.com/v1/places/${place.id}`,{
+            headers:{"X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"id,displayName,formattedAddress,shortFormattedAddress,primaryType,rating,userRatingCount,location,reviews"}
+          });
+          const detail=detailsResp.ok?await detailsResp.json():place;
+          const foundTags=detailExtractTagsFromReviews(detail.reviews||[]);
+          const relevantTags=[...new Set([...foundTags.filter(t=>detailTags.includes(t)),...foundTags])];
+          const savedId=await detailSavePlace({...place,...detail,id:place.id},relevantTags);
+          const name=detail.displayName?.text||place.displayName?.text||"Locale";
+          const d=detailDetectType(name,detail.primaryType||place.primaryType||"");
+          const address=detail.shortFormattedAddress||detail.formattedAddress||place.shortFormattedAddress||place.formattedAddress||"";
+          detailed.push({
+            id:savedId||("g_"+place.id),
+            google_place_id:place.id,
+            name,
+            type:d.type,
+            emoji:d.emoji,
+            city:detailCityFromAddress(detail.formattedAddress||address),
+            country:detailCountry||"Italia",
+            address,
+            tags:relevantTags,
+            meals:d.type==="bar"?["breakfast","aperitivo"]:d.type==="gelateria"||d.type==="pasticceria"?["breakfast","lunch","aperitivo"]:["lunch","dinner"],
+            source:"google",
+            certified:false,
+            sponsored:false,
+            rating:detail.rating||place.rating||null,
+            reviewCount:detail.userRatingCount||place.userRatingCount||0,
+            unverified:true
+          });
+        }
       }
-      const seen=new Set();
-      const finalPlaces=[];
-      for(const p of searchResults){
-        if(!p?.id||seen.has(p.id))continue;
-        seen.add(p.id);
-        finalPlaces.push(p);
-        if(finalPlaces.length>=maxPlaces)break;
-      }
-      const detailed=[];
-      for(const place of finalPlaces){
-        const detailsResp=await fetch(`https://places.googleapis.com/v1/places/${place.id}`,{
-          headers:{"X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"id,displayName,formattedAddress,shortFormattedAddress,primaryType,rating,userRatingCount,location,reviews"}
-        });
-        const detail=detailsResp.ok?await detailsResp.json():place;
-        const foundTags=detailExtractTagsFromReviews(detail.reviews||[]);
-        const relevantTags=[...new Set([...foundTags.filter(t=>detailTags.includes(t)),...foundTags])];
-        const savedId=await detailSavePlace({...place,...detail,id:place.id},relevantTags);
-        const name=detail.displayName?.text||place.displayName?.text||"Locale";
-        const d=detailDetectType(name,detail.primaryType||place.primaryType||"");
-        const address=detail.shortFormattedAddress||detail.formattedAddress||place.shortFormattedAddress||place.formattedAddress||"";
-        detailed.push({
-          id:savedId||("g_"+place.id),
-          google_place_id:place.id,
-          name,
-          type:d.type,
-          emoji:d.emoji,
-          city:detailCityFromAddress(detail.formattedAddress||address),
-          country:detailCountry||"Italia",
-          address,
-          tags:relevantTags,
-          meals:d.type==="bar"?["breakfast","aperitivo"]:d.type==="gelateria"||d.type==="pasticceria"?["breakfast","lunch","aperitivo"]:["lunch","dinner"],
-          source:"google",
-          certified:false,
-          sponsored:false,
-          rating:detail.rating||place.rating||null,
-          reviewCount:detail.userRatingCount||place.userRatingCount||0,
-          unverified:true
-        });
-      }
-      setResults(detailed);
+      setResults(detailed.slice(0,maxPlaces));
       setTab("explore");
       go("results","home");
       detailed.forEach(r=>loadCommunityTags(r.id));
@@ -1897,9 +1949,9 @@ function App(){
         <div style={{...card,border:"1.5px solid #ddd6fe",background:"#fbfaff"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:8}}>
             <p style={{margin:0,fontSize:13,fontWeight:900,color:"#1a5c3a"}}>🔎 Ricerca dettagliata alimentare</p>
-            <span style={{background:"#ede9fe",color:"#4338ca",fontSize:10,fontWeight:800,padding:"3px 8px",borderRadius:20,whiteSpace:"nowrap"}}>{isPremium?"PREMIUM":(getFreeDetailUsed()?"PREMIUM":"1 PROVA")}</span>
+            <span style={{background:"#ede9fe",color:"#4338ca",fontSize:9,fontWeight:800,padding:"3px 7px",borderRadius:20,whiteSpace:"nowrap"}}>{isPremium?"Premium":(getFreeDetailUsed()?"Abbonati per sbloccarla":"Gratis: 1 ricerca inclusa")}</span>
           </div>
-          <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280",lineHeight:1.45}}>Inserisci una città e scegli cosa stai cercando: Juniper controllerà una selezione di locali più pertinenti.</p>
+          <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280",lineHeight:1.45}}>Inserisci una città e scegli cosa stai cercando. Juniper controlla prima i locali già presenti e, se serve, avvia una ricerca più approfondita su risultati mirati.</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 110px",gap:8,marginBottom:10}}>
             <input value={detailCity} onChange={e=>setDetailCity(e.target.value)} placeholder="Città · es. Venezia" style={{...inp,fontSize:13}}/>
             <input value={detailCountry} onChange={e=>setDetailCountry(e.target.value)} placeholder="Italia" style={{...inp,fontSize:13}}/>
@@ -1909,14 +1961,13 @@ function App(){
               {TAGS[k].icon} {TAGS[k][lang==="it"?"it":"en"]}
             </button>)}
           </div>
-          <p style={{margin:"0 0 10px",fontSize:11,color:"#6b7280",lineHeight:1.4}}>{getDetailAvailabilityLabel()}</p>
           <button onClick={startDetailedVerification} disabled={detailRunning||!detailCity.trim()||detailTags.length===0} style={{width:"100%",background:(detailRunning||!detailCity.trim()||detailTags.length===0)?"#d1d5db":"linear-gradient(135deg,#1a5c3a,#0f3d26)",color:(detailRunning||!detailCity.trim()||detailTags.length===0)?"#6b7280":"white",border:"none",padding:"12px",borderRadius:12,fontWeight:800,fontSize:14,cursor:(detailRunning||!detailCity.trim()||detailTags.length===0)?"not-allowed":"pointer"}}>{detailRunning?"⏳ Ricerca in corso...":"🔎 Avvia ricerca dettagliata"}</button>
         </div>
 
         <div style={card}>
-          <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📍 {t.whereLabel}</p>
+          <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📍 {lang==="it"?"Cerca su Juniper":"Search on Juniper"}</p>
           <div style={{display:"flex",gap:8}}>
-            <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={t.wherePh} style={{...inp,flex:1,fontSize:14}}/>
+            <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={lang==="it"?"Città o zona...":"City or area..."} style={{...inp,flex:1,fontSize:14}}/>
           </div>
         </div>
 
@@ -1927,7 +1978,7 @@ function App(){
       {searching&&<div style={{position:"fixed",inset:0,background:"rgba(255,255,255,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500,gap:14}}>
         <div style={{fontSize:48,animation:"spin 1.5s linear infinite"}}>🌿</div>
         <p style={{fontSize:16,fontWeight:700,color:"#1a5c3a"}}>{lang==="it"?"Sto cercando i locali...":"Finding venues..."}</p>
-        <p style={{fontSize:13,color:"#6b7280"}}>{lang==="it"?"Cerco su Google Places...":"Searching Google Places..."}</p>
+        <p style={{fontSize:13,color:"#6b7280"}}>{lang==="it"?"Controllo Juniper e i risultati disponibili...":"Checking Juniper and available results..."}</p>
       </div>}
     </div>
   );
@@ -2065,6 +2116,7 @@ function App(){
                 <button onClick={()=>openStripeLink("user_yearly")} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"1px solid #bbf7d0",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Annuale 30€/anno · 600 ricerche + 180 verifiche</button>
               </>}
               <button onClick={()=>openStripeLink("extra_searches")} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>➕ Compra extra +5 verifiche dettagliate · 2,50€</button>
+              <p style={{margin:"8px 0 0",fontSize:10,color:"#6b7280",lineHeight:1.4}}>{lang==="it"?"Procedendo confermi l’attivazione immediata del servizio digitale e accetti la politica sui rimborsi.":"By proceeding, you confirm immediate activation of the digital service and accept the refund policy."}</p>
             </div>
           </>)}
         </div>
