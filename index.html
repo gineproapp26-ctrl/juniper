@@ -136,6 +136,7 @@ function AdminScreen({user,lang,go,sb}){
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const card2={background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:10};
   const [tagSuggestions,setTagSuggestions]=React.useState([]);
+  const [adminStructureSearch,setAdminStructureSearch]=React.useState("");
   const [adminScanCity,setAdminScanCity]=React.useState("");
   const [adminScanCountry,setAdminScanCountry]=React.useState("Italia");
   const [adminScanLimit,setAdminScanLimit]=React.useState(5);
@@ -364,6 +365,12 @@ function AdminScreen({user,lang,go,sb}){
     }
   };
   const tabs=[{id:"requests",label:"📋 Richieste"},{id:"structures",label:"🏢 Locali"},{id:"tags",label:"🏷️ Tag"},{id:"stats",label:"📊 Stats"},...(isAdminEmail?[{id:"scan",label:"🔐 Scan"}]:[])];
+  const filteredStructures=structures.filter(s=>{
+    const q=adminNormalize(adminStructureSearch||"").trim();
+    if(!q)return true;
+    const hay=adminNormalize([s.name,s.city,s.address,s.type,s.source,s.google_place_id,s.id].filter(Boolean).join(" "));
+    return hay.includes(q);
+  });
   return(
     <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
       <div style={{background:GREEN,padding:"20px",color:"white"}}>
@@ -408,15 +415,20 @@ function AdminScreen({user,lang,go,sb}){
           {requests.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessuna richiesta</div>}
         </>}
         {!loading&&tab==="structures"&&<>
-          <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{structures.length} locali nel database</p>
-          {structures.map(s=>(
+          <div style={{...card2,marginBottom:12}}>
+            <p style={{margin:"0 0 8px",fontSize:13,fontWeight:900,color:"#1a5c3a"}}>🔎 Cerca e gestisci locali</p>
+            <input value={adminStructureSearch} onChange={e=>setAdminStructureSearch(e.target.value)} placeholder="Cerca per nome, città, indirizzo, tipo o ID Google..." style={{...inp,fontSize:13}}/>
+            <p style={{margin:"8px 0 0",fontSize:12,color:"#6b7280"}}>{filteredStructures.length} risultati su {structures.length} locali nel database</p>
+          </div>
+          {filteredStructures.map(s=>(
             <div key={s.id} style={card2}>
               <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:8}}>
                 <div>
                   <p style={{margin:"0 0 2px",fontWeight:700,fontSize:14}}>{s.name}</p>
                   <p style={{margin:0,fontSize:12,color:"#6b7280"}}>📍 {s.city} · {s.type}</p>
+                  {s.address&&<p style={{margin:"2px 0 0",fontSize:11,color:"#9ca3af"}}>{s.address}</p>}
                 </div>
-                <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:s.source==="verified"?"#dbeafe":s.source==="registered"?"#e8f5ee":"#f3f4f6",color:s.source==="verified"?"#2563eb":s.source==="registered"?"#1a5c3a":"#6b7280"}}>
+                <span style={{fontSize:11,fontWeight:700,padding:"3px 8px",borderRadius:10,background:s.source==="verified"?"#dbeafe":s.source==="registered"?"#e8f5ee":"#f3f4f6",color:s.source==="verified"?"#2563eb":s.source==="registered"?"#1a5c3a":"#6b7280",whiteSpace:"nowrap"}}>
                   {s.source==="verified"?"🌿 Verificato":s.source==="registered"?"🏢 Registrato":"📍 Google"}
                 </span>
               </div>
@@ -424,11 +436,12 @@ function AdminScreen({user,lang,go,sb}){
                 <button onClick={()=>verifyStructure(s.id,s.source!=="verified")} style={{flex:1,background:s.source==="verified"?"#fef3c7":"#dbeafe",color:s.source==="verified"?"#92400e":"#2563eb",border:"none",padding:"7px",borderRadius:10,cursor:"pointer",fontSize:12,fontWeight:700}}>
                   {s.source==="verified"?"🏢 Rimuovi badge":"🌿 Assegna Verificato"}
                 </button>
-                <button onClick={()=>deleteStructure(s.id)} style={{background:"#fee2e2",color:"#dc2626",border:"none",padding:"7px 12px",borderRadius:10,cursor:"pointer",fontSize:13}}>🗑️</button>
+                <button onClick={()=>deleteStructure(s.id)} title="Elimina locale" style={{background:"#fee2e2",color:"#dc2626",border:"none",padding:"7px 12px",borderRadius:10,cursor:"pointer",fontSize:13}}>🗑️ Elimina</button>
               </div>
             </div>
           ))}
           {structures.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessun locale</div>}
+          {structures.length>0&&filteredStructures.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessun locale trovato con questa ricerca</div>}
         </>}
         {!loading&&tab==="tags"&&<>
           <p style={{fontSize:13,color:"#6b7280",marginBottom:12}}>{tagSuggestions.filter(t=>t.status==="pending").length} segnalazioni in attesa</p>
