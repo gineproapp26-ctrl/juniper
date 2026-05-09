@@ -36,6 +36,7 @@ const VENUE_TYPES = [
   {id:"agriturismo",label:"Agriturismo",icon:"🌾"},
 ];
 const ADMIN_EMAIL = "help@juniperapp.eu";
+const PREVIEW_EMAILS = ["ginefatarella@gmail.com"];
 const MAINTENANCE_MODE = true;
 const TAGS = {
   gluten_free: {it:"Gluten Free",en:"Gluten Free",icon:"🌾",color:"#f59e0b"},
@@ -707,7 +708,9 @@ function App(){
     user_yearly:"https://buy.stripe.com/bJe7sN2SA3N7d6jeNC7bW02",
     extra_searches:EXTRA_SEARCH_LINK
   };
-  const isAdmin=user?.email?.toLowerCase()===ADMIN_EMAIL.toLowerCase();
+  const userEmail=(user?.email||"").toLowerCase();
+  const isAdmin=userEmail===ADMIN_EMAIL.toLowerCase();
+  const isPreviewUser=PREVIEW_EMAILS.includes(userEmail);
 
   React.useEffect(()=>{
     const {data:{subscription}}=sb.auth.onAuthStateChange((event,session)=>{
@@ -1459,7 +1462,7 @@ function App(){
     </div>
   );
 
-  if(MAINTENANCE_MODE && user && !isAdmin){
+  if(MAINTENANCE_MODE && user && !isAdmin && !isPreviewUser){
     return <MaintenanceScreen lang={lang} user={user}/>;
   }
 
