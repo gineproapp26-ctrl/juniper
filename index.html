@@ -136,12 +136,6 @@ function AdminScreen({user,lang,go,sb}){
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const card2={background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:10};
   const [tagSuggestions,setTagSuggestions]=React.useState([]);
-  const [adminScanCity,setAdminScanCity]=React.useState("");
-  const [adminScanCountry,setAdminScanCountry]=React.useState("Italia");
-  const [adminScanLimit,setAdminScanLimit]=React.useState(5);
-  const [adminScanRunning,setAdminScanRunning]=React.useState(false);
-  const [adminScanSummary,setAdminScanSummary]=React.useState(null);
-  const isAdminEmail=user?.email?.toLowerCase()===ADMIN_EMAIL.toLowerCase();
   const load=async()=>{
     setLoading(true);
     const [rReq,rStr,rTags]=await Promise.all([
@@ -241,129 +235,7 @@ function AdminScreen({user,lang,go,sb}){
     await sb.from("structures").delete().eq("id",id);
     showMsg("🗑️ Locale eliminato");load();
   };
-
-  const adminNormalize=(txt="")=>txt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
-  const adminDetectType=(name="",primaryType="")=>{
-    const x=adminNormalize(name+" "+primaryType);
-    if(x.includes("gelat")||x.includes("ice_cream"))return "gelateria";
-    if(x.includes("pizza"))return "pizzeria";
-    if(x.includes("bar")||x.includes("cafe")||x.includes("caff"))return "bar";
-    if(x.includes("pastic")||x.includes("bakery")||x.includes("pastry"))return "pasticceria";
-    if(x.includes("agritur")||x.includes("farm"))return "agriturismo";
-    return "ristorante";
-  };
-  const adminCityFromAddress=(formatted="")=>{
-    const parts=(formatted||"").split(",").map(s=>s.trim()).filter(Boolean);
-    if(parts.length>=3){const c=parts[parts.length-3]; if(c&&!/^\d+$/.test(c))return c;}
-    if(parts.length>=2){const c=parts[parts.length-2]; if(c&&c!=="Italia"&&!/^\d+$/.test(c))return c;}
-    return adminScanCity||"Italia";
-  };
-  const adminHasPositiveMention=(text,terms)=>{
-    const sentences=adminNormalize(text).split(/[.!?;:\n]/).map(s=>s.trim()).filter(Boolean);
-    const negatives=["non","no ","nessun","nessuna","niente","mancano","manca","senza opzioni","peccato","impossibile","non hanno","non fa","non fanno","non disponibile","non adatto"];
-    return sentences.some(sentence=>{
-      const has=terms.some(term=>sentence.includes(adminNormalize(term)));
-      if(!has)return false;
-      const neg=negatives.some(n=>sentence.includes(n));
-      return !neg;
-    });
-  };
-  const adminExtractTagsFromReviews=(reviews=[])=>{
-    const text=(reviews||[]).map(r=>r.text?.text||r.originalText?.text||"").join(". ");
-    const tags=[];
-    if(adminHasPositiveMention(text,["senza glutine","gluten free","celiaco","celiaci","celiachia","glutine free"]))tags.push("gluten_free");
-    if(adminHasPositiveMention(text,["senza lattosio","lactose free","lattosio","senza latte"]))tags.push("lactose_free");
-    if(adminHasPositiveMention(text,["vegano","vegana","vegan"]))tags.push("vegan");
-    if(adminHasPositiveMention(text,["vegetariano","vegetariana","vegetarian"]))tags.push("vegetarian");
-    if(adminHasPositiveMention(text,["pet friendly","cani ammessi","accettano cani","animali ammessi","dog friendly"]))tags.push("pet_friendly");
-    return [...new Set(tags)];
-  };
-  const adminSaveScannedPlace=async(place,tags=[])=>{
-    const googleId=place.id||"";
-    if(!googleId)return;
-    const name=place.displayName?.text||place.displayName||"Locale";
-    const address=place.formattedAddress||place.shortFormattedAddress||"";
-    const type=adminDetectType(name,place.primaryType||"");
-    const baseRow={
-      google_place_id:googleId,
-      name,
-      type,
-      city:adminCityFromAddress(address),
-      country:adminScanCountry||"Italia",
-      address,
-      source:"google",
-      certified:false,
-      sponsored:false,
-      pending:false,
-      review_count:place.userRatingCount||0,
-      gluten_free:tags.includes("gluten_free"),
-      lactose_free:tags.includes("lactose_free"),
-      vegan:tags.includes("vegan"),
-      vegetarian:tags.includes("vegetarian"),
-      pet_friendly:tags.includes("pet_friendly"),
-      combo_free:tags.includes("gluten_free")&&tags.includes("lactose_free"),
-      breakfast:type==="bar"||type==="pasticceria"||type==="gelateria",
-      lunch:true,
-      aperitivo:type==="bar"||type==="gelateria"||type==="pasticceria",
-      dinner:type!=="bar"&&type!=="pasticceria"&&type!=="gelateria"
-    };
-    const {data:existing}=await sb.from("structures").select("id,gluten_free,lactose_free,vegan,vegetarian,pet_friendly,combo_free").eq("google_place_id",googleId).maybeSingle();
-    if(existing?.id){
-      const updateRow={
-        gluten_free:Boolean(existing.gluten_free||baseRow.gluten_free),
-        lactose_free:Boolean(existing.lactose_free||baseRow.lactose_free),
-        vegan:Boolean(existing.vegan||baseRow.vegan),
-        vegetarian:Boolean(existing.vegetarian||baseRow.vegetarian),
-        pet_friendly:Boolean(existing.pet_friendly||baseRow.pet_friendly),
-        combo_free:Boolean(existing.combo_free||baseRow.combo_free),
-        review_count:baseRow.review_count||0
-      };
-      await sb.from("structures").update(updateRow).eq("id",existing.id);
-      return existing.id;
-    }else{
-      const {data:inserted,error}=await sb.from("structures").insert(baseRow).select("id").single();
-      if(error)throw error;
-      return inserted?.id;
-    }
-  };
-  const runAdminCityScan=async()=>{
-    if(!isAdminEmail){showMsg("❌ Funzione riservata admin");return;}
-    const city=(adminScanCity||"").trim();
-    if(!city){alert("Inserisci una città.");return;}
-    const limit=Math.min(Math.max(parseInt(adminScanLimit||5,10),1),20);
-    if(!window.confirm(`Confermi scansione admin di ${limit} locali per ${city}? Questa funzione legge recensioni Google e può generare costi.`))return;
-    setAdminScanRunning(true);
-    setAdminScanSummary(null);
-    try{
-      const textQuery=`ristoranti bar pizzerie gelaterie ${city} ${adminScanCountry||"Italia"}`;
-      const searchResp=await fetch("https://places.googleapis.com/v1/places:searchText",{
-        method:"POST",
-        headers:{"Content-Type":"application/json","X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.shortFormattedAddress,places.primaryType,places.rating,places.userRatingCount,places.location"},
-        body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:limit})
-      });
-      const searchData=await searchResp.json();
-      const places=(searchData.places||[]).slice(0,limit);
-      const summary=[];
-      for(const place of places){
-        const detailsResp=await fetch(`https://places.googleapis.com/v1/places/${place.id}`,{
-          headers:{"X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"id,displayName,formattedAddress,shortFormattedAddress,primaryType,rating,userRatingCount,location,reviews"}
-        });
-        const detail=detailsResp.ok?await detailsResp.json():place;
-        const tags=adminExtractTagsFromReviews(detail.reviews||[]);
-        const savedId=await adminSaveScannedPlace({...place,...detail,id:place.id},tags);
-        summary.push({name:detail.displayName?.text||place.displayName?.text||"Locale",tags,savedId,reviews:(detail.reviews||[]).length});
-      }
-      setAdminScanSummary({city,limit,analyzed:summary.length,calls:1+summary.length,items:summary});
-      showMsg(`✅ Scansione completata: ${summary.length} locali analizzati`);
-      load();
-    }catch(e){
-      console.error(e);
-      showMsg("❌ Errore scansione admin");
-    }finally{
-      setAdminScanRunning(false);
-    }
-  };
-  const tabs=[{id:"requests",label:"📋 Richieste"},{id:"structures",label:"🏢 Locali"},{id:"tags",label:"🏷️ Tag"},{id:"stats",label:"📊 Stats"},...(isAdminEmail?[{id:"scan",label:"🔐 Scan"}]:[])];
+  const tabs=[{id:"requests",label:"📋 Richieste"},{id:"structures",label:"🏢 Locali"},{id:"tags",label:"🏷️ Tag"},{id:"stats",label:"📊 Stats"}];
   return(
     <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
       <div style={{background:GREEN,padding:"20px",color:"white"}}>
@@ -450,30 +322,6 @@ function AdminScreen({user,lang,go,sb}){
             </div>
           ))}
           {tagSuggestions.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessuna segnalazione</div>}
-        </>}
-        {!loading&&tab==="scan"&&isAdminEmail&&<>
-          <div style={{...card2,border:"1.5px solid #fde68a",background:"#fffbeb"}}>
-            <p style={{margin:"0 0 6px",fontSize:14,fontWeight:900,color:"#92400e"}}>🔐 Admin — Scansione città controllata</p>
-            <p style={{margin:"0 0 12px",fontSize:12,color:"#92400e",lineHeight:1.5}}>Visibile solo al tuo account admin. Usa recensioni Google solo sui primi locali scelti e può generare costi: usala con limite basso.</p>
-            <input value={adminScanCity} onChange={e=>setAdminScanCity(e.target.value)} placeholder="Città · es. Roma" style={{...inp,marginBottom:8,fontSize:13}}/>
-            <div style={{display:"grid",gridTemplateColumns:"1fr 90px",gap:8,marginBottom:8}}>
-              <input value={adminScanCountry} onChange={e=>setAdminScanCountry(e.target.value)} placeholder="Italia" style={{...inp,fontSize:13}}/>
-              <select value={adminScanLimit} onChange={e=>setAdminScanLimit(Number(e.target.value))} style={{...inp,fontSize:13,padding:"10px 8px"}}>
-                <option value={5}>5 locali</option>
-                <option value={10}>10 locali</option>
-                <option value={20}>20 locali</option>
-              </select>
-            </div>
-            <button onClick={runAdminCityScan} disabled={adminScanRunning||!adminScanCity.trim()} style={{width:"100%",background:(adminScanRunning||!adminScanCity.trim())?"#d1d5db":"#92400e",color:"white",border:"none",padding:"11px",borderRadius:12,fontWeight:800,fontSize:13,cursor:(adminScanRunning||!adminScanCity.trim())?"not-allowed":"pointer"}}>{adminScanRunning?"⏳ Scansione in corso...":"Avvia scansione controllata"}</button>
-          </div>
-          {adminScanSummary&&<div style={card2}>
-            <p style={{margin:"0 0 8px",fontSize:13,fontWeight:900,color:"#1a5c3a"}}>✅ Riepilogo scansione {adminScanSummary.city}</p>
-            <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280"}}>Locali analizzati: {adminScanSummary.analyzed} · Chiamate Google stimate: {adminScanSummary.calls}</p>
-            {adminScanSummary.items.map((it,i)=><div key={i} style={{borderTop:"1px solid #e5e7eb",padding:"9px 0"}}>
-              <p style={{margin:"0 0 4px",fontSize:13,fontWeight:800}}>{it.name}</p>
-              <p style={{margin:0,fontSize:12,color:it.tags.length?"#065f46":"#9ca3af"}}>{it.tags.length?`Tag trovati: ${it.tags.join(", ")}`:"Nessun tag positivo trovato"} · recensioni lette: {it.reviews}</p>
-            </div>)}
-          </div>}
         </>}
         {!loading&&tab==="stats"&&<>
           {[
