@@ -785,6 +785,21 @@ function App(){
   const ghost={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const btnG={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
 
+  // Normalizza testo per confrontare città/indirizzi senza accenti o maiuscole
+  const normalizeSearchText=(txt="")=>String(txt).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^\w\s]/g," ").replace(/\s+/g," ").trim();
+
+  // La ricerca leggera deve restare collegata alla città/zona scritta dall'utente:
+  // se scrive Roma, non dobbiamo mostrare l'archivio generale di Grosseto/Follonica ecc.
+  const matchesQueryLocation=(place,query)=>{
+    const qNorm=normalizeSearchText(query);
+    if(!qNorm)return true;
+    const genericWords=new Set(["ristorante","ristoranti","bar","caffe","caffè","pizzeria","pizzerie","trattoria","osteria","agriturismo","agriturismi","gelateria","gelaterie","pasticceria","pasticcerie","locale","locali","gluten","free","senza","glutine","lattosio","lactose","vegano","vegana","vegan","vegetariano","vegetariana","pet","friendly"]);
+    const tokens=qNorm.split(" ").filter(w=>w.length>2&&!genericWords.has(w));
+    if(tokens.length===0)return true;
+    const haystack=normalizeSearchText(`${place.name||""} ${place.city||""} ${place.address||""} ${place.country||""}`);
+    return tokens.every(tok=>haystack.includes(tok));
+  };
+
   const doAuth=async()=>{
     if(!aEmail||!aPass||aLoading)return;
     setAErr("");setALoading(true);
@@ -1112,6 +1127,7 @@ function App(){
         if(seen.has(p.name.toLowerCase()))return false;
         seen.add(p.name.toLowerCase());
         if(venueType&&p.type!==venueType)return false;
+        if(query&&!matchesQueryLocation(p,query))return false;
         return true;
       }).slice(0,20);
       saveGooglePlacesToSupabase(finalResults);
@@ -1128,25 +1144,23 @@ function App(){
       const mf=tagFilters.length===0||tagFilters.every(f=>s.tags&&s.tags.includes(f));
       const mm=!mealFilter||(s.meals&&s.meals.includes(mealFilter));
       const mt=!venueType||s.type===venueType;
-      return mf&&mm&&mt;
+      const mq=!q||matchesQueryLocation(s,q);
+      return mf&&mm&&mt&&mq;
     });
-    if(q){
-      const qRes=res.filter(s=>(s.name&&s.name.toLowerCase().includes(q.toLowerCase()))||(s.city&&s.city.toLowerCase().includes(q.toLowerCase()))||(s.address&&s.address.toLowerCase().includes(q.toLowerCase())));
-      if(qRes.length>0)res=qRes;
-    }
     
-    // Se ci sono filtri tags, memorizzo i locali Google per scannerizzarli
+    // Se l'utente scrive una città/zona, non lasciamo mai dentro tutto l'archivio generale.
+    // Esempio: cercando "Roma" non devono comparire locali salvati di Grosseto/Follonica.
     let pendingGooglePlaces=[];
     try{
       const gRes=await Promise.race([searchGooglePlaces(q||"ristorante",tagFilters),new Promise(r=>setTimeout(()=>r([]),5000))]);
       if(gRes&&gRes.length>0){
         const existing=new Set(res.map(s=>(s.name||"").toLowerCase()));
-        const newGooglePlaces=gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase()));
+        const newGooglePlaces=gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase())&&matchesQueryLocation(g,q));
         // Se NON ci sono filtri tags, aggiungi subito i locali Google
         if(tagFilters.length===0){
           res=[...res,...newGooglePlaces];
         } else {
-          // Altrimenti li scannerizzeremo e aggiungeremo solo quelli che matchano
+          // Altrimenti, nella ricerca leggera NON scannerizziamo recensioni: li lasciamo pending/non aggiunti
           pendingGooglePlaces=newGooglePlaces;
         }
       }
