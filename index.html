@@ -96,7 +96,7 @@ function PolicyScreen({lang,go}){
       s4title:"🏅 Badge Verificato",s4:"Il badge Verificato da Juniper indica che il locale ha fornito documentazione a supporto delle proprie dichiarazioni ed ha sottoscritto la nostra dichiarazione di responsabilità. Tuttavia, anche i locali verificati rimangono gli unici responsabili della veridicità delle informazioni.",
       s5title:"📋 Registrazione dei locali",s5:"I locali che si registrano su Juniper accettano esplicitamente di fornire informazioni veritiere e aggiornate. La pubblicazione di informazioni false o fuorvianti comporta la rimozione immediata dalla piattaforma.",
       s6title:"📬 Contatti",s6:"Per segnalazioni, richieste di verifica o rimozione di contenuti: help@juniperapp.eu",
-      s7title:"💳 Pagamenti e rimborsi",s7:"Gli abbonamenti, i crediti extra e le ricerche dettagliate acquistate su Juniper sono servizi digitali. Una volta che il servizio digitale è stato attivato, utilizzato o reso disponibile sull’account, non sono previsti rimborsi, salvo nei casi obbligatori previsti dalla legge. I crediti extra non utilizzati non sono convertibili in denaro. In caso di problemi tecnici, pagamenti duplicati o errori di addebito, puoi contattarci a help@juniperapp.eu: valuteremo la richiesta e, se necessario, procederemo con correzione o rimborso.",
+      s7title:"💳 Pagamenti e rimborsi",s7:"Gli abbonamenti, i crediti extra e i controlli alimentari acquistati su Juniper sono servizi digitali. Una volta che il servizio digitale è stato attivato, utilizzato o reso disponibile sull’account, non sono previsti rimborsi, salvo nei casi obbligatori previsti dalla legge. I crediti extra non utilizzati non sono convertibili in denaro. In caso di problemi tecnici, pagamenti duplicati o errori di addebito, puoi contattarci a help@juniperapp.eu: valuteremo la richiesta e, se necessario, procederemo con correzione o rimborso.",
       updated:"Ultimo aggiornamento: maggio 2026"},
     en:{title:"Policy & Terms",back:"Back",
       s1title:"⚖️ Content Responsibility",s1:"Each venue registered on Juniper is solely responsible for the information in their profile, including declared dietary features. Juniper does not independently and continuously verify the information published by venues.",
@@ -140,6 +140,7 @@ function AdminScreen({user,lang,go,sb}){
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const card2={background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:10};
   const [tagSuggestions,setTagSuggestions]=React.useState([]);
+  const [searchLogs,setSearchLogs]=React.useState([]);
   const [adminStructureSearch,setAdminStructureSearch]=React.useState("");
   const [adminScanCity,setAdminScanCity]=React.useState("");
   const [adminScanCountry,setAdminScanCountry]=React.useState("Italia");
@@ -171,14 +172,16 @@ function AdminScreen({user,lang,go,sb}){
   };
   const load=async()=>{
     setLoading(true);
-    const [rReq,rStr,rTags]=await Promise.all([
+    const [rReq,rStr,rTags,rLogs]=await Promise.all([
       sb.from("business_requests").select("*").order("created_at",{ascending:false}),
       sb.from("structures").select("*").order("created_at",{ascending:false}),
       sb.from("tag_suggestions").select("*").order("created_at",{ascending:false}),
+      sb.from("search_logs").select("*").order("created_at",{ascending:false}).limit(80),
     ]);
     if(rReq.data)setRequests(rReq.data);
     if(rStr.data)setStructures(rStr.data);
     if(rTags.data)setTagSuggestions(rTags.data);
+    if(rLogs.data)setSearchLogs(rLogs.data);
     setLoading(false);
   };
  const approveTag=async(suggestion)=>{
@@ -427,7 +430,7 @@ function AdminScreen({user,lang,go,sb}){
       setAdminScanRunning(false);
     }
   };
-  const tabs=[{id:"requests",label:"📋 Richieste"},{id:"structures",label:"🏢 Locali"},{id:"tags",label:"🏷️ Tag"},{id:"stats",label:"📊 Stats"},...(isAdminEmail?[{id:"scan",label:"🔐 Scan"}]:[])];
+  const tabs=[{id:"requests",label:"📋 Richieste"},{id:"structures",label:"🏢 Locali"},{id:"tags",label:"🏷️ Tag"},{id:"stats",label:"📊 Stats"},...(isAdminEmail?[{id:"searches",label:"📈 Ricerche"},{id:"scan",label:"🔐 Scan"}]:[])];
   const filteredStructures=structures.filter(s=>{
     const q=adminNormalize(adminStructureSearch||"").trim();
     if(!q)return true;
@@ -526,6 +529,38 @@ function AdminScreen({user,lang,go,sb}){
             </div>
           ))}
           {tagSuggestions.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessuna segnalazione</div>}
+        </>}
+        {!loading&&tab==="searches"&&isAdminEmail&&<>
+          <div style={{...card2,border:"1.5px solid #bbf7d0",background:"#f0fdf4"}}>
+            <p style={{margin:"0 0 8px",fontSize:14,fontWeight:900,color:"#1a5c3a"}}>📈 Registro ricerche</p>
+            <p style={{margin:"0 0 10px",fontSize:12,color:"#166534",lineHeight:1.5}}>Qui vedi le ultime ricerche salvate in Supabase: tipo, utente, chiamate Google stimate e locali analizzati.</p>
+            <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8}}>
+              <div style={{background:"white",borderRadius:12,padding:10}}><p style={{margin:0,fontSize:18,fontWeight:900,color:"#1a5c3a"}}>{searchLogs.length}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>ultimi log</p></div>
+              <div style={{background:"white",borderRadius:12,padding:10}}><p style={{margin:0,fontSize:18,fontWeight:900,color:"#1a5c3a"}}>{searchLogs.reduce((a,l)=>a+Number(l.text_search_calls||0),0)}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>Text Search stimate</p></div>
+              <div style={{background:"white",borderRadius:12,padding:10}}><p style={{margin:0,fontSize:18,fontWeight:900,color:"#1a5c3a"}}>{searchLogs.reduce((a,l)=>a+Number(l.place_details_calls||0),0)}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>Details/reviews stimati</p></div>
+              <div style={{background:"white",borderRadius:12,padding:10}}><p style={{margin:0,fontSize:18,fontWeight:900,color:"#1a5c3a"}}>{searchLogs.reduce((a,l)=>a+Number(l.places_analyzed||0),0)}</p><p style={{margin:0,fontSize:11,color:"#6b7280"}}>locali analizzati</p></div>
+            </div>
+          </div>
+          {searchLogs.map(l=>(
+            <div key={l.id||`${l.created_at}-${l.user_email}`} style={card2}>
+              <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"flex-start"}}>
+                <div>
+                  <p style={{margin:"0 0 3px",fontSize:13,fontWeight:900,color:"#1a5c3a"}}>{l.search_type==="light"?"📍 Cerca su Juniper":l.search_type==="detailed_food"?"🔎 Controllo alimentare":l.search_type==="admin_scan"?"🔐 Scan admin":l.search_type||"Ricerca"}</p>
+                  <p style={{margin:"0 0 3px",fontSize:12,color:"#374151"}}>{l.city||l.query||"—"}{l.country?` · ${l.country}`:""}</p>
+                  <p style={{margin:0,fontSize:11,color:"#6b7280"}}>👤 {l.user_email||"anonimo"} · {l.created_at?new Date(l.created_at).toLocaleString("it-IT"):""}</p>
+                </div>
+                <span style={{background:l.is_admin?"#fef3c7":"#fce7f3",color:l.is_admin?"#92400e":"#9d174d",fontSize:10,fontWeight:900,padding:"3px 7px",borderRadius:999,whiteSpace:"nowrap"}}>{l.is_admin?"ADMIN":"USER"}</span>
+              </div>
+              <div style={{display:"flex",gap:6,flexWrap:"wrap",marginTop:8}}>
+                <span style={{fontSize:11,background:"#f3f4f6",borderRadius:999,padding:"3px 8px"}}>Text: {l.text_search_calls||0}</span>
+                <span style={{fontSize:11,background:"#f3f4f6",borderRadius:999,padding:"3px 8px"}}>Reviews: {l.place_details_calls||0}</span>
+                <span style={{fontSize:11,background:"#f3f4f6",borderRadius:999,padding:"3px 8px"}}>Risultati: {l.places_returned||0}</span>
+                <span style={{fontSize:11,background:"#f3f4f6",borderRadius:999,padding:"3px 8px"}}>Analizzati: {l.places_analyzed||0}</span>
+              </div>
+              {Array.isArray(l.selected_tags)&&l.selected_tags.length>0&&<p style={{margin:"7px 0 0",fontSize:11,color:"#6b7280"}}>Tag: {l.selected_tags.join(", ")}</p>}
+            </div>
+          ))}
+          {searchLogs.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessuna ricerca registrata. Controlla di aver creato la tabella search_logs in Supabase.</div>}
         </>}
         {!loading&&tab==="scan"&&isAdminEmail&&<>
           <div style={{...card2,border:"1.5px solid #fde68a",background:"#fffbeb"}}>
@@ -895,9 +930,9 @@ function App(){
   const [businessActiveIds,setBusinessActiveIds]=React.useState(new Set());
   const isGuest=!user;
   const GUEST_MAX=3;
-  const FREE_SEARCH_LIMIT=3;
-  const MONTHLY_PREMIUM_LIMIT=50;
-  const YEARLY_PREMIUM_LIMIT=600;
+  const FREE_SEARCH_LIMIT=5;
+  const MONTHLY_PREMIUM_LIMIT=Infinity; // Premium: ricerche su Juniper illimitate
+  const YEARLY_PREMIUM_LIMIT=Infinity; // Annuale: ricerche su Juniper illimitate
   const EXTRA_SEARCH_LINK="https://buy.stripe.com/5kQ8wR64M4Rb2rFeNC7bW05";
   const STRIPE_LINKS={
     user_monthly:"https://buy.stripe.com/6oU4gBfFmabvc2f0WM7bW01",
@@ -1062,8 +1097,8 @@ function App(){
   },[sel?.id]);
 
   const T={
-    it:{appName:"Juniper",hi:"Ciao",login:"Accedi",register:"Registrati",mealFilter:"Tipo di pasto",allMeals:"Tutti i pasti",filters:"Caratteristiche",certified:"Certificato",reviews:"recensioni",leaveReview:"Lascia una recensione",placeholder:"Scrivi la tua recensione...",submit:"Invia",home:"Home",explore:"Esplora",profile:"Profilo",results:"Risultati",found:"trovate",featured:"In evidenza",nearby:"Strutture in Italia",premiumPlan:"Piano Premium",features:"10 ricerche intelligenti/mese · Extra acquistabili",cancel:"Annulla",logout:"Esci",back:"Indietro",reviewAdded:"Recensione aggiunta! ✅",noRev:"Nessuna recensione ancora",searchBtn:"Cerca",whereLabel:"Dove vuoi andare?",wherePh:"Città, zona o nome locale...",kitchenTitle:"🔬 Sicurezza in cucina",kitchenSub:"Il locale garantisce assenza di contaminazione crociata?",kitchenLegend:"✅ cucina separata · ⚠️ non garantisce · ❌ cucina condivisa",tagItLabel:"Segnala caratteristica",popGuest:"Contenuto riservato 🌿",popGuestSub:"Registrati gratis per sbloccare Juniper!",popSearch:"Ricerche esaurite 🔍",popSearchSub:"Hai finito le ricerche disponibili. Passa a Premium o acquista ricerche extra.",popReview:"Vuoi lasciare una recensione? 💬",popReviewSub:"Registrati gratis!",regFree:"Registrati gratis",orLogin:"Hai già un account?",bizBtn:"Registra la tua attività"},
-    en:{appName:"Juniper",hi:"Hi",login:"Sign In",register:"Register",mealFilter:"Meal type",allMeals:"All meals",filters:"Features",certified:"Certified",reviews:"reviews",leaveReview:"Leave a review",placeholder:"Write your review...",submit:"Submit",home:"Home",explore:"Explore",profile:"Profile",results:"Results",found:"found",featured:"Featured",nearby:"Structures in Italy",premiumPlan:"Premium Plan",features:"10 intelligent searches/month · Extra available",cancel:"Cancel",logout:"Sign Out",back:"Back",reviewAdded:"Review added! ✅",noRev:"No reviews yet",searchBtn:"Search",whereLabel:"Where do you want to go?",wherePh:"City, area or place name...",kitchenTitle:"🔬 Kitchen Safety",kitchenSub:"Does the venue guarantee no cross-contamination?",kitchenLegend:"✅ separate kitchen · ⚠️ not guaranteed · ❌ shared kitchen",popGuest:"Members only 🌿",popGuestSub:"Sign up free to unlock Juniper!",popSearch:"Searches used up 🔍",popSearchSub:"You have used your available searches. Go Premium or buy extra searches.",popReview:"Want to leave a review? 💬",popReviewSub:"Sign up free!",regFree:"Sign up free",orLogin:"Already have an account?",bizBtn:"Register your business"},
+    it:{appName:"Juniper",hi:"Ciao",login:"Accedi",register:"Registrati",mealFilter:"Tipo di pasto",allMeals:"Tutti i pasti",filters:"Caratteristiche",certified:"Certificato",reviews:"recensioni",leaveReview:"Lascia una recensione",placeholder:"Scrivi la tua recensione...",submit:"Invia",home:"Home",explore:"Esplora",profile:"Profilo",results:"Risultati",found:"trovate",featured:"In evidenza",nearby:"Strutture in Italia",premiumPlan:"Piano Premium",features:"Gratis: 5 ricerche su Juniper/mese · Premium: ricerche su Juniper illimitate + Controllo alimentare",cancel:"Annulla",logout:"Esci",back:"Indietro",reviewAdded:"Recensione aggiunta! ✅",noRev:"Nessuna recensione ancora",searchBtn:"Cerca",whereLabel:"Dove vuoi andare?",wherePh:"Città, zona o nome locale...",kitchenTitle:"🔬 Sicurezza in cucina",kitchenSub:"Il locale garantisce assenza di contaminazione crociata?",kitchenLegend:"✅ cucina separata · ⚠️ non garantisce · ❌ cucina condivisa",tagItLabel:"Segnala caratteristica",popGuest:"Contenuto riservato 🌿",popGuestSub:"Registrati gratis per sbloccare Juniper!",popSearch:"Ricerche esaurite 🔍",popSearchSub:"Hai finito le 5 ricerche gratuite su Juniper disponibili per questo mese. Passa a Premium per sbloccare ricerche su Juniper illimitate.",popReview:"Vuoi lasciare una recensione? 💬",popReviewSub:"Registrati gratis!",regFree:"Registrati gratis",orLogin:"Hai già un account?",bizBtn:"Registra la tua attività"},
+    en:{appName:"Juniper",hi:"Hi",login:"Sign In",register:"Register",mealFilter:"Meal type",allMeals:"All meals",filters:"Features",certified:"Certified",reviews:"reviews",leaveReview:"Leave a review",placeholder:"Write your review...",submit:"Submit",home:"Home",explore:"Explore",profile:"Profile",results:"Results",found:"found",featured:"Featured",nearby:"Structures in Italy",premiumPlan:"Premium Plan",features:"5 Juniper searches/month · Food Check with Premium",cancel:"Cancel",logout:"Sign Out",back:"Back",reviewAdded:"Review added! ✅",noRev:"No reviews yet",searchBtn:"Search",whereLabel:"Where do you want to go?",wherePh:"City, area or place name...",kitchenTitle:"🔬 Kitchen Safety",kitchenSub:"Does the venue guarantee no cross-contamination?",kitchenLegend:"✅ separate kitchen · ⚠️ not guaranteed · ❌ shared kitchen",popGuest:"Members only 🌿",popGuestSub:"Sign up free to unlock Juniper!",popSearch:"Searches used up 🔍",popSearchSub:"You have used your Juniper searches for this month. Go Premium to unlock more.",popReview:"Want to leave a review? 💬",popReviewSub:"Sign up free!",regFree:"Sign up free",orLogin:"Already have an account?",bizBtn:"Register your business"},
   };
   const t=T[lang];
   const go=(s,prev)=>{if(prev)setPrevScr(prev);setScreen(s);};
@@ -1301,14 +1336,16 @@ function App(){
     if(!user)return false;
     if(isAdmin)return true;
 
+    // Premium e Annuale: ricerche su Juniper illimitate.
+    // La ricerca base resta solo dentro Juniper/Supabase: zero Google, zero reviews, zero Atmosphere.
+    if(isPremium)return true;
+
+    // Gratis: 5 ricerche su Juniper al mese, con reset automatico tramite month_key.
     if(getRemainingIncludedSearches()>0){
       return await incrementIncludedSearchUsage(user.id);
     }
 
-    if((extraCredits||0)>0){
-      return await consumeExtraCredit();
-    }
-
+    // I crediti extra sono riservati ai Controlli alimentari, non alla ricerca base.
     showP(t.popSearch,t.popSearchSub,"searchLimit");
     return false;
   };
@@ -1449,29 +1486,10 @@ function App(){
       return mf&&mm&&mt&&mq;
     });
     
-    // Se l'utente scrive una città/zona, non lasciamo mai dentro tutto l'archivio generale.
-    // Esempio: cercando "Roma" non devono comparire locali salvati di Grosseto/Follonica.
-    let pendingGooglePlaces=[];
+    // Ricerca base/città: SOLO Juniper/Supabase.
+    // Non chiama Google Text Search, non legge recensioni, non usa Place Details/Atmosphere.
+    // Se non trova risultati, l'utente viene invitato a usare il Controllo alimentare.
     let lightTextSearchCalls=0;
-    // Prima Juniper/Supabase. Google Text Search parte solo se non abbiamo già abbastanza risultati locali.
-    if(res.length<10){
-      try{
-        lightTextSearchCalls=1;
-        const gRes=await Promise.race([searchGooglePlaces(q||"ristorante",tagFilters),new Promise(r=>setTimeout(()=>r([]),5000))]);
-        if(gRes&&gRes.length>0){
-          const existing=new Set(res.map(s=>(s.name||"").toLowerCase()));
-          const newGooglePlaces=gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase())&&matchesQueryLocation(g,q));
-          // Se NON ci sono filtri tags, aggiungi subito i locali Google base.
-          if(tagFilters.length===0){
-            res=[...res,...newGooglePlaces].slice(0,10);
-          } else {
-            // Con filtri/tag attivi, la ricerca leggera NON legge recensioni e NON inventa tag.
-            // Mostra solo locali già taggati in Juniper; i nuovi Google vengono solo salvati come base.
-            pendingGooglePlaces=newGooglePlaces;
-          }
-        }
-      }catch(e){}
-    }
     setSearching(false);setResults(res);setTab("explore");go("results","home");
     await logSearch({
       search_type:"light",
@@ -1483,15 +1501,14 @@ function App(){
       place_details_calls:0,
       places_returned:res.length,
       places_analyzed:0,
-      source:lightTextSearchCalls>0?"juniper+google_text_search":"juniper"
+      source:"juniper"
     });
     // Carica community tags per tutti i risultati in background
     res.forEach(r=>loadCommunityTags(r.id));
     
     // SICUREZZA COSTI: la ricerca leggera NON deve mai leggere recensioni Google.
-    // Qui lasciamo solo i risultati da Supabase + Google Text Search leggero.
-    // Le recensioni/Place Details verranno attivate solo nella verifica dettagliata Premium,
-    // su un singolo locale specifico, quando la funzione sarà collegata ai crediti.
+    // Qui lasciamo solo i risultati da Supabase/Juniper.
+    // Il Controllo alimentare Premium/crediti è l’unica funzione che può cercare fuori Juniper e leggere recensioni.
   };
 
   const addRev=async(sid)=>{
@@ -1616,9 +1633,9 @@ function App(){
             <button onClick={()=>{closeP();setAuthMode("login");go("auth");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:600,fontSize:14,cursor:"pointer"}}>{t.login}</button>
           </>}
           {popup.type==="searchLimit"&&<>
-            <button onClick={()=>{closeP();openStripeLink("user_monthly");}} style={{...btnG,marginBottom:10,fontSize:14}}>🌿 Premium 3€/mese: 50 ricerche leggere + 15 dettagliate/mese</button>
-            <button onClick={()=>{closeP();openStripeLink("user_yearly");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10}}>🌿 Annuale 30€/anno: 600 leggere + 180 dettagliate/anno</button>
-            <button onClick={()=>{closeP();openStripeLink("extra_searches");}} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer"}}>➕ Extra: +5 verifiche a 2,50€</button>
+            <button onClick={()=>{closeP();openStripeLink("user_monthly");}} style={{...btnG,marginBottom:10,fontSize:14}}>🌿 Premium 3€/mese: ricerche su Juniper illimitate + 15 controlli alimentari/mese</button>
+            <button onClick={()=>{closeP();openStripeLink("user_yearly");}} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"none",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer",marginBottom:10}}>🌿 Annuale 30€/anno: ricerche su Juniper illimitate + 180 controlli alimentari/anno sbloccati subito</button>
+            <button onClick={()=>{closeP();openStripeLink("extra_searches");}} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:12,borderRadius:12,fontWeight:700,fontSize:14,cursor:"pointer"}}>➕ Extra: +5 controlli alimentari a 2,50€</button>
             <p style={{margin:"10px 0 0",fontSize:10,color:"#6b7280",lineHeight:1.4}}>{lang==="it"?"Procedendo confermi l’attivazione immediata del servizio digitale e accetti la politica sui rimborsi.":"By proceeding, you confirm immediate activation of the digital service and accept the refund policy."}</p>
           </>}
           <button onClick={closeP} style={{width:"100%",background:"none",border:"none",padding:8,fontSize:13,color:"#9ca3af",cursor:"pointer",marginTop:4}}>{t.cancel}</button>
@@ -1774,7 +1791,7 @@ function App(){
     if(isAdmin)return "Admin: fino a 20 locali";
     if(isPremium){
       const limit=getDetailIncludedLimit();
-      return `${isYearlyPlan(subPlan)?"Annuale":"Premium"}: ${Math.max(0,limit-getDetailUsedIncluded())}/${limit} dettagliate disponibili · max 5 locali`;
+      return `${isYearlyPlan(subPlan)?"Annuale":"Premium"}: ${Math.max(0,limit-getDetailUsedIncluded())}/${limit} controlli disponibili · max 5 locali`;
     }
     return "Premium o crediti extra";
   };
@@ -1872,7 +1889,7 @@ function App(){
       return existing.id;
     }
     const {data:inserted,error}=await sb.from("structures").insert(baseRow).select("id").single();
-    if(error){console.warn("Errore salvataggio ricerca dettagliata",error);return null;}
+    if(error){console.warn("Errore salvataggio controllo alimentare",error);return null;}
     return inserted?.id;
   };
   const consumeDetailedEntitlement=async()=>{
@@ -1882,11 +1899,11 @@ function App(){
       const limit=getDetailIncludedLimit();
       if(used<limit){localStorage.setItem(getDetailUsageKey(),String(used+1));return true;}
       if((extraCredits||0)>0)return await consumeExtraCredit();
-      showP("Ricerche dettagliate esaurite",isYearlyPlan(subPlan)?"Hai terminato le 180 ricerche dettagliate annuali. Puoi acquistare crediti extra.":"Hai terminato le 15 ricerche dettagliate del mese. Puoi acquistare crediti extra.","searchLimit");
+      showP("Controlli alimentari esauriti",isYearlyPlan(subPlan)?"Hai terminato i 180 controlli alimentari annuali. Puoi acquistare crediti extra.":"Hai terminato i 15 controlli alimentari del mese. Puoi acquistare crediti extra.","searchLimit");
       return false;
     }
     if((extraCredits||0)>0)return await consumeExtraCredit();
-    showP("Funzione Premium","La ricerca dettagliata alimentare è disponibile con Premium o crediti extra.","searchLimit");
+    showP("Funzione Premium","Il controllo alimentare è disponibile con Premium o crediti extra.","searchLimit");
     return false;
   };
   const findDetailedMatchesInJuniper=(city,tags,limit)=>{
@@ -1993,7 +2010,7 @@ function App(){
       detailed.forEach(r=>loadCommunityTags(r.id));
     }catch(e){
       console.error(e);
-      alert(lang==="it"?"Errore durante la ricerca dettagliata. Riprova.":"Detailed search error. Try again.");
+      alert(lang==="it"?"Errore durante la controllo alimentare. Riprova.":"Food check error. Try again.");
     }finally{
       setDetailRunning(false);
       setSearching(false);
@@ -2024,10 +2041,10 @@ function App(){
       <div style={{padding:"12px 16px 0"}}>
         <div style={{...card,border:"1.5px solid #ddd6fe",background:"#fbfaff"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:8}}>
-            <p style={{margin:0,fontSize:13,fontWeight:900,color:"#1a5c3a"}}>🔎 Ricerca dettagliata alimentare</p>
+            <p style={{margin:0,fontSize:13,fontWeight:900,color:"#1a5c3a"}}>🔎 Controllo alimentare</p>
             <span style={{background:JUNIPER_PINK,color:JUNIPER_GREEN,fontSize:9,fontWeight:800,padding:"3px 7px",borderRadius:20,whiteSpace:"nowrap"}}>{getDetailAvailabilityLabel()}</span>
           </div>
-          <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280",lineHeight:1.45}}>Scegli una città e i tag che ti interessano: Juniper cercherà locali più adatti alle tue esigenze.</p>
+          <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280",lineHeight:1.45}}>Cerca anche locali non ancora presenti su Juniper e controlla una selezione di risultati più adatti ai tag scelti.</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 110px",gap:8,marginBottom:10}}>
             <input value={detailCity} onChange={e=>setDetailCity(e.target.value)} placeholder="Città · es. Venezia" style={{...inp,fontSize:13}}/>
             <input value={detailCountry} onChange={e=>setDetailCountry(e.target.value)} placeholder="Italia" style={{...inp,fontSize:13}}/>
@@ -2037,17 +2054,19 @@ function App(){
               {TAGS[k].icon} {TAGS[k][lang==="it"?"it":"en"]}
             </button>)}
           </div>
-          <button onClick={startDetailedVerification} disabled={detailRunning||!detailCity.trim()||detailTags.length===0} style={{width:"100%",background:(detailRunning||!detailCity.trim()||detailTags.length===0)?"#d1d5db":"linear-gradient(135deg,#1a5c3a,#0f3d26)",color:(detailRunning||!detailCity.trim()||detailTags.length===0)?"#6b7280":"white",border:"none",padding:"12px",borderRadius:12,fontWeight:800,fontSize:14,cursor:(detailRunning||!detailCity.trim()||detailTags.length===0)?"not-allowed":"pointer"}}>{detailRunning?"⏳ Ricerca in corso...":"🔎 Avvia ricerca dettagliata"}</button>
+          <button onClick={startDetailedVerification} disabled={detailRunning||!detailCity.trim()||detailTags.length===0} style={{width:"100%",background:(detailRunning||!detailCity.trim()||detailTags.length===0)?"#d1d5db":"linear-gradient(135deg,#1a5c3a,#0f3d26)",color:(detailRunning||!detailCity.trim()||detailTags.length===0)?"#6b7280":"white",border:"none",padding:"12px",borderRadius:12,fontWeight:800,fontSize:14,cursor:(detailRunning||!detailCity.trim()||detailTags.length===0)?"not-allowed":"pointer"}}>{detailRunning?"⏳ Controllo in corso...":"🔎 Avvia controllo alimentare"}</button>
         </div>
 
         <div style={card}>
-          <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📍 {lang==="it"?"Cerca su Juniper":"Search on Juniper"}</p>
+          <p style={{margin:"0 0 7px",fontSize:11,color:"#6b7280",fontWeight:700,textTransform:"uppercase",letterSpacing:.5}}>📍 {lang==="it"?"Cerca locali su Juniper":"Search venues on Juniper"}</p>
+          <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280",lineHeight:1.45}}>{lang==="it"?"Cerca tra i locali già presenti o registrati su Juniper e scopri le informazioni disponibili.":"Search venues already available on Juniper and see the tags saved in our database."}</p>
           <div style={{display:"flex",gap:8}}>
             <input value={q} onChange={e=>setQ(e.target.value)} onKeyDown={e=>e.key==="Enter"&&doSearch()} placeholder={lang==="it"?"Città o zona...":"City or area..."} style={{...inp,flex:1,fontSize:14}}/>
           </div>
         </div>
 
         <FilterPanel/>
+        <p style={{margin:"-2px 2px 12px",fontSize:11,color:"#9ca3af",lineHeight:1.45}}>{lang==="it"?"Non trovi abbastanza risultati? Usa il Controllo alimentare per cercare anche locali non ancora presenti su Juniper.":"Not enough results? Use Food Check to search venues not yet available on Juniper."}</p>
         {loadingData&&<div style={{textAlign:"center",padding:"20px",color:"#6b7280",fontSize:14}}>🔄 {lang==="it"?"Caricamento...":"Loading..."}</div>}
       </div>
       <BottomNav/><Popup/><WelcomePopup/>
@@ -2070,7 +2089,7 @@ function App(){
         {results.length===0
           ?<div style={{textAlign:"center",padding:"40px 20px"}}>
             <div style={{fontSize:48}}>🔍</div>
-            <p style={{color:"#6b7280",marginTop:12,fontSize:14}}>{lang==="it"?"Nessun locale trovato. Prova con un'altra città.":"No venues found. Try another city."}</p>
+            <p style={{color:"#6b7280",marginTop:12,fontSize:14}}>{lang==="it"?"Non abbiamo ancora locali disponibili per questa zona. Vuoi cercare anche locali non ancora presenti su Juniper? Usa il Controllo alimentare.":"No venues available for this area yet. Want to search venues not yet on Juniper? Use Food Check."}</p>
           </div>
           :(results||[]).filter(s=>s&&s.name).map(s=><StructCard key={s.id||s.name} s={s} index={0} guestMode={false}/>)
         }
@@ -2180,18 +2199,20 @@ function App(){
                   : (lang==="it"?"Piano gratuito":"Free plan")}
               </p>
               <p style={{margin:0,fontSize:12,color:"#374151"}}>
-                {getIncludedSearchUsed()} / {getIncludedSearchLimit()} {lang==="it"?"ricerche usate":"searches used"}
+                {isPremium
+                  ? (lang==="it"?"Ricerche su Juniper illimitate":"Unlimited Juniper searches")
+                  : `${getIncludedSearchUsed()} / ${getIncludedSearchLimit()} ${lang==="it"?"ricerche usate":"searches used"}`}
               </p>
               <p style={{margin:"4px 0 0",fontSize:12,color:"#374151"}}>
-                ➕ Extra disponibili: <b>{extraCredits||0}</b>
+                ➕ Extra controlli alimentari disponibili: <b>{extraCredits||0}</b>
               </p>
             </div>
             <div style={{display:"grid",gridTemplateColumns:"1fr",gap:8}}>
               {!isPremium&&<>
-                <button onClick={()=>openStripeLink("user_monthly")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Premium 3€/mese · 50 leggere + 15 dettagliate</button>
-                <button onClick={()=>openStripeLink("user_yearly")} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"1px solid #bbf7d0",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Annuale 30€/anno · 600 ricerche + 180 verifiche</button>
+                <button onClick={()=>openStripeLink("user_monthly")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Premium 3€/mese · ricerche su Juniper illimitate + 15 controlli alimentari/mese</button>
+                <button onClick={()=>openStripeLink("user_yearly")} style={{width:"100%",background:"#f0fdf4",color:"#1a5c3a",border:"1px solid #bbf7d0",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>Annuale 30€/anno · ricerche su Juniper illimitate + 180 controlli alimentari/anno sbloccati subito</button>
               </>}
-              <button onClick={()=>openStripeLink("extra_searches")} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>➕ Compra extra +5 verifiche dettagliate · 2,50€</button>
+              <button onClick={()=>openStripeLink("extra_searches")} style={{width:"100%",background:"#fff7ed",color:"#c2410c",border:"1px solid #fed7aa",padding:11,borderRadius:10,fontSize:13,fontWeight:800,cursor:"pointer"}}>➕ Extra +5 controlli alimentari · 2,50€</button>
               <p style={{margin:"8px 0 0",fontSize:10,color:"#6b7280",lineHeight:1.4}}>{lang==="it"?"Procedendo confermi l’attivazione immediata del servizio digitale e accetti la politica sui rimborsi.":"By proceeding, you confirm immediate activation of the digital service and accept the refund policy."}</p>
             </div>
           </>)}
