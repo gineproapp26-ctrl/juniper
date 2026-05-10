@@ -26,6 +26,8 @@ const sb = window.supabase.createClient(
 );
 
 const GREEN = "linear-gradient(135deg,#1a5c3a,#0f3d26)";
+const JUNIPER_GREEN = "#1a5c3a";
+const JUNIPER_PINK = "#fdbdd4";
 
 const VENUE_TYPES = [
   {id:"ristorante",label:"Ristorante",icon:"🍽️"},
@@ -145,6 +147,28 @@ function AdminScreen({user,lang,go,sb}){
   const [adminScanRunning,setAdminScanRunning]=React.useState(false);
   const [adminScanSummary,setAdminScanSummary]=React.useState(null);
   const isAdminEmail=user?.email?.toLowerCase()===ADMIN_EMAIL.toLowerCase();
+
+  const logAdminSearch=async(payload={})=>{
+    try{
+      const {error}=await sb.from("search_logs").insert({
+        user_id:user?.id||null,
+        user_email:user?.email||null,
+        search_type:payload.search_type||"admin_scan",
+        query:payload.query||null,
+        city:payload.city||null,
+        country:payload.country||null,
+        selected_tags:payload.selected_tags||[],
+        is_admin:true,
+        text_search_calls:Number(payload.text_search_calls||0),
+        place_details_calls:Number(payload.place_details_calls||0),
+        places_returned:Number(payload.places_returned||0),
+        places_analyzed:Number(payload.places_analyzed||0),
+        source:payload.source||"admin",
+        created_at:new Date().toISOString()
+      });
+      if(error)console.warn("search_logs non disponibile:",error.message);
+    }catch(e){console.warn("search_logs admin ignorato:",e);}
+  };
   const load=async()=>{
     setLoading(true);
     const [rReq,rStr,rTags]=await Promise.all([
@@ -357,7 +381,7 @@ function AdminScreen({user,lang,go,sb}){
       ];
       const foundById=new Map();
       let textSearchCalls=0;
-      for(const textQuery of queryList){
+      for(const textQuery of queryList.slice(0,3)){
         const searchResp=await fetch("https://places.googleapis.com/v1/places:searchText",{
           method:"POST",
           headers:{"Content-Type":"application/json","X-Goog-Api-Key":"AIzaSyA4G_OKIatAuX9DzcFfgTQmrGtveNfw3ck","X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.shortFormattedAddress,places.primaryType,places.rating,places.userRatingCount,places.location"},
@@ -382,6 +406,18 @@ function AdminScreen({user,lang,go,sb}){
         summary.push({name:detail.displayName?.text||place.displayName?.text||"Locale",tags,savedId,reviews:(detail.reviews||[]).length,query:place._query||""});
       }
       setAdminScanSummary({city,limit,analyzed:summary.length,calls:textSearchCalls+summary.length,textSearchCalls,detailsCalls:summary.length,items:summary});
+      await logAdminSearch({
+        search_type:"admin_scan",
+        query:`scansione alimentare ${city}`,
+        city,
+        country:adminScanCountry||"Italia",
+        selected_tags:["gluten_free","lactose_free","vegan","vegetarian","pet_friendly"],
+        text_search_calls:textSearchCalls,
+        place_details_calls:summary.length,
+        places_returned:summary.length,
+        places_analyzed:summary.length,
+        source:"admin_google_text_search+place_details"
+      });
       showMsg(`✅ Scansione completata: ${summary.length} locali analizzati`);
       load();
     }catch(e){
@@ -870,6 +906,31 @@ function App(){
   };
   const isAdmin=user?.email?.toLowerCase()===ADMIN_EMAIL.toLowerCase();
 
+  // Registro ricerche: salva su Supabase la tipologia e quantità di chiamate usate.
+  // Se la tabella search_logs non esiste ancora, l'app continua a funzionare e ignora l'errore.
+  const logSearch=async(payload={})=>{
+    try{
+      const row={
+        user_id:user?.id||null,
+        user_email:user?.email||null,
+        search_type:payload.search_type||"unknown",
+        query:payload.query||null,
+        city:payload.city||null,
+        country:payload.country||null,
+        selected_tags:payload.selected_tags||[],
+        is_admin:Boolean(isAdmin),
+        text_search_calls:Number(payload.text_search_calls||0),
+        place_details_calls:Number(payload.place_details_calls||0),
+        places_returned:Number(payload.places_returned||0),
+        places_analyzed:Number(payload.places_analyzed||0),
+        source:payload.source||"juniper",
+        created_at:new Date().toISOString()
+      };
+      const {error}=await sb.from("search_logs").insert(row);
+      if(error)console.warn("search_logs non disponibile:",error.message);
+    }catch(e){console.warn("search_logs ignorato:",e);}
+  };
+
   // Badge business: il badge Verificato deve apparire solo se il locale ha un abbonamento business attivo.
   // Il locale può restare nel database anche se non rinnova, ma in quel caso torna Registrato/Non verificato.
   const normalizeId=(v)=>String(v||"").trim();
@@ -1332,13 +1393,11 @@ function App(){
   };
 
   const searchGooglePlaces=async(query,tags)=>{
-    // NON aggiungo i tag alla query - trovo TUTTI i locali e filtro dalle recensioni
-    const loc=(query||"Maremma Grosseto")+" Italia";
-    const hasFood=query&&["ristorante","bar","pizzeria","agriturismo"].some(w=>query.toLowerCase().includes(w));
-    // Se c'è un filtro tipo locale, cerca solo quel tipo
-    const queries=venueType
-      ?[venueType+" "+loc]
-      :hasFood?[query+" "+loc]:["ristorante "+loc,"bar caffè "+loc,"pizzeria trattoria osteria agriturismo "+loc,"gelateria pasticceria "+loc];
+    // Ricerca leggera: massimo 1 Text Search, massimo 10 locali.
+    // NON legge recensioni, NON chiama Place Details, NON usa Atmosphere.
+    const cleanQuery=(query||"").trim();
+    const loc=(cleanQuery||"ristoranti")+" Italia";
+    const textQuery=cleanQuery?`ristoranti bar pizzerie gelaterie ${loc}`:`ristoranti bar pizzerie gelaterie Italia`;
     const mapPlace=(p)=>{
       const pt=p.primaryType||"";
       let type="ristorante",emoji="🍽️";
@@ -1353,39 +1412,25 @@ function App(){
       if(nl.includes("gelat")||nl.includes("gelateria")){type="gelateria";emoji="🍦";}
       const addr=p.shortFormattedAddress||p.formattedAddress||"";
       const parts=(p.formattedAddress||"").split(",").map(s=>s.trim());
-      // Cerca la città: ultimo elemento prima di provincia e Italia
-      // Formato tipico: "Via X, 123, Città, Provincia, Italia"
       let city="Italia";
-      if(parts.length>=3){
-        // Terzo dalla fine è la città (prima di provincia e paese)
-        const candidate=parts[parts.length-3];
-        if(candidate&&!/^\d+$/.test(candidate)){city=candidate;}
-      }
-      // Fallback: se city è ancora "Italia" o numero, prova secondo dalla fine
-      if(city==="Italia"||/^\d+$/.test(city)){
-        if(parts.length>=2){
-          const candidate=parts[parts.length-2];
-          if(candidate&&candidate!=="Italia"&&!/^\d+$/.test(candidate)){city=candidate;}
-        }
-      }
-      return{id:"g_"+(p.id||Math.random().toString(36)),name,type,city,country:"Italia",address:addr,phone:"",description:type+" · "+city,emoji,tags:[],lat:p.location?.latitude||null,lng:p.location?.longitude||null,meals:type==="bar"?["breakfast","aperitivo"]:type==="gelateria"||type==="pasticceria"?["breakfast","lunch","aperitivo"]:["lunch","dinner"],source:"google",certified:false,sponsored:false,rating:p.rating||null,reviewCount:p.userRatingCount||0,unverified:true};
+      if(parts.length>=3){const candidate=parts[parts.length-3]; if(candidate&&!/^\d+$/.test(candidate)){city=candidate;}}
+      if(city==="Italia"||/^\d+$/.test(city)){if(parts.length>=2){const candidate=parts[parts.length-2]; if(candidate&&candidate!=="Italia"&&!/^\d+$/.test(candidate)){city=candidate;}}}
+      return{id:"g_"+(p.id||Math.random().toString(36)),google_place_id:p.id||null,name,type,city,country:"Italia",address:addr,phone:"",description:type+" · "+city,emoji,tags:[],lat:p.location?.latitude||null,lng:p.location?.longitude||null,meals:type==="bar"?["breakfast","aperitivo"]:type==="gelateria"||type==="pasticceria"?["breakfast","lunch","aperitivo"]:["lunch","dinner"],source:"google",certified:false,sponsored:false,rating:p.rating||null,reviewCount:p.userRatingCount||0,unverified:true};
     };
     try{
-      const results=await Promise.all(queries.map(textQuery=>
-        fetch("https://places.googleapis.com/v1/places:searchText",{
-          method:"POST",
-          headers:{"Content-Type":"application/json","X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryType,places.shortFormattedAddress,places.location"},
-          body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:20})
-        }).then(r=>r.ok?r.json():{places:[]}).then(d=>(d.places||[]).map(mapPlace)).catch(()=>[])
-      ));
+      const resp=await fetch("https://places.googleapis.com/v1/places:searchText",{
+        method:"POST",
+        headers:{"Content-Type":"application/json","X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.rating,places.userRatingCount,places.primaryType,places.shortFormattedAddress,places.location"},
+        body:JSON.stringify({textQuery,languageCode:"it",maxResultCount:10})
+      });
+      const data=resp.ok?await resp.json():{places:[]};
       const seen=new Set();
-      const finalResults=results.flat().filter(p=>{
-        if(seen.has(p.name.toLowerCase()))return false;
-        seen.add(p.name.toLowerCase());
-        if(venueType&&p.type!==venueType)return false;
-        if(query&&!matchesQueryLocation(p,query))return false;
+      const finalResults=(data.places||[]).map(mapPlace).filter(p=>{
+        if(seen.has((p.name||"").toLowerCase()))return false;
+        seen.add((p.name||"").toLowerCase());
+        if(cleanQuery&&!matchesQueryLocation(p,cleanQuery))return false;
         return true;
-      }).slice(0,20);
+      }).slice(0,10);
       saveGooglePlacesToSupabase(finalResults);
       return finalResults;
     }catch(e){return[];}
@@ -1407,21 +1452,39 @@ function App(){
     // Se l'utente scrive una città/zona, non lasciamo mai dentro tutto l'archivio generale.
     // Esempio: cercando "Roma" non devono comparire locali salvati di Grosseto/Follonica.
     let pendingGooglePlaces=[];
-    try{
-      const gRes=await Promise.race([searchGooglePlaces(q||"ristorante",tagFilters),new Promise(r=>setTimeout(()=>r([]),5000))]);
-      if(gRes&&gRes.length>0){
-        const existing=new Set(res.map(s=>(s.name||"").toLowerCase()));
-        const newGooglePlaces=gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase())&&matchesQueryLocation(g,q));
-        // Se NON ci sono filtri tags, aggiungi subito i locali Google
-        if(tagFilters.length===0){
-          res=[...res,...newGooglePlaces];
-        } else {
-          // Altrimenti, nella ricerca leggera NON scannerizziamo recensioni: li lasciamo pending/non aggiunti
-          pendingGooglePlaces=newGooglePlaces;
+    let lightTextSearchCalls=0;
+    // Prima Juniper/Supabase. Google Text Search parte solo se non abbiamo già abbastanza risultati locali.
+    if(res.length<10){
+      try{
+        lightTextSearchCalls=1;
+        const gRes=await Promise.race([searchGooglePlaces(q||"ristorante",tagFilters),new Promise(r=>setTimeout(()=>r([]),5000))]);
+        if(gRes&&gRes.length>0){
+          const existing=new Set(res.map(s=>(s.name||"").toLowerCase()));
+          const newGooglePlaces=gRes.filter(g=>g&&g.name&&!existing.has(g.name.toLowerCase())&&matchesQueryLocation(g,q));
+          // Se NON ci sono filtri tags, aggiungi subito i locali Google base.
+          if(tagFilters.length===0){
+            res=[...res,...newGooglePlaces].slice(0,10);
+          } else {
+            // Con filtri/tag attivi, la ricerca leggera NON legge recensioni e NON inventa tag.
+            // Mostra solo locali già taggati in Juniper; i nuovi Google vengono solo salvati come base.
+            pendingGooglePlaces=newGooglePlaces;
+          }
         }
-      }
-    }catch(e){}
+      }catch(e){}
+    }
     setSearching(false);setResults(res);setTab("explore");go("results","home");
+    await logSearch({
+      search_type:"light",
+      query:q||"",
+      city:q||"",
+      country:"Italia",
+      selected_tags:tagFilters,
+      text_search_calls:lightTextSearchCalls,
+      place_details_calls:0,
+      places_returned:res.length,
+      places_analyzed:0,
+      source:lightTextSearchCalls>0?"juniper+google_text_search":"juniper"
+    });
     // Carica community tags per tutti i risultati in background
     res.forEach(r=>loadCommunityTags(r.id));
     
@@ -1700,22 +1763,20 @@ function App(){
     </div>
   );
 
-  const DETAIL_FREE_KEY=(userId)=>`juniper_detail_free_used_${userId||"guest"}`;
   const DETAIL_MONTH_KEY=(userId)=>`juniper_detail_month_${userId||"guest"}_${getMonthKey()}`;
   const DETAIL_YEAR_KEY=(userId)=>`juniper_detail_year_${userId||"guest"}_${new Date().getFullYear()}`;
   const DETAIL_TAG_OPTIONS=["gluten_free","lactose_free","vegan","vegetarian","pet_friendly"];
   const getDetailUsageKey=()=>isPremium&&isYearlyPlan(subPlan)?DETAIL_YEAR_KEY(user?.id):DETAIL_MONTH_KEY(user?.id);
   const getDetailIncludedLimit=()=>isAdmin?999:(isPremium&&(isYearlyPlan(subPlan)?180:15));
   const getDetailUsedIncluded=()=>Number(localStorage.getItem(getDetailUsageKey())||0);
-  const getFreeDetailUsed=()=>localStorage.getItem(DETAIL_FREE_KEY(user?.id))==="1";
-  const getDetailResultLimit=()=>isAdmin?20:(isPremium?5:3);
+  const getDetailResultLimit=()=>isAdmin?20:5;
   const getDetailAvailabilityLabel=()=>{
     if(isAdmin)return "Admin: fino a 20 locali";
     if(isPremium){
       const limit=getDetailIncludedLimit();
       return `${isYearlyPlan(subPlan)?"Annuale":"Premium"}: ${Math.max(0,limit-getDetailUsedIncluded())}/${limit} dettagliate disponibili · max 5 locali`;
     }
-    return getFreeDetailUsed()?"Abbonati per sbloccarla":"Gratis: 1 ricerca inclusa";
+    return "Premium o crediti extra";
   };
   const toggleDetailTag=(tag)=>setDetailTags(prev=>prev.includes(tag)?prev.filter(x=>x!==tag):[...prev,tag]);
 
@@ -1824,9 +1885,8 @@ function App(){
       showP("Ricerche dettagliate esaurite",isYearlyPlan(subPlan)?"Hai terminato le 180 ricerche dettagliate annuali. Puoi acquistare crediti extra.":"Hai terminato le 15 ricerche dettagliate del mese. Puoi acquistare crediti extra.","searchLimit");
       return false;
     }
-    if(!getFreeDetailUsed()){localStorage.setItem(DETAIL_FREE_KEY(user?.id),"1");return true;}
     if((extraCredits||0)>0)return await consumeExtraCredit();
-    showP("Abbonati per sbloccarla","Hai usato la ricerca dettagliata gratuita. Continua con Premium o acquista crediti extra.","searchLimit");
+    showP("Funzione Premium","La ricerca dettagliata alimentare è disponibile con Premium o crediti extra.","searchLimit");
     return false;
   };
   const findDetailedMatchesInJuniper=(city,tags,limit)=>{
@@ -1860,13 +1920,16 @@ function App(){
       // li mostriamo senza chiamare Google costoso. Google parte solo per completare i risultati.
       const dbMatches=findDetailedMatchesInJuniper(detailCity.trim(),detailTags,maxPlaces);
       const detailed=[...dbMatches];
+      let detailTextSearchCalls=0;
+      let detailPlaceDetailsCalls=0;
       const alreadyIds=new Set(dbMatches.map(s=>String(s.google_place_id||s.id||"")));
       const remaining=Math.max(0,maxPlaces-detailed.length);
 
       if(remaining>0){
-        const queries=detailQueriesForTags(detailCity.trim(),detailCountry.trim(),detailTags).slice(0,8);
+        const queries=detailQueriesForTags(detailCity.trim(),detailCountry.trim(),detailTags).slice(0,isAdmin?3:2);
         const foundById=new Map();
         for(const textQuery of queries){
+          detailTextSearchCalls++;
           const resp=await fetch("https://places.googleapis.com/v1/places:searchText",{
             method:"POST",
             headers:{"Content-Type":"application/json","X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"places.id,places.displayName,places.formattedAddress,places.shortFormattedAddress,places.primaryType,places.rating,places.userRatingCount,places.location"},
@@ -1881,6 +1944,7 @@ function App(){
         }
         const finalPlaces=Array.from(foundById.values()).slice(0,remaining);
         for(const place of finalPlaces){
+          detailPlaceDetailsCalls++;
           const detailsResp=await fetch(`https://places.googleapis.com/v1/places/${place.id}`,{
             headers:{"X-Goog-Api-Key":GKEY,"X-Goog-FieldMask":"id,displayName,formattedAddress,shortFormattedAddress,primaryType,rating,userRatingCount,location,reviews"}
           });
@@ -1914,6 +1978,18 @@ function App(){
       setResults(detailed.slice(0,maxPlaces));
       setTab("explore");
       go("results","home");
+      await logSearch({
+        search_type:"detailed_food",
+        query:`${detailTags.join(", ")} ${detailCity}`.trim(),
+        city:detailCity.trim(),
+        country:detailCountry.trim()||"Italia",
+        selected_tags:detailTags,
+        text_search_calls:detailTextSearchCalls,
+        place_details_calls:detailPlaceDetailsCalls,
+        places_returned:detailed.slice(0,maxPlaces).length,
+        places_analyzed:detailPlaceDetailsCalls,
+        source:detailTextSearchCalls>0?"juniper+google_text_search+place_details":"juniper"
+      });
       detailed.forEach(r=>loadCommunityTags(r.id));
     }catch(e){
       console.error(e);
@@ -1949,7 +2025,7 @@ function App(){
         <div style={{...card,border:"1.5px solid #ddd6fe",background:"#fbfaff"}}>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8,marginBottom:8}}>
             <p style={{margin:0,fontSize:13,fontWeight:900,color:"#1a5c3a"}}>🔎 Ricerca dettagliata alimentare</p>
-            <span style={{background:"#ede9fe",color:"#4338ca",fontSize:9,fontWeight:800,padding:"3px 7px",borderRadius:20,whiteSpace:"nowrap"}}>{isPremium?"Premium":(getFreeDetailUsed()?"Abbonati per sbloccarla":"Gratis: 1 ricerca inclusa")}</span>
+            <span style={{background:JUNIPER_PINK,color:JUNIPER_GREEN,fontSize:9,fontWeight:800,padding:"3px 7px",borderRadius:20,whiteSpace:"nowrap"}}>{getDetailAvailabilityLabel()}</span>
           </div>
           <p style={{margin:"0 0 10px",fontSize:12,color:"#6b7280",lineHeight:1.45}}>Scegli una città e i tag che ti interessano: Juniper cercherà locali più adatti alle tue esigenze.</p>
           <div style={{display:"grid",gridTemplateColumns:"1fr 110px",gap:8,marginBottom:10}}>
