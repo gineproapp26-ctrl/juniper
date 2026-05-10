@@ -96,7 +96,7 @@ function PolicyScreen({lang,go}){
       s4title:"🏅 Badge Verificato",s4:"Il badge Verificato da Juniper indica che il locale ha fornito documentazione a supporto delle proprie dichiarazioni ed ha sottoscritto la nostra dichiarazione di responsabilità. Tuttavia, anche i locali verificati rimangono gli unici responsabili della veridicità delle informazioni.",
       s5title:"📋 Registrazione dei locali",s5:"I locali che si registrano su Juniper accettano esplicitamente di fornire informazioni veritiere e aggiornate. La pubblicazione di informazioni false o fuorvianti comporta la rimozione immediata dalla piattaforma.",
       s6title:"📬 Contatti",s6:"Per segnalazioni, richieste di verifica o rimozione di contenuti: help@juniperapp.eu",
-      s7title:"💳 Pagamenti e rimborsi",s7:"Gli abbonamenti, i crediti extra e i controlli alimentari acquistati su Juniper sono servizi digitali. Una volta che il servizio digitale è stato attivato, utilizzato o reso disponibile sull’account, non sono previsti rimborsi, salvo nei casi obbligatori previsti dalla legge. I crediti extra non utilizzati non sono convertibili in denaro. In caso di problemi tecnici, pagamenti duplicati o errori di addebito, puoi contattarci a help@juniperapp.eu: valuteremo la richiesta e, se necessario, procederemo con correzione o rimborso.",
+      s7title:"💳 Pagamenti e rimborsi",s7:"Gli abbonamenti, i crediti extra e i controlli alimentari acquistati su Juniper sono servizi digitali. Una volta che il servizio digitale è stato attivato, utilizzato o reso disponibile sull’account, non sono previsti rimborsi, salvo nei casi obbligatori previsti dalla legge. I crediti extra non utilizzati non sono convertibili in denaro. In caso di problemi tecnici, pagamenti duplicati o errori di addebito, puoi contattarci a help@juniperapp.eu: valuteremo la richiesta e, se necessario, procederemo con correzione o rimborso. Per le richieste di verifica attività, se Juniper non approva la verifica del locale o non riesce a confermare la titolarità dell’attività, l’importo pagato verrà restituito.",
       updated:"Ultimo aggiornamento: maggio 2026"},
     en:{title:"Policy & Terms",back:"Back",
       s1title:"⚖️ Content Responsibility",s1:"Each venue registered on Juniper is solely responsible for the information in their profile, including declared dietary features. Juniper does not independently and continuously verify the information published by venues.",
@@ -105,7 +105,7 @@ function PolicyScreen({lang,go}){
       s4title:"🏅 Verified Badge",s4:"The Verified by Juniper badge indicates the venue has provided supporting documentation and signed our liability declaration. However, verified venues remain solely responsible for the accuracy of their information.",
       s5title:"📋 Venue Registration",s5:"Venues registering on Juniper explicitly agree to provide truthful and up-to-date information. Publishing false or misleading information results in immediate removal from the platform.",
       s6title:"📬 Contact",s6:"For reports, verification requests or content removal: help@juniperapp.eu",
-      s7title:"💳 Payments and refunds",s7:"Subscriptions, extra credits and detailed searches purchased on Juniper are digital services. Once the digital service has been activated, used or made available on the account, refunds are not provided, except where required by law. Unused extra credits cannot be converted into cash. For technical issues, duplicate payments or billing errors, contact help@juniperapp.eu: we will review the request and, where appropriate, proceed with a correction or refund.",
+      s7title:"💳 Payments and refunds",s7:"Subscriptions, extra credits and detailed searches purchased on Juniper are digital services. Once the digital service has been activated, used or made available on the account, refunds are not provided, except where required by law. Unused extra credits cannot be converted into cash. For technical issues, duplicate payments or billing errors, contact help@juniperapp.eu: we will review the request and, where appropriate, proceed with a correction or refund. For business verification requests, if Juniper does not approve the venue verification or cannot confirm ownership of the business, the amount paid will be refunded.",
       updated:"Last updated: May 2026"},
   };
   const t=tx[lang]||tx.it;
@@ -611,8 +611,8 @@ function BusinessScreen({lang,go,preselected,clearPreselected,user,setAuthMode})
   const ghost2={background:"rgba(255,255,255,0.2)",border:"none",color:"white",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13};
   const btnG2={background:GREEN,color:"white",border:"none",padding:"13px",borderRadius:12,fontWeight:700,fontSize:15,cursor:"pointer",width:"100%"};
   const tx={
-    it:{back:"Indietro",title:"Registra la tua attività",sub:"Cerca il tuo locale, selezionalo e richiedi il badge attività.",searchPh:"Cerca nome attività e città...",claim:"Seleziona",baseInfo:"📋 Dati referente",typeLabel:"🏪 Tipo locale",openLabel:"🍽️ Quando siete aperti?",badgeTitle:"✅ Locale verificato e iscritto a Juniper",badgeSub:"Dopo il pagamento la richiesta va in verifica. Juniper ti contatterà alla mail o al numero fornito per confermare che sei il proprietario.",payMonthly:"Attiva a 10€/mese",payYearly:"Attiva a 110€/anno",loginTitle:"Accedi per registrare la tua attività",loginSub:"Prima crea o accedi al tuo account Juniper. Poi potrai cercare e verificare il tuo locale.",loginBtn:"Accedi",registerBtn:"Registrati",selected:"Locale selezionato",notFound:"Non trovi il tuo locale?",notFoundSub:"Scrivici a help@juniperapp.eu: lo aggiungeremo noi senza dare accesso automatico alla scheda.",disclaimerTitle:"Dichiarazione di responsabilità",disclaimerText:"Confermo di essere autorizzato a rappresentare questa attività. Le informazioni dichiarate dal proprietario saranno pubblicate sotto la sua responsabilità. Il badge sarà visibile solo dopo verifica Juniper.",disclaimerCheck:"Confermo di essere autorizzato a rappresentare questa attività e accetto la dichiarazione di responsabilità.",required:"Compila i campi obbligatori e accetta la dichiarazione.",stripeErr:"Non riesco a salvare la richiesta. Riprova tra poco oppure contatta l’assistenza: help@juniperapp.eu",refundConfirm:"Procedendo confermi l’attivazione immediata del servizio digitale e accetti la politica sui rimborsi.",searchEmpty:"Cerca il nome del tuo locale e la città.",searching:"Cerco...",noResults:"Nessun locale trovato. Prova con nome + città."},
-    en:{back:"Back",title:"Register your business",sub:"Search your venue, select it and request the business badge.",searchPh:"Search business name and city...",claim:"Select",baseInfo:"📋 Contact details",typeLabel:"🏪 Venue type",openLabel:"🍽️ When are you open?",badgeTitle:"✅ Verified venue subscribed to Juniper",badgeSub:"After payment, the request is reviewed. Juniper will contact you by email or phone to confirm you own the business.",payMonthly:"Activate €10/month",payYearly:"Activate €110/year",loginTitle:"Sign in to register your business",loginSub:"Create or sign in to your Juniper account first. Then you can search and verify your venue.",loginBtn:"Sign in",registerBtn:"Register",selected:"Selected venue",notFound:"Can’t find your venue?",notFoundSub:"Email help@juniperapp.eu: we will add it without granting automatic access to the listing.",disclaimerTitle:"Liability declaration",disclaimerText:"I confirm I am authorized to represent this business. Information declared by the owner will be published under their responsibility. The badge becomes visible only after Juniper approval.",disclaimerCheck:"I confirm I am authorized to represent this business and accept the liability declaration.",required:"Complete required fields and accept the declaration.",stripeErr:"Unable to save the request. Please try again later or contact support: help@juniperapp.eu",refundConfirm:"By proceeding, you confirm immediate activation of the digital service and accept the refund policy.",searchEmpty:"Search venue name and city.",searching:"Searching...",noResults:"No venue found. Try name + city."},
+    it:{back:"Indietro",title:"Registra la tua attività",sub:"Cerca il tuo locale, selezionalo e richiedi il badge attività.",searchPh:"Cerca nome attività e città...",claim:"Seleziona",baseInfo:"📋 Dati referente",typeLabel:"🏪 Tipo locale",openLabel:"🍽️ Quando siete aperti?",badgeTitle:"✅ Locale verificato e iscritto a Juniper",badgeSub:"Dopo il pagamento la richiesta va in verifica. Juniper ti contatterà alla mail o al numero fornito per confermare che sei il proprietario.",payMonthly:"Attiva a 10€/mese",payYearly:"Attiva a 110€/anno",loginTitle:"Accedi per registrare la tua attività",loginSub:"Prima crea o accedi al tuo account Juniper. Poi potrai cercare e verificare il tuo locale.",loginBtn:"Accedi",registerBtn:"Registrati",selected:"Locale selezionato",notFound:"Non trovi il tuo locale?",notFoundSub:"Scrivici a help@juniperapp.eu: lo aggiungeremo noi senza dare accesso automatico alla scheda.",disclaimerTitle:"Dichiarazione di responsabilità",disclaimerText:"Confermo di essere autorizzato a rappresentare questa attività. Le informazioni dichiarate dal proprietario saranno pubblicate sotto la sua responsabilità. Il badge sarà visibile solo dopo verifica Juniper.",disclaimerCheck:"Confermo di essere autorizzato a rappresentare questa attività e accetto la dichiarazione di responsabilità.",required:"Compila i campi obbligatori, seleziona almeno un tag e la sicurezza in cucina, poi accetta la dichiarazione.",stripeErr:"Non riesco a salvare la richiesta. Riprova tra poco oppure contatta l’assistenza: help@juniperapp.eu",refundConfirm:"Prima della pubblicazione del badge, Juniper verificherà la richiesta. Ti contatteremo via email o telefono per confermare i dati. Se la verifica non va a buon fine, l’importo verrà restituito.",searchEmpty:"Cerca il nome del tuo locale e la città.",searching:"Cerco...",noResults:"Nessun locale trovato. Prova con nome + città."},
+    en:{back:"Back",title:"Register your business",sub:"Search your venue, select it and request the business badge.",searchPh:"Search business name and city...",claim:"Select",baseInfo:"📋 Contact details",typeLabel:"🏪 Venue type",openLabel:"🍽️ When are you open?",badgeTitle:"✅ Verified venue subscribed to Juniper",badgeSub:"After payment, the request is reviewed. Juniper will contact you by email or phone to confirm you own the business.",payMonthly:"Activate €10/month",payYearly:"Activate €110/year",loginTitle:"Sign in to register your business",loginSub:"Create or sign in to your Juniper account first. Then you can search and verify your venue.",loginBtn:"Sign in",registerBtn:"Register",selected:"Selected venue",notFound:"Can’t find your venue?",notFoundSub:"Email help@juniperapp.eu: we will add it without granting automatic access to the listing.",disclaimerTitle:"Liability declaration",disclaimerText:"I confirm I am authorized to represent this business. Information declared by the owner will be published under their responsibility. The badge becomes visible only after Juniper approval.",disclaimerCheck:"I confirm I am authorized to represent this business and accept the liability declaration.",required:"Complete required fields, select at least one tag and kitchen safety, then accept the declaration.",stripeErr:"Unable to save the request. Please try again later or contact support: help@juniperapp.eu",refundConfirm:"Before publishing the badge, Juniper will review the request. We will contact you by email or phone to confirm the details. If verification is not successful, the amount will be refunded.",searchEmpty:"Search venue name and city.",searching:"Searching...",noResults:"No venue found. Try name + city."},
   };
   const t=tx[lang]||tx.it;
   const [step,setStep]=React.useState(preselected?"verify":"search");
@@ -622,12 +622,12 @@ function BusinessScreen({lang,go,preselected,clearPreselected,user,setAuthMode})
   const [loading,setLoading]=React.useState(false);
   const [opening,setOpening]=React.useState(false);
   const [disclaimer,setDisclaimer]=React.useState(false);
-  const [form,setForm]=React.useState({owner_name:"",email:user?.email||"",phone:"",vat:"",legal_name:"",website:"",instagram:"",type:"ristorante",meals:[]});
+  const [form,setForm]=React.useState({owner_name:"",email:user?.email||"",phone:"",vat:"",legal_name:"",website:"",instagram:"",type:"ristorante",meals:[],tags:[],kitchen_safety:""});
 
   React.useEffect(()=>{
     if(preselected){
       setSel(preselected);
-      setForm(f=>({...f,type:preselected.type||"ristorante",meals:preselected.meals||[],email:user?.email||f.email}));
+      setForm(f=>({...f,type:preselected.type||"ristorante",meals:preselected.meals||[],email:user?.email||f.email,tags:f.tags||[],kitchen_safety:f.kitchen_safety||""}));
       setStep("verify");
       clearPreselected&&clearPreselected();
     }
@@ -693,12 +693,14 @@ function BusinessScreen({lang,go,preselected,clearPreselected,user,setAuthMode})
   };
   const chooseVenue=(venue)=>{
     setSel(venue);
-    setForm(f=>({...f,type:venue.type||"ristorante",meals:venue.meals||[],email:user?.email||f.email}));
+    setForm(f=>({...f,type:venue.type||"ristorante",meals:venue.meals||[],email:user?.email||f.email,tags:f.tags||[],kitchen_safety:f.kitchen_safety||""}));
     setStep("verify");
   };
   const toggleMeal=k=>setForm(f=>({...f,meals:f.meals.includes(k)?f.meals.filter(x=>x!==k):[...f.meals,k]}));
+  const toggleBusinessTag=k=>setForm(f=>({...f,tags:(f.tags||[]).includes(k)?(f.tags||[]).filter(x=>x!==k):[...(f.tags||[]),k]}));
+  const setBusinessKitchen=k=>setForm(f=>({...f,kitchen_safety:k}));
   const openBusinessBadgePayment=async(plan)=>{
-    if(!sel||!form.owner_name||!form.email||!form.phone||!disclaimer){alert(t.required);return;}
+    if(!sel||!form.owner_name||!form.email||!form.phone||!(form.tags||[]).length||!form.kitchen_safety||!disclaimer){alert(t.required);return;}
     if(!window.confirm(t.refundConfirm))return;
     setOpening(true);
     try{
@@ -718,8 +720,8 @@ function BusinessScreen({lang,go,preselected,clearPreselected,user,setAuthMode})
         phone:form.phone,email:form.email,
         vat_number:form.vat||null,sdi_code:null,legal_name:form.legal_name||null,owner_name:form.owner_name,
         website:form.website||null,instagram:form.instagram||null,
-        description:"Richiesta verifica attività",tags:[],meals:form.meals,
-        kitchen_safety:null,certified_request:true,status:"pending",
+        description:"Richiesta verifica attività",tags:form.tags,meals:form.meals,
+        kitchen_safety:form.kitchen_safety||null,certified_request:true,status:"pending",
         disclaimer_accepted:true,disclaimer_accepted_at:new Date().toISOString(),
       });
 
@@ -795,25 +797,32 @@ function BusinessScreen({lang,go,preselected,clearPreselected,user,setAuthMode})
           </div>
         </div>
 
-        <div style={{...card,background:"#f8fafc",border:"1.5px dashed #cbd5e1"}}>
-          <p style={{margin:"0 0 8px",fontSize:11,color:"#64748b",fontWeight:800,textTransform:"uppercase",letterSpacing:.5}}>🔒 {lang==="it"?"Funzioni disponibili dopo verifica":"Available after verification"}</p>
+        <div style={{...card,background:"#f8fafc",border:"1.5px solid #bbf7d0"}}>
+          <p style={{margin:"0 0 8px",fontSize:11,color:"#64748b",fontWeight:800,textTransform:"uppercase",letterSpacing:.5}}>✅ {lang==="it"?"Dichiarazioni del locale":"Venue declarations"}</p>
           <p style={{margin:"0 0 12px",fontSize:12,color:"#475569",lineHeight:1.5}}>
             {lang==="it"
-              ? "Le informazioni su intolleranze, cosa offrite e sicurezza in cucina vengono abilitate dopo il pagamento e la verifica Juniper."
-              : "Dietary features, offers and kitchen safety become available after payment and Juniper verification."}
+              ? "Seleziona cosa offre il tuo locale e il livello di attenzione in cucina. Juniper verificherà queste informazioni prima di pubblicare il badge."
+              : "Select what your venue offers and the kitchen safety level. Juniper will review this information before publishing the badge."}
           </p>
-          <div style={{background:"white",border:"1px solid #e5e7eb",borderRadius:12,padding:12,marginBottom:10,opacity:.75}}>
-            <p style={{margin:"0 0 8px",fontSize:12,fontWeight:800,color:"#1a5c3a"}}>🔒 ✅ {lang==="it"?"Cosa offrite?":"What do you offer?"}</p>
+          <div style={{background:"white",border:"1px solid #e5e7eb",borderRadius:12,padding:12,marginBottom:10}}>
+            <p style={{margin:"0 0 8px",fontSize:12,fontWeight:800,color:"#1a5c3a"}}>✅ {lang==="it"?"Cosa offre il tuo locale?":"What does your venue offer?"}</p>
             <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
-              {DIET_TAGS.map(k=><span key={k} style={{background:"#f3f4f6",color:"#6b7280",borderRadius:20,padding:"7px 11px",fontSize:12}}>{TAGS[k].icon} {TAGS[k][lang==="it"?"it":"en"]}</span>)}
+              {DIET_TAGS.map(k=>{
+                const active=(form.tags||[]).includes(k);
+                return <button type="button" key={k} onClick={()=>toggleBusinessTag(k)} style={{background:active?"#1a5c3a":"#f3f4f6",color:active?"white":"#374151",border:active?"1.5px solid #1a5c3a":"1px solid #e5e7eb",borderRadius:20,padding:"7px 11px",fontSize:12,fontWeight:active?800:600,cursor:"pointer"}}>{TAGS[k].icon} {TAGS[k][lang==="it"?"it":"en"]}</button>
+              })}
             </div>
           </div>
-          <div style={{background:"white",border:"1px solid #e5e7eb",borderRadius:12,padding:12,opacity:.75}}>
-            <p style={{margin:"0 0 8px",fontSize:12,fontWeight:800,color:"#1a5c3a"}}>🔒 🔬 {lang==="it"?"Sicurezza in cucina":"Kitchen safety"}</p>
-            {CROSS_TAGS.map(k=><div key={k} style={{background:"#f9fafb",border:"1px solid #e5e7eb",borderRadius:10,padding:"8px 10px",marginBottom:6}}>
-              <p style={{margin:0,fontSize:12,fontWeight:800,color:TAGS[k].color}}>{TAGS[k].icon} {TAGS[k][lang==="it"?"it":"en"]}</p>
-              <p style={{margin:"2px 0 0",fontSize:11,color:"#6b7280"}}>{CROSS_DESC[lang][k]}</p>
-            </div>)}
+          <div style={{background:"white",border:"1px solid #e5e7eb",borderRadius:12,padding:12}}>
+            <p style={{margin:"0 0 8px",fontSize:12,fontWeight:800,color:"#1a5c3a"}}>🔬 {lang==="it"?"Sicurezza in cucina":"Kitchen safety"}</p>
+            <p style={{margin:"0 0 8px",fontSize:11,color:"#6b7280",lineHeight:1.45}}>{lang==="it"?"Indica il livello di attenzione alla contaminazione crociata.":"Select the cross-contamination safety level."}</p>
+            {CROSS_TAGS.map(k=>{
+              const active=form.kitchen_safety===k;
+              return <button type="button" key={k} onClick={()=>setBusinessKitchen(k)} style={{display:"block",width:"100%",textAlign:"left",background:active?"#ecfdf5":"#f9fafb",border:active?"1.5px solid #1a5c3a":"1px solid #e5e7eb",borderRadius:10,padding:"8px 10px",marginBottom:6,cursor:"pointer"}}>
+                <p style={{margin:0,fontSize:12,fontWeight:800,color:TAGS[k].color}}>{active?"✅ ":""}{TAGS[k].icon} {TAGS[k][lang==="it"?"it":"en"]}</p>
+                <p style={{margin:"2px 0 0",fontSize:11,color:"#6b7280"}}>{CROSS_DESC[lang][k]}</p>
+              </button>
+            })}
           </div>
         </div>
         <div style={{background:"#fef9ec",borderRadius:14,padding:16,marginBottom:14,border:"1.5px solid #fed7aa"}}>
@@ -831,7 +840,8 @@ function BusinessScreen({lang,go,preselected,clearPreselected,user,setAuthMode})
             <button type="button" onClick={()=>openBusinessBadgePayment("monthly")} disabled={opening} style={{background:"#1a5c3a",color:"white",border:"none",padding:"12px 10px",borderRadius:12,fontWeight:800,fontSize:13,cursor:"pointer",opacity:opening?.7:1}}>{opening?"⏳":"✅"} {t.payMonthly}</button>
             <button type="button" onClick={()=>openBusinessBadgePayment("yearly")} disabled={opening} style={{background:"white",color:"#1a5c3a",border:"1.5px solid #86efac",padding:"12px 10px",borderRadius:12,fontWeight:800,fontSize:13,cursor:"pointer",opacity:opening?.7:1}}>{opening?"⏳":"✅"} {t.payYearly}</button>
           </div>
-          <p style={{margin:"10px 0 0",fontSize:10,color:"#166534",lineHeight:1.4}}>{t.refundConfirm}</p>
+          <p style={{margin:"10px 0 0",fontSize:11,color:"#166534",lineHeight:1.45}}>{t.refundConfirm}</p>
+          <button type="button" onClick={()=>go("policy")} style={{marginTop:8,background:"none",border:"none",color:"#1a5c3a",fontSize:11,fontWeight:800,textDecoration:"underline",cursor:"pointer",padding:0}}>{lang==="it"?"Leggi Policy & Termini":"Read Policy & Terms"}</button>
         </div>
       </div>
     </div>
