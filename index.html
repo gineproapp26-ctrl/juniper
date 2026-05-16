@@ -1736,8 +1736,8 @@ function App(){
       position:"relative",
       overflow:"hidden"
     }}>
-      <div style={{position:"absolute",top:-80,right:-70,width:210,height:210,background:JUNIPER_PINK,opacity:.14,borderRadius:"50%"}}></div>
-      <div style={{position:"absolute",bottom:-90,left:-70,width:220,height:220,background:JUNIPER_PINK,opacity:.10,borderRadius:"50%"}}></div>
+      <div style={{position:"absolute",top:-80,right:-70,width:210,height:210,background:JUNIPER_PINK,opacity:.22,borderRadius:"50%"}}></div>
+      <div style={{position:"absolute",bottom:-90,left:-70,width:220,height:220,background:JUNIPER_PINK,opacity:.16,borderRadius:"50%"}}></div>
       <button onClick={tl} style={{...ghost,position:"absolute",top:16,right:16,zIndex:2}}>{lang==="it"?"🇬🇧 EN":"🇮🇹 IT"}</button>
 
       <div style={{display:"flex",flexDirection:"column",alignItems:"center",position:"relative",zIndex:1,width:"100%",maxWidth:340}}>
@@ -1749,16 +1749,16 @@ function App(){
 
         <div style={{background:"rgba(255,255,255,.10)",border:"1px solid rgba(255,255,255,.16)",borderRadius:24,padding:"18px 18px 20px",width:"100%",boxShadow:"0 18px 50px rgba(0,0,0,.16)",backdropFilter:"blur(8px)"}}>
           <p style={{fontSize:26,fontWeight:900,margin:"0 0 10px",lineHeight:1.15,textAlign:"center"}}>
-            {lang==="it"?"Dove mangio oggi? 🌿":"Where should I eat today? 🌿"}
+            {lang==="it"?"Dove mangio oggi?":"Where should I eat today?"}
           </p>
           <p style={{fontSize:15,opacity:.92,textAlign:"center",lineHeight:1.55,margin:"0 auto 14px",maxWidth:290}}>
             {lang==="it"
-              ?"Trova locali gluten free, lactose free, vegan, vegetarian e pet friendly."
-              :"Find gluten free, lactose free, vegan, vegetarian and pet friendly places."}
+              ?"Scopri locali adatti alle tue esigenze alimentari."
+              :"Discover places that fit your dietary needs."}
           </p>
 
           <div style={{display:"flex",gap:6,flexWrap:"wrap",justifyContent:"center",marginBottom:18}}>
-            {["Gluten Free","Lactose Free","Vegan","Pet Friendly"].map((x,i)=>(
+            {["Gluten Free","Lactose Free","Vegan","Vegetarian","Pet Friendly"].map((x,i)=>(
               <span key={x} style={{
                 background:"rgba(255,255,255,.14)",
                 color:"white",
