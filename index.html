@@ -1859,7 +1859,7 @@ function App(){
     return(
       <div style={{background:"#fff7fb",minHeight:"100vh",paddingBottom:90}}>
         <div style={{background:"linear-gradient(135deg,#fdbdd4,#fff1f6)",padding:"18px 20px 20px",color:"#1a5c3a",borderBottom:"1px solid #f9a8c7"}}>
-          <button onClick={()=>go("home")} style={{background:"rgba(26,92,58,0.08)",border:"none",color:"#1a5c3a",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13,marginBottom:10}}>← {t.back}</button>
+          <button onClick={()=>{setTab("home"); isGuest ? go("welcome") : go("home");}} style={{background:"rgba(26,92,58,0.08)",border:"none",color:"#1a5c3a",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13,marginBottom:10}}>← {t.back}</button>
           <div style={{display:"flex",alignItems:"center",gap:10}}><Logo size={18} white={false}/><div><p style={{margin:0,fontSize:12,fontWeight:800,opacity:.8}}>Juniper</p><h2 style={{margin:0,fontSize:20,fontWeight:900}}>📖 {lang==="it"?"Ricette dalla community":"Community recipes"}</h2></div></div>
           <p style={{margin:"10px 0 0",fontSize:13,lineHeight:1.5,color:"#276247"}}>{lang==="it"?"Scopri e condividi ricette Gluten Free, Lactose Free, Glutine & Lattosio Free, Vegan e Vegetarian.":"Discover and share Gluten Free, Lactose Free, Gluten & Lactose Free, Vegan and Vegetarian recipes."}</p>
         </div>
