@@ -97,6 +97,7 @@ function PolicyScreen({lang,go}){
       s5title:"📋 Registrazione dei locali",s5:"I locali che si registrano su Juniper accettano esplicitamente di fornire informazioni veritiere e aggiornate. La pubblicazione di informazioni false o fuorvianti comporta la rimozione immediata dalla piattaforma.",
       s6title:"📬 Contatti",s6:"Per segnalazioni, richieste di verifica o rimozione di contenuti: help@juniperapp.eu",
       s7title:"💳 Pagamenti e rimborsi",s7:"Gli abbonamenti, i crediti extra e i controlli alimentari acquistati su Juniper sono servizi digitali. Una volta che il servizio digitale è stato attivato, utilizzato o reso disponibile sull’account, non sono previsti rimborsi, salvo nei casi obbligatori previsti dalla legge. I crediti extra non utilizzati non sono convertibili in denaro. In caso di problemi tecnici, pagamenti duplicati o errori di addebito, puoi contattarci a help@juniperapp.eu: valuteremo la richiesta e, se necessario, procederemo con correzione o rimborso. Per le richieste di verifica attività, se Juniper non approva la verifica del locale o non riesce a confermare la titolarità dell’attività, l’importo pagato verrà restituito.",
+      s8title:"📖 Ricette della community",s8:"Le ricette sono condivise dagli utenti della community. Juniper non verifica ingredienti, allergeni o contaminazioni: controlla sempre etichette e prodotti prima di prepararle.",
       updated:"Ultimo aggiornamento: maggio 2026"},
     en:{title:"Policy & Terms",back:"Back",
       s1title:"⚖️ Content Responsibility",s1:"Each venue registered on Juniper is solely responsible for the information in their profile, including declared dietary features. Juniper does not independently and continuously verify the information published by venues.",
@@ -106,10 +107,11 @@ function PolicyScreen({lang,go}){
       s5title:"📋 Venue Registration",s5:"Venues registering on Juniper explicitly agree to provide truthful and up-to-date information. Publishing false or misleading information results in immediate removal from the platform.",
       s6title:"📬 Contact",s6:"For reports, verification requests or content removal: help@juniperapp.eu",
       s7title:"💳 Payments and refunds",s7:"Subscriptions, extra credits and detailed searches purchased on Juniper are digital services. Once the digital service has been activated, used or made available on the account, refunds are not provided, except where required by law. Unused extra credits cannot be converted into cash. For technical issues, duplicate payments or billing errors, contact help@juniperapp.eu: we will review the request and, where appropriate, proceed with a correction or refund. For business verification requests, if Juniper does not approve the venue verification or cannot confirm ownership of the business, the amount paid will be refunded.",
+      s8title:"📖 Community recipes",s8:"Recipes are shared by community users. Juniper does not verify ingredients, allergens or cross-contamination: always check labels and products before preparing them.",
       updated:"Last updated: May 2026"},
   };
   const t=tx[lang]||tx.it;
-  const sections=[{title:t.s1title,text:t.s1},{title:t.s2title,text:t.s2},{title:t.s3title,text:t.s3},{title:t.s4title,text:t.s4},{title:t.s5title,text:t.s5},{title:t.s6title,text:t.s6},{title:t.s7title,text:t.s7}];
+  const sections=[{title:t.s1title,text:t.s1},{title:t.s2title,text:t.s2},{title:t.s3title,text:t.s3},{title:t.s4title,text:t.s4},{title:t.s5title,text:t.s5},{title:t.s6title,text:t.s6},{title:t.s7title,text:t.s7},{title:t.s8title,text:t.s8}];
   return(
     <div style={{minHeight:"100vh",background:"#f9fafb",paddingBottom:40}}>
       <div style={{background:GREEN,padding:"20px",color:"white"}}>
@@ -926,6 +928,12 @@ function App(){
   const [loadingData,setLoadingData]=React.useState(true);
   const [searching,setSearching]=React.useState(false);
   const [showWelcomePopup,setShowWelcomePopup]=React.useState(false);
+  const [showPwaPopup,setShowPwaPopup]=React.useState(false);
+  const [pwaHelpOpen,setPwaHelpOpen]=React.useState(false);
+  const [recipes,setRecipes]=React.useState([]);
+  const [recipeForm,setRecipeForm]=React.useState({title:"",tags:[],ingredients:"",description:""});
+  const [recipeMsg,setRecipeMsg]=React.useState("");
+  const [recipeLoading,setRecipeLoading]=React.useState(false);
   const [isPremium,setIsPremium]=React.useState(false);
   const [subPlan,setSubPlan]=React.useState(null);
   const [subStatus,setSubStatus]=React.useState(null);
@@ -950,6 +958,64 @@ function App(){
     extra_searches:EXTRA_SEARCH_LINK
   };
   const isAdmin=user?.email?.toLowerCase()===ADMIN_EMAIL.toLowerCase();
+  const RECIPE_TAGS=["gluten_free","lactose_free","combo_free","vegan","vegetarian"];
+
+  const recipeAuthorName=(name="")=>{
+    const clean=String(name||"Utente").trim();
+    const first=(clean.split(" ")[0]||"Utente").replace(/[^a-zA-ZÀ-ÿ]/g,"");
+    if(!first)return "UTE*****";
+    return first.slice(0,3).toUpperCase()+"*****";
+  };
+  const recipeDate=(v)=>{
+    if(!v)return "";
+    const d=new Date(v);
+    if(Number.isNaN(d.getTime()))return String(v).split("T")[0]||"";
+    return d.toLocaleDateString("it-IT");
+  };
+  const toggleRecipeTag=(k)=>setRecipeForm(f=>({...f,tags:(f.tags||[]).includes(k)?(f.tags||[]).filter(x=>x!==k):[...(f.tags||[]),k]}));
+  const loadRecipes=async()=>{
+    try{
+      const {data,error}=await sb.from("recipes").select("*").order("created_at",{ascending:false}).limit(80);
+      if(error){console.warn("recipes non disponibile:",error.message);return;}
+      setRecipes(data||[]);
+    }catch(e){console.warn("recipes ignorato:",e);}
+  };
+  const submitRecipe=async()=>{
+    if(!user){showP(t.popGuest,t.popGuestSub,"register");return;}
+    const f=recipeForm;
+    if(!f.title.trim()||!(f.tags||[]).length||!f.ingredients.trim()||!f.description.trim()){
+      setRecipeMsg(lang==="it"?"Compila titolo, almeno un tag, ingredienti e descrizione.":"Complete title, at least one tag, ingredients and description.");
+      setTimeout(()=>setRecipeMsg(""),3000);
+      return;
+    }
+    setRecipeLoading(true);
+    try{
+      const {error}=await sb.from("recipes").insert({
+        author_user_id:user.id,
+        author_name:user.name||user.email,
+        author_display:recipeAuthorName(user.name||user.email),
+        title:f.title.trim(),
+        tags:f.tags,
+        ingredients:f.ingredients.trim(),
+        description:f.description.trim(),
+        created_at:new Date().toISOString()
+      });
+      if(error){throw error;}
+      setRecipeForm({title:"",tags:[],ingredients:"",description:""});
+      setRecipeMsg(lang==="it"?"✅ Ricetta pubblicata!":"✅ Recipe published!");
+      loadRecipes();
+    }catch(e){
+      console.error(e);
+      setRecipeMsg(lang==="it"?"Errore salvataggio ricetta. Controlla la tabella recipes in Supabase.":"Error saving recipe. Check recipes table in Supabase.");
+    }finally{setRecipeLoading(false);setTimeout(()=>setRecipeMsg(""),3500);}
+  };
+  const deleteRecipe=async(id)=>{
+    if(!isAdmin)return;
+    if(!window.confirm(lang==="it"?"Eliminare questa ricetta?":"Delete this recipe?"))return;
+    const {error}=await sb.from("recipes").delete().eq("id",id);
+    if(error){alert(error.message);return;}
+    loadRecipes();
+  };
 
   // Registro ricerche: salva su Supabase la tipologia e quantità di chiamate usate.
   // Se la tabella search_logs non esiste ancora, l'app continua a funzionare e ignora l'errore.
@@ -1029,6 +1095,7 @@ function App(){
     });
     // Carica abbonamenti business attivi per mostrare/nascondere il badge Verificato dei locali
     loadBusinessSubscriptions();
+    loadRecipes();
 
     // Carica abbonamento e crediti utente
     sb.auth.getSession().then(({data:{session}})=>{
@@ -1072,6 +1139,22 @@ function App(){
     }).catch(()=>setLoadingData(false));
     return()=>subscription.unsubscribe();
   },[]);
+
+  React.useEffect(()=>{
+    if(!user||screen!=="home"||showWelcomePopup||popup)return;
+    const isMobile=/Android|iPhone|iPad|iPod/i.test(navigator.userAgent)||window.innerWidth<768;
+    const isStandalone=(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)||window.navigator.standalone===true;
+    if(!isMobile||isStandalone)return;
+    if(localStorage.getItem("juniper_pwa_understood")==="true")return;
+    const last=Number(localStorage.getItem("juniper_pwa_last")||0);
+    const twoDays=2*24*60*60*1000;
+    if(last&&Date.now()-last<twoDays)return;
+    const timer=setTimeout(()=>{
+      localStorage.setItem("juniper_pwa_last",String(Date.now()));
+      setShowPwaPopup(true);
+    },1800);
+    return()=>clearTimeout(timer);
+  },[user,screen,showWelcomePopup,popup]);
 
   React.useEffect(()=>{
     if(!sel)return;
@@ -1621,8 +1704,8 @@ function App(){
 
   const BottomNav=()=>(
     <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"space-around",padding:"8px 0 10px",zIndex:100,boxShadow:"0 -4px 15px rgba(0,0,0,.06)"}}>
-      {[{id:"home",icon:"🏠",lbl:t.home},{id:"explore",icon:"🔍",lbl:t.explore},{id:"profile",icon:"👤",lbl:t.profile}].map(tb=>(
-        <button key={tb.id} onClick={()=>{setTab(tb.id);if(tb.id==="home")go("home");else if(tb.id==="profile")isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("profile");else if(tb.id==="explore"&&results.length>0)go("results");}} style={{background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",padding:"4px 20px",color:tab===tb.id?"#1a5c3a":"#9ca3af"}}>
+      {[{id:"home",icon:"🏠",lbl:t.home},{id:"explore",icon:"🔍",lbl:t.explore},{id:"recipes",icon:"📖",lbl:lang==="it"?"Ricette":"Recipes"},{id:"profile",icon:"👤",lbl:t.profile}].map(tb=>(
+        <button key={tb.id} onClick={()=>{setTab(tb.id);if(tb.id==="home")go("home");else if(tb.id==="recipes")isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("recipes");else if(tb.id==="profile")isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("profile");else if(tb.id==="explore"&&results.length>0)go("results");}} style={{background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",padding:"4px 10px",color:tab===tb.id?"#1a5c3a":"#9ca3af"}}>
           <span style={{fontSize:22}}>{tb.icon}</span><span style={{fontSize:11,fontWeight:tab===tb.id?700:400}}>{tb.lbl}</span>
         </button>
       ))}
@@ -1697,6 +1780,79 @@ function App(){
             {lang==="it"?"Ho capito!":"Got it!"}
           </button>
         </div>
+      </div>
+    );
+  };
+
+
+  const PwaPopup=()=>{
+    if(!showPwaPopup)return null;
+    const closeLater=()=>setShowPwaPopup(false);
+    const gotIt=()=>{localStorage.setItem("juniper_pwa_understood","true");setShowPwaPopup(false);};
+    return(
+      <div style={{position:"fixed",inset:0,background:"rgba(0,0,0,0.55)",display:"flex",alignItems:"center",justifyContent:"center",zIndex:1002,padding:20}}>
+        <div style={{background:"white",width:"100%",maxWidth:370,borderRadius:22,padding:24,textAlign:"center",boxShadow:"0 20px 60px rgba(0,0,0,.25)"}}>
+          <div style={{fontSize:42,marginBottom:10}}>🌿</div>
+          <h3 style={{margin:"0 0 8px",fontSize:18,fontWeight:900,color:"#1a5c3a"}}>{lang==="it"?"Vuoi usare Juniper più velocemente?":"Want to use Juniper faster?"}</h3>
+          <p style={{margin:"0 0 16px",fontSize:14,color:"#374151",lineHeight:1.55}}>
+            {lang==="it"?"Aggiungila alla schermata Home del tuo telefono: così la trovi come una vera app, senza cercarla ogni volta.":"Add it to your phone Home Screen: you will find it like a real app, without searching every time."}
+          </p>
+          {pwaHelpOpen&&<div style={{background:"#fff1f6",border:"1px solid #fdbdd4",borderRadius:14,padding:12,marginBottom:14,textAlign:"left"}}>
+            <p style={{margin:"0 0 8px",fontSize:13,fontWeight:900,color:"#1a5c3a"}}>iPhone</p>
+            <p style={{margin:"0 0 10px",fontSize:12,color:"#374151",lineHeight:1.5}}>Safari → Condividi → Aggiungi a schermata Home</p>
+            <p style={{margin:"0 0 8px",fontSize:13,fontWeight:900,color:"#1a5c3a"}}>Android</p>
+            <p style={{margin:0,fontSize:12,color:"#374151",lineHeight:1.5}}>Chrome → Menu → Aggiungi a schermata Home</p>
+          </div>}
+          <button onClick={()=>setPwaHelpOpen(v=>!v)} style={{width:"100%",background:JUNIPER_PINK,color:JUNIPER_GREEN,border:"none",padding:12,borderRadius:12,fontWeight:900,fontSize:14,cursor:"pointer",marginBottom:8}}>{lang==="it"?"Scopri come fare":"Show me how"}</button>
+          <button onClick={gotIt} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:12,borderRadius:12,fontWeight:800,fontSize:14,cursor:"pointer",marginBottom:8}}>{lang==="it"?"Ho capito":"Got it"}</button>
+          <button onClick={closeLater} style={{width:"100%",background:"none",border:"none",padding:7,fontSize:13,color:"#9ca3af",cursor:"pointer"}}>{lang==="it"?"Più tardi":"Later"}</button>
+        </div>
+      </div>
+    );
+  };
+
+  const RecipesScreen=()=>{
+    if(!user){showP(t.popGuest,t.popGuestSub,"register");go("home");return null;}
+    return(
+      <div style={{background:"#fff7fb",minHeight:"100vh",paddingBottom:90}}>
+        <div style={{background:"linear-gradient(135deg,#fdbdd4,#fff1f6)",padding:"18px 20px 20px",color:"#1a5c3a",borderBottom:"1px solid #f9a8c7"}}>
+          <button onClick={()=>go("home")} style={{background:"rgba(26,92,58,0.08)",border:"none",color:"#1a5c3a",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13,marginBottom:10}}>← {t.back}</button>
+          <div style={{display:"flex",alignItems:"center",gap:10}}><Logo size={18} white={false}/><div><p style={{margin:0,fontSize:12,fontWeight:800,opacity:.8}}>Juniper</p><h2 style={{margin:0,fontSize:20,fontWeight:900}}>📖 {lang==="it"?"Ricette dalla community":"Community recipes"}</h2></div></div>
+          <p style={{margin:"10px 0 0",fontSize:13,lineHeight:1.5,color:"#276247"}}>{lang==="it"?"Scopri e condividi ricette gluten free, lactose free, combo, vegan e vegetarian.":"Discover and share gluten free, lactose free, combo, vegan and vegetarian recipes."}</p>
+        </div>
+        <div style={{padding:16}}>
+          <div style={{background:"white",border:"1.5px solid #fdbdd4",borderRadius:16,padding:14,marginBottom:12,boxShadow:"0 2px 12px rgba(0,0,0,.05)"}}>
+            <p style={{margin:"0 0 7px",fontSize:12,fontWeight:900,color:"#1a5c3a"}}>⚠️ {lang==="it"?"Nota importante":"Important note"}</p>
+            <p style={{margin:0,fontSize:12,color:"#6b7280",lineHeight:1.5}}>{lang==="it"?"Le ricette sono condivise dagli utenti della community. Juniper non verifica ingredienti, allergeni o contaminazioni: controlla sempre etichette e prodotti prima di prepararle.":"Recipes are shared by community users. Juniper does not verify ingredients, allergens or cross-contamination: always check labels and products before preparing them."}</p>
+          </div>
+          <div style={{background:"white",borderRadius:16,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:12}}>
+            <p style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#1a5c3a"}}>✍️ {lang==="it"?"Condividi una ricetta":"Share a recipe"}</p>
+            {recipeMsg&&<div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",color:"#065f46",borderRadius:12,padding:10,fontSize:12,fontWeight:700,marginBottom:10}}>{recipeMsg}</div>}
+            <input value={recipeForm.title} onChange={e=>setRecipeForm(f=>({...f,title:e.target.value}))} placeholder={lang==="it"?"Titolo ricetta *":"Recipe title *"} style={{...inp,marginBottom:10,fontSize:13}}/>
+            <p style={{margin:"0 0 7px",fontSize:11,fontWeight:800,color:"#6b7280",textTransform:"uppercase",letterSpacing:.5}}>{lang==="it"?"Tag allergeni / alimentari":"Dietary tags"}</p>
+            <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:10}}>
+              {RECIPE_TAGS.map(k=><button key={k} onClick={()=>toggleRecipeTag(k)} style={{background:(recipeForm.tags||[]).includes(k)?"#1a5c3a":"#fff1f6",color:(recipeForm.tags||[]).includes(k)?"white":"#1a5c3a",border:(recipeForm.tags||[]).includes(k)?"1.5px solid #1a5c3a":"1.5px solid #fdbdd4",padding:"7px 10px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:800}}>{TAGS[k].icon} {TAGS[k][lang]}</button>)}
+            </div>
+            <textarea value={recipeForm.ingredients} onChange={e=>setRecipeForm(f=>({...f,ingredients:e.target.value}))} placeholder={lang==="it"?"Ingredienti *":"Ingredients *"} style={{...inp,minHeight:90,resize:"vertical",marginBottom:10,fontSize:13}}/>
+            <textarea value={recipeForm.description} onChange={e=>setRecipeForm(f=>({...f,description:e.target.value}))} placeholder={lang==="it"?"Descrizione ricetta / procedimento *":"Recipe description / method *"} style={{...inp,minHeight:120,resize:"vertical",marginBottom:10,fontSize:13}}/>
+            <p style={{margin:"0 0 10px",fontSize:11,color:"#9ca3af",lineHeight:1.4}}>{lang==="it"?`La ricetta sarà pubblicata con il nome ${recipeAuthorName(user?.name||user?.email)}. Non mostreremo email o altri dati.`:`The recipe will be published with the name ${recipeAuthorName(user?.name||user?.email)}. Email and other data will not be shown.`}</p>
+            <button onClick={submitRecipe} disabled={recipeLoading} style={{width:"100%",background:recipeLoading?"#d1d5db":"#1a5c3a",color:"white",border:"none",padding:12,borderRadius:12,fontWeight:900,fontSize:14,cursor:recipeLoading?"not-allowed":"pointer"}}>{recipeLoading?(lang==="it"?"Pubblico...":"Publishing..."):(lang==="it"?"Pubblica ricetta":"Publish recipe")}</button>
+          </div>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"16px 2px 10px"}}>
+            <p style={{margin:0,fontSize:14,fontWeight:900,color:"#1a5c3a"}}>🍓 {lang==="it"?"Ultime ricette":"Latest recipes"}</p>
+            <button onClick={loadRecipes} style={{background:"#fff1f6",border:"1px solid #fdbdd4",color:"#1a5c3a",borderRadius:999,padding:"6px 10px",fontSize:11,fontWeight:800,cursor:"pointer"}}>↻</button>
+          </div>
+          {recipes.map(r=><div key={r.id} style={{background:"white",borderRadius:16,padding:15,boxShadow:"0 2px 12px rgba(0,0,0,.06)",marginBottom:10,border:"1px solid #fde2ee"}}>
+            <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"flex-start"}}><div><p style={{margin:"0 0 4px",fontSize:15,fontWeight:900,color:"#1a5c3a"}}>{r.title}</p><p style={{margin:0,fontSize:11,color:"#9ca3af"}}>👤 {r.author_display||recipeAuthorName(r.author_name)} · {recipeDate(r.created_at)}</p></div>{isAdmin&&<button onClick={()=>deleteRecipe(r.id)} style={{background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:10,padding:"6px 9px",fontSize:11,fontWeight:800,cursor:"pointer"}}>Elimina</button>}</div>
+            <div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:9}}>{(r.tags||[]).map(k=><span key={k} style={{background:"#fff1f6",color:"#1a5c3a",border:"1px solid #fdbdd4",borderRadius:999,padding:"3px 8px",fontSize:10,fontWeight:800}}>{TAGS[k]?.icon} {TAGS[k]?.[lang]||k}</span>)}</div>
+            <p style={{margin:"10px 0 4px",fontSize:12,fontWeight:900,color:"#374151"}}>{lang==="it"?"Ingredienti":"Ingredients"}</p>
+            <p style={{margin:0,fontSize:12,color:"#4b5563",lineHeight:1.55,whiteSpace:"pre-wrap"}}>{r.ingredients}</p>
+            <p style={{margin:"10px 0 4px",fontSize:12,fontWeight:900,color:"#374151"}}>{lang==="it"?"Procedimento":"Method"}</p>
+            <p style={{margin:0,fontSize:12,color:"#4b5563",lineHeight:1.55,whiteSpace:"pre-wrap"}}>{r.description}</p>
+          </div>)}
+          {recipes.length===0&&<div style={{textAlign:"center",padding:28,color:"#9ca3af",fontSize:13,background:"white",borderRadius:16}}>{lang==="it"?"Ancora nessuna ricetta. Sii la prima a condividerne una!":"No recipes yet. Be the first to share one!"}</div>}
+        </div>
+        <BottomNav/><Popup/><WelcomePopup/><PwaPopup/>
       </div>
     );
   };
@@ -1823,6 +1979,7 @@ function App(){
   if(screen==="business")return <BusinessScreen lang={lang} go={go} user={user} setAuthMode={setAuthMode} preselected={businessClaim} clearPreselected={()=>setBusinessClaim(null)}/>;
   if(screen==="admin"){if(!isAdmin){go("home");return null;}return <AdminScreen user={user} lang={lang} go={go} sb={sb}/>;}
   if(screen==="policy")return <PolicyScreen lang={lang} go={go}/>;
+  if(screen==="recipes")return <RecipesScreen/>;
 
   if(screen==="auth")return(
     <div style={{minHeight:"100vh",background:"#f9fafb"}}>
@@ -2153,10 +2310,19 @@ function App(){
         </div>
 
         <FilterPanel/>
+        <div style={{...card,background:"#fff1f6",border:"1.5px solid #fdbdd4"}}>
+          <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
+            <div>
+              <p style={{margin:"0 0 5px",fontSize:14,fontWeight:900,color:"#1a5c3a"}}>📖 {lang==="it"?"Ricette dalla community":"Community recipes"}</p>
+              <p style={{margin:0,fontSize:12,color:"#6b7280",lineHeight:1.45}}>{lang==="it"?"Leggi e condividi ricette gluten free, lactose free, combo, vegan e vegetarian.":"Read and share gluten free, lactose free, combo, vegan and vegetarian recipes."}</p>
+            </div>
+            <button onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("recipes")} style={{background:"#1a5c3a",color:"white",border:"none",borderRadius:12,padding:"10px 12px",fontSize:12,fontWeight:900,cursor:"pointer",whiteSpace:"nowrap"}}>{lang==="it"?"Apri":"Open"}</button>
+          </div>
+        </div>
         <p style={{margin:"-2px 2px 12px",fontSize:11,color:"#9ca3af",lineHeight:1.45}}>{lang==="it"?"Non trovi abbastanza risultati? Usa il Controllo alimentare per cercare anche locali non ancora presenti su Juniper.":"Not enough results? Use Food Check to search venues not yet available on Juniper."}</p>
         {loadingData&&<div style={{textAlign:"center",padding:"20px",color:"#6b7280",fontSize:14}}>🔄 {lang==="it"?"Caricamento...":"Loading..."}</div>}
       </div>
-      <BottomNav/><Popup/><WelcomePopup/>
+      <BottomNav/><Popup/><WelcomePopup/><PwaPopup/>
       {searching&&<div style={{position:"fixed",inset:0,background:"rgba(255,255,255,0.85)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",zIndex:500,gap:14}}>
         <div style={{fontSize:48,animation:"spin 1.5s linear infinite"}}>🌿</div>
         <p style={{fontSize:16,fontWeight:700,color:"#1a5c3a"}}>{lang==="it"?"Sto cercando i locali...":"Finding venues..."}</p>
@@ -2306,6 +2472,7 @@ function App(){
         </div>
         <div style={card}>
           <button onClick={tl} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>🌐 {lang==="it"?"Switch to English":"Passa all'italiano"}</button>
+          <button onClick={()=>go("recipes")} style={{width:"100%",background:"#fff1f6",border:"1px solid #fdbdd4",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#1a5c3a",textAlign:"left",marginBottom:8,fontWeight:800}}>📖 {lang==="it"?"Ricette dalla community":"Community recipes"}</button>
           <button onClick={()=>go("policy")} style={{width:"100%",background:"#f9fafb",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",color:"#374151",textAlign:"left",marginBottom:8}}>⚖️ {lang==="it"?"Policy & Termini":"Policy & Terms"}</button>
           {isAdmin&&<button onClick={()=>go("admin")} style={{width:"100%",background:"#1a5c3a",color:"white",border:"none",padding:12,borderRadius:10,fontSize:14,cursor:"pointer",textAlign:"left",marginBottom:8,fontWeight:700}}>⚙️ Pannello Admin</button>}
           <div style={{background:"#f0fdf4",borderRadius:12,padding:14,marginBottom:8,border:"1px solid #bbf7d0"}}>
