@@ -143,6 +143,7 @@ function AdminScreen({user,lang,go,sb}){
   const card2={background:"white",borderRadius:14,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:10};
   const [tagSuggestions,setTagSuggestions]=React.useState([]);
   const [searchLogs,setSearchLogs]=React.useState([]);
+  const [adminRecipes,setAdminRecipes]=React.useState([]);
   const [adminStructureSearch,setAdminStructureSearch]=React.useState("");
   const [adminScanCity,setAdminScanCity]=React.useState("");
   const [adminScanCountry,setAdminScanCountry]=React.useState("Italia");
@@ -174,16 +175,18 @@ function AdminScreen({user,lang,go,sb}){
   };
   const load=async()=>{
     setLoading(true);
-    const [rReq,rStr,rTags,rLogs]=await Promise.all([
+    const [rReq,rStr,rTags,rLogs,rRecipes]=await Promise.all([
       sb.from("business_requests").select("*").order("created_at",{ascending:false}),
       sb.from("structures").select("*").order("created_at",{ascending:false}),
       sb.from("tag_suggestions").select("*").order("created_at",{ascending:false}),
       sb.from("search_logs").select("*").order("created_at",{ascending:false}).limit(80),
+      sb.from("recipes").select("*").order("created_at",{ascending:false}).limit(120),
     ]);
     if(rReq.data)setRequests(rReq.data);
     if(rStr.data)setStructures(rStr.data);
     if(rTags.data)setTagSuggestions(rTags.data);
     if(rLogs.data)setSearchLogs(rLogs.data);
+    if(rRecipes.data)setAdminRecipes(rRecipes.data);
     setLoading(false);
   };
  const approveTag=async(suggestion)=>{
@@ -272,6 +275,17 @@ function AdminScreen({user,lang,go,sb}){
     if(!window.confirm("Sicura di voler eliminare questo locale?"))return;
     await sb.from("structures").delete().eq("id",id);
     showMsg("🗑️ Locale eliminato");load();
+  };
+  const adminRecipeDate=(v)=>{
+    if(!v)return "";
+    const d=new Date(v);
+    return Number.isNaN(d.getTime())?(String(v).split("T")[0]||""):d.toLocaleDateString("it-IT");
+  };
+  const deleteAdminRecipe=async(id)=>{
+    if(!window.confirm("Eliminare questa ricetta?"))return;
+    const {error}=await sb.from("recipes").delete().eq("id",id);
+    if(error){showMsg("❌ Errore: "+error.message);return;}
+    showMsg("🗑️ Ricetta eliminata");load();
   };
 
   const adminNormalize=(txt="")=>txt.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");
@@ -432,7 +446,7 @@ function AdminScreen({user,lang,go,sb}){
       setAdminScanRunning(false);
     }
   };
-  const tabs=[{id:"requests",label:"📋 Richieste"},{id:"structures",label:"🏢 Locali"},{id:"tags",label:"🏷️ Tag"},{id:"stats",label:"📊 Stats"},...(isAdminEmail?[{id:"searches",label:"📈 Ricerche"},{id:"scan",label:"🔐 Scan"}]:[])];
+  const tabs=[{id:"requests",label:"📋 Richieste"},{id:"structures",label:"🏢 Locali"},{id:"tags",label:"🏷️ Tag"},{id:"stats",label:"📊 Stats"},...(isAdminEmail?[{id:"searches",label:"📈 Ricerche"},{id:"recipes",label:"📖 Ricette"},{id:"scan",label:"🔐 Scan"}]:[])];
   const filteredStructures=structures.filter(s=>{
     const q=adminNormalize(adminStructureSearch||"").trim();
     if(!q)return true;
@@ -563,6 +577,29 @@ function AdminScreen({user,lang,go,sb}){
             </div>
           ))}
           {searchLogs.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessuna ricerca registrata. Controlla di aver creato la tabella search_logs in Supabase.</div>}
+        </>}
+        {!loading&&tab==="recipes"&&isAdminEmail&&<>
+          <div style={{...card2,border:"1.5px solid #fdbdd4",background:"#fff7fb"}}>
+            <p style={{margin:"0 0 6px",fontSize:14,fontWeight:900,color:"#1a5c3a"}}>📖 Gestione ricette</p>
+            <p style={{margin:0,fontSize:12,color:"#6b7280",lineHeight:1.5}}>Qui puoi controllare le ricette pubblicate dagli utenti ed eliminarle se necessario.</p>
+          </div>
+          {adminRecipes.map(r=>(
+            <div key={r.id} style={card2}>
+              <div style={{display:"flex",justifyContent:"space-between",gap:10,alignItems:"flex-start"}}>
+                <div>
+                  <p style={{margin:"0 0 4px",fontSize:14,fontWeight:900,color:"#1a5c3a"}}>{r.title}</p>
+                  <p style={{margin:"0 0 3px",fontSize:11,color:"#6b7280"}}>👤 {r.author_display||r.author_name||"Utente"} · {adminRecipeDate(r.created_at)}{r.course?` · ${r.course}`:""}</p>
+                  <p style={{margin:0,fontSize:11,color:"#9ca3af"}}>ID utente: {r.author_user_id||"—"}</p>
+                </div>
+                <button onClick={()=>deleteAdminRecipe(r.id)} style={{background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:10,padding:"7px 10px",fontSize:12,fontWeight:800,cursor:"pointer"}}>Elimina</button>
+              </div>
+              <div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:8}}>
+                {(r.tags||[]).map(k=><span key={k} style={{background:"#fff1f6",color:"#1a5c3a",border:"1px solid #fdbdd4",borderRadius:999,padding:"3px 8px",fontSize:10,fontWeight:800}}>{TAGS[k]?.it||k}</span>)}
+              </div>
+              <p style={{margin:"8px 0 0",fontSize:12,color:"#4b5563",lineHeight:1.45,whiteSpace:"pre-wrap",maxHeight:90,overflow:"auto"}}>{r.ingredients}</p>
+            </div>
+          ))}
+          {adminRecipes.length===0&&<div style={{textAlign:"center",padding:30,color:"#9ca3af"}}>Nessuna ricetta pubblicata</div>}
         </>}
         {!loading&&tab==="scan"&&isAdminEmail&&<>
           <div style={{...card2,border:"1.5px solid #fde68a",background:"#fffbeb"}}>
@@ -931,7 +968,9 @@ function App(){
   const [showPwaPopup,setShowPwaPopup]=React.useState(false);
   const [pwaHelpOpen,setPwaHelpOpen]=React.useState(false);
   const [recipes,setRecipes]=React.useState([]);
-  const [recipeForm,setRecipeForm]=React.useState({title:"",tags:[],ingredients:"",description:""});
+  const [recipeForm,setRecipeForm]=React.useState({title:"",course:"",tags:[],ingredients:"",description:""});
+  const [recipeFilterTag,setRecipeFilterTag]=React.useState("all");
+  const [recipeFilterCourse,setRecipeFilterCourse]=React.useState("all");
   const [recipeMsg,setRecipeMsg]=React.useState("");
   const [recipeLoading,setRecipeLoading]=React.useState(false);
   const [isPremium,setIsPremium]=React.useState(false);
@@ -959,6 +998,8 @@ function App(){
   };
   const isAdmin=user?.email?.toLowerCase()===ADMIN_EMAIL.toLowerCase();
   const RECIPE_TAGS=["gluten_free","lactose_free","combo_free","vegan","vegetarian"];
+  const RECIPE_COURSES={antipasto:{it:"Antipasto",en:"Starter"},primo:{it:"Primo",en:"First course"},secondo:{it:"Secondo",en:"Main course"},contorno:{it:"Contorno",en:"Side dish"},dolci:{it:"Dolci",en:"Desserts"},snack:{it:"Snack",en:"Snack"}};
+  const filteredRecipes=recipes.filter(r=>(recipeFilterTag==="all"||((r.tags||[]).includes(recipeFilterTag)))&&(recipeFilterCourse==="all"||(r.course===recipeFilterCourse)));
 
   const recipeAuthorName=(name="")=>{
     const clean=String(name||"Utente").trim();
@@ -983,8 +1024,8 @@ function App(){
   const submitRecipe=async()=>{
     if(!user){showP(t.popGuest,t.popGuestSub,"register");return;}
     const f=recipeForm;
-    if(!f.title.trim()||!(f.tags||[]).length||!f.ingredients.trim()||!f.description.trim()){
-      setRecipeMsg(lang==="it"?"Compila titolo, almeno un tag, ingredienti e descrizione.":"Complete title, at least one tag, ingredients and description.");
+    if(!f.title.trim()||!f.course||!(f.tags||[]).length||!f.ingredients.trim()||!f.description.trim()){
+      setRecipeMsg(lang==="it"?"Compila titolo, tipologia, almeno un tag, ingredienti e descrizione.":"Complete title, category, at least one tag, ingredients and description.");
       setTimeout(()=>setRecipeMsg(""),3000);
       return;
     }
@@ -995,13 +1036,14 @@ function App(){
         author_name:user.name||user.email,
         author_display:recipeAuthorName(user.name||user.email),
         title:f.title.trim(),
+        course:f.course,
         tags:f.tags,
         ingredients:f.ingredients.trim(),
         description:f.description.trim(),
         created_at:new Date().toISOString()
       });
       if(error){throw error;}
-      setRecipeForm({title:"",tags:[],ingredients:"",description:""});
+      setRecipeForm({title:"",course:"",tags:[],ingredients:"",description:""});
       setRecipeMsg(lang==="it"?"✅ Ricetta pubblicata!":"✅ Recipe published!");
       loadRecipes();
     }catch(e){
@@ -1704,8 +1746,8 @@ function App(){
 
   const BottomNav=()=>(
     <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"space-around",padding:"8px 0 10px",zIndex:100,boxShadow:"0 -4px 15px rgba(0,0,0,.06)"}}>
-      {[{id:"home",icon:"🏠",lbl:t.home},{id:"explore",icon:"🔍",lbl:t.explore},{id:"recipes",icon:"📖",lbl:lang==="it"?"Ricette":"Recipes"},{id:"profile",icon:"👤",lbl:t.profile}].map(tb=>(
-        <button key={tb.id} onClick={()=>{setTab(tb.id);if(tb.id==="home")go("home");else if(tb.id==="recipes")isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("recipes");else if(tb.id==="profile")isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("profile");else if(tb.id==="explore"&&results.length>0)go("results");}} style={{background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",padding:"4px 10px",color:tab===tb.id?"#1a5c3a":"#9ca3af"}}>
+      {[{id:"home",icon:"🏠",lbl:t.home},{id:"recipes",icon:"📖",lbl:lang==="it"?"Ricette":"Recipes"},{id:"profile",icon:"👤",lbl:t.profile}].map(tb=>(
+        <button key={tb.id} onClick={()=>{setTab(tb.id);if(tb.id==="home")go("home");else if(tb.id==="recipes")isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("recipes");else if(tb.id==="profile")isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("profile");}} style={{background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",padding:"4px 10px",color:tab===tb.id?"#1a5c3a":"#9ca3af"}}>
           <span style={{fontSize:22}}>{tb.icon}</span><span style={{fontSize:11,fontWeight:tab===tb.id?700:400}}>{tb.lbl}</span>
         </button>
       ))}
@@ -1818,7 +1860,7 @@ function App(){
         <div style={{background:"linear-gradient(135deg,#fdbdd4,#fff1f6)",padding:"18px 20px 20px",color:"#1a5c3a",borderBottom:"1px solid #f9a8c7"}}>
           <button onClick={()=>go("home")} style={{background:"rgba(26,92,58,0.08)",border:"none",color:"#1a5c3a",padding:"6px 12px",borderRadius:20,cursor:"pointer",fontSize:13,marginBottom:10}}>← {t.back}</button>
           <div style={{display:"flex",alignItems:"center",gap:10}}><Logo size={18} white={false}/><div><p style={{margin:0,fontSize:12,fontWeight:800,opacity:.8}}>Juniper</p><h2 style={{margin:0,fontSize:20,fontWeight:900}}>📖 {lang==="it"?"Ricette dalla community":"Community recipes"}</h2></div></div>
-          <p style={{margin:"10px 0 0",fontSize:13,lineHeight:1.5,color:"#276247"}}>{lang==="it"?"Scopri e condividi ricette gluten free, lactose free, combo, vegan e vegetarian.":"Discover and share gluten free, lactose free, combo, vegan and vegetarian recipes."}</p>
+          <p style={{margin:"10px 0 0",fontSize:13,lineHeight:1.5,color:"#276247"}}>{lang==="it"?"Scopri e condividi ricette Gluten Free, Lactose Free, Glutine & Lattosio Free, Vegan e Vegetarian.":"Discover and share Gluten Free, Lactose Free, Gluten & Lactose Free, Vegan and Vegetarian recipes."}</p>
         </div>
         <div style={{padding:16}}>
           <div style={{background:"white",border:"1.5px solid #fdbdd4",borderRadius:16,padding:14,marginBottom:12,boxShadow:"0 2px 12px rgba(0,0,0,.05)"}}>
@@ -1829,6 +1871,10 @@ function App(){
             <p style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#1a5c3a"}}>✍️ {lang==="it"?"Condividi una ricetta":"Share a recipe"}</p>
             {recipeMsg&&<div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",color:"#065f46",borderRadius:12,padding:10,fontSize:12,fontWeight:700,marginBottom:10}}>{recipeMsg}</div>}
             <input value={recipeForm.title} onChange={e=>setRecipeForm(f=>({...f,title:e.target.value}))} placeholder={lang==="it"?"Titolo ricetta *":"Recipe title *"} style={{...inp,marginBottom:10,fontSize:13}}/>
+            <p style={{margin:"0 0 7px",fontSize:11,fontWeight:800,color:"#6b7280",textTransform:"uppercase",letterSpacing:.5}}>{lang==="it"?"Tipologia ricetta":"Recipe category"}</p>
+            <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:10}}>
+              {Object.keys(RECIPE_COURSES).map(k=><button key={k} onClick={()=>setRecipeForm(f=>({...f,course:k}))} style={{background:recipeForm.course===k?"#1a5c3a":"#fff1f6",color:recipeForm.course===k?"white":"#1a5c3a",border:recipeForm.course===k?"1.5px solid #1a5c3a":"1.5px solid #fdbdd4",padding:"7px 10px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:800}}>{RECIPE_COURSES[k][lang]}</button>)}
+            </div>
             <p style={{margin:"0 0 7px",fontSize:11,fontWeight:800,color:"#6b7280",textTransform:"uppercase",letterSpacing:.5}}>{lang==="it"?"Tag allergeni / alimentari":"Dietary tags"}</p>
             <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:10}}>
               {RECIPE_TAGS.map(k=><button key={k} onClick={()=>toggleRecipeTag(k)} style={{background:(recipeForm.tags||[]).includes(k)?"#1a5c3a":"#fff1f6",color:(recipeForm.tags||[]).includes(k)?"white":"#1a5c3a",border:(recipeForm.tags||[]).includes(k)?"1.5px solid #1a5c3a":"1.5px solid #fdbdd4",padding:"7px 10px",borderRadius:20,fontSize:12,cursor:"pointer",fontWeight:800}}>{TAGS[k].icon} {TAGS[k][lang]}</button>)}
@@ -1838,19 +1884,30 @@ function App(){
             <p style={{margin:"0 0 10px",fontSize:11,color:"#9ca3af",lineHeight:1.4}}>{lang==="it"?`La ricetta sarà pubblicata con il nome ${recipeAuthorName(user?.name||user?.email)}. Non mostreremo email o altri dati.`:`The recipe will be published with the name ${recipeAuthorName(user?.name||user?.email)}. Email and other data will not be shown.`}</p>
             <button onClick={submitRecipe} disabled={recipeLoading} style={{width:"100%",background:recipeLoading?"#d1d5db":"#1a5c3a",color:"white",border:"none",padding:12,borderRadius:12,fontWeight:900,fontSize:14,cursor:recipeLoading?"not-allowed":"pointer"}}>{recipeLoading?(lang==="it"?"Pubblico...":"Publishing..."):(lang==="it"?"Pubblica ricetta":"Publish recipe")}</button>
           </div>
+          <div style={{background:"white",borderRadius:16,padding:14,boxShadow:"0 2px 12px rgba(0,0,0,.05)",marginBottom:12}}>
+            <p style={{margin:"0 0 8px",fontSize:13,fontWeight:900,color:"#1a5c3a"}}>🔎 {lang==="it"?"Cerca ricette per tag":"Filter recipes"}</p>
+            <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:8}}>
+              <button onClick={()=>setRecipeFilterTag("all")} style={{background:recipeFilterTag==="all"?"#1a5c3a":"#fff1f6",color:recipeFilterTag==="all"?"white":"#1a5c3a",border:"1.5px solid #fdbdd4",padding:"7px 10px",borderRadius:20,fontSize:12,fontWeight:800,cursor:"pointer"}}>{lang==="it"?"Tutti i tag":"All tags"}</button>
+              {RECIPE_TAGS.map(k=><button key={k} onClick={()=>setRecipeFilterTag(k)} style={{background:recipeFilterTag===k?"#1a5c3a":"#fff1f6",color:recipeFilterTag===k?"white":"#1a5c3a",border:"1.5px solid #fdbdd4",padding:"7px 10px",borderRadius:20,fontSize:12,fontWeight:800,cursor:"pointer"}}>{TAGS[k].icon} {TAGS[k][lang]}</button>)}
+            </div>
+            <div style={{display:"flex",gap:7,flexWrap:"wrap"}}>
+              <button onClick={()=>setRecipeFilterCourse("all")} style={{background:recipeFilterCourse==="all"?"#1a5c3a":"#fff1f6",color:recipeFilterCourse==="all"?"white":"#1a5c3a",border:"1.5px solid #fdbdd4",padding:"7px 10px",borderRadius:20,fontSize:12,fontWeight:800,cursor:"pointer"}}>{lang==="it"?"Tutte le tipologie":"All categories"}</button>
+              {Object.keys(RECIPE_COURSES).map(k=><button key={k} onClick={()=>setRecipeFilterCourse(k)} style={{background:recipeFilterCourse===k?"#1a5c3a":"#fff1f6",color:recipeFilterCourse===k?"white":"#1a5c3a",border:"1.5px solid #fdbdd4",padding:"7px 10px",borderRadius:20,fontSize:12,fontWeight:800,cursor:"pointer"}}>{RECIPE_COURSES[k][lang]}</button>)}
+            </div>
+          </div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"16px 2px 10px"}}>
-            <p style={{margin:0,fontSize:14,fontWeight:900,color:"#1a5c3a"}}>🍓 {lang==="it"?"Ultime ricette":"Latest recipes"}</p>
+            <p style={{margin:0,fontSize:14,fontWeight:900,color:"#1a5c3a"}}>🍓 {lang==="it"?"Ultime ricette":"Latest recipes"} <span style={{fontSize:11,color:"#9ca3af",fontWeight:700}}>({filteredRecipes.length})</span></p>
             <button onClick={loadRecipes} style={{background:"#fff1f6",border:"1px solid #fdbdd4",color:"#1a5c3a",borderRadius:999,padding:"6px 10px",fontSize:11,fontWeight:800,cursor:"pointer"}}>↻</button>
           </div>
-          {recipes.map(r=><div key={r.id} style={{background:"white",borderRadius:16,padding:15,boxShadow:"0 2px 12px rgba(0,0,0,.06)",marginBottom:10,border:"1px solid #fde2ee"}}>
-            <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"flex-start"}}><div><p style={{margin:"0 0 4px",fontSize:15,fontWeight:900,color:"#1a5c3a"}}>{r.title}</p><p style={{margin:0,fontSize:11,color:"#9ca3af"}}>👤 {r.author_display||recipeAuthorName(r.author_name)} · {recipeDate(r.created_at)}</p></div>{isAdmin&&<button onClick={()=>deleteRecipe(r.id)} style={{background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:10,padding:"6px 9px",fontSize:11,fontWeight:800,cursor:"pointer"}}>Elimina</button>}</div>
+          {filteredRecipes.map(r=><div key={r.id} style={{background:"white",borderRadius:16,padding:15,boxShadow:"0 2px 12px rgba(0,0,0,.06)",marginBottom:10,border:"1px solid #fde2ee"}}>
+            <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"flex-start"}}><div><p style={{margin:"0 0 4px",fontSize:15,fontWeight:900,color:"#1a5c3a"}}>{r.title}</p><p style={{margin:0,fontSize:11,color:"#9ca3af"}}>👤 {r.author_display||recipeAuthorName(r.author_name)} · {recipeDate(r.created_at)}{r.course?` · ${RECIPE_COURSES[r.course]?.[lang]||r.course}`:""}</p></div>{isAdmin&&<button onClick={()=>deleteRecipe(r.id)} style={{background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:10,padding:"6px 9px",fontSize:11,fontWeight:800,cursor:"pointer"}}>Elimina</button>}</div>
             <div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:9}}>{(r.tags||[]).map(k=><span key={k} style={{background:"#fff1f6",color:"#1a5c3a",border:"1px solid #fdbdd4",borderRadius:999,padding:"3px 8px",fontSize:10,fontWeight:800}}>{TAGS[k]?.icon} {TAGS[k]?.[lang]||k}</span>)}</div>
             <p style={{margin:"10px 0 4px",fontSize:12,fontWeight:900,color:"#374151"}}>{lang==="it"?"Ingredienti":"Ingredients"}</p>
             <p style={{margin:0,fontSize:12,color:"#4b5563",lineHeight:1.55,whiteSpace:"pre-wrap"}}>{r.ingredients}</p>
             <p style={{margin:"10px 0 4px",fontSize:12,fontWeight:900,color:"#374151"}}>{lang==="it"?"Procedimento":"Method"}</p>
             <p style={{margin:0,fontSize:12,color:"#4b5563",lineHeight:1.55,whiteSpace:"pre-wrap"}}>{r.description}</p>
           </div>)}
-          {recipes.length===0&&<div style={{textAlign:"center",padding:28,color:"#9ca3af",fontSize:13,background:"white",borderRadius:16}}>{lang==="it"?"Ancora nessuna ricetta. Sii la prima a condividerne una!":"No recipes yet. Be the first to share one!"}</div>}
+          {filteredRecipes.length===0&&<div style={{textAlign:"center",padding:28,color:"#9ca3af",fontSize:13,background:"white",borderRadius:16}}>{recipes.length===0?(lang==="it"?"Ancora nessuna ricetta. Sii la prima a condividerne una!":"No recipes yet. Be the first to share one!"):(lang==="it"?"Nessuna ricetta trovata con questi filtri.":"No recipes found with these filters.")}</div>}
         </div>
         <BottomNav/><Popup/><WelcomePopup/><PwaPopup/>
       </div>
@@ -2314,7 +2371,7 @@ function App(){
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:10}}>
             <div>
               <p style={{margin:"0 0 5px",fontSize:14,fontWeight:900,color:"#1a5c3a"}}>📖 {lang==="it"?"Ricette dalla community":"Community recipes"}</p>
-              <p style={{margin:0,fontSize:12,color:"#6b7280",lineHeight:1.45}}>{lang==="it"?"Leggi e condividi ricette gluten free, lactose free, combo, vegan e vegetarian.":"Read and share gluten free, lactose free, combo, vegan and vegetarian recipes."}</p>
+              <p style={{margin:0,fontSize:12,color:"#6b7280",lineHeight:1.45}}>{lang==="it"?"Leggi e condividi ricette Gluten Free, Lactose Free, Glutine & Lattosio Free, Vegan e Vegetarian.":"Read and share Gluten Free, Lactose Free, Gluten & Lactose Free, Vegan and Vegetarian recipes."}</p>
             </div>
             <button onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("recipes")} style={{background:"#1a5c3a",color:"white",border:"none",borderRadius:12,padding:"10px 12px",fontSize:12,fontWeight:900,cursor:"pointer",whiteSpace:"nowrap"}}>{lang==="it"?"Apri":"Open"}</button>
           </div>
