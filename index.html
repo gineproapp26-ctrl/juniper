@@ -1000,6 +1000,8 @@ function App(){
   const RECIPE_TAGS=["gluten_free","lactose_free","combo_free","vegan","vegetarian"];
   const RECIPE_COURSES={antipasto:{it:"Antipasto",en:"Starter"},primo:{it:"Primo",en:"First course"},secondo:{it:"Secondo",en:"Main course"},contorno:{it:"Contorno",en:"Side dish"},dolci:{it:"Dolci",en:"Desserts"},snack:{it:"Snack",en:"Snack"}};
   const filteredRecipes=recipes.filter(r=>(recipeFilterTag==="all"||((r.tags||[]).includes(recipeFilterTag)))&&(recipeFilterCourse==="all"||(r.course===recipeFilterCourse)));
+  const visibleRecipes=isGuest?filteredRecipes.slice(0,5):filteredRecipes;
+  const recipesLockedForGuest=isGuest&&filteredRecipes.length>visibleRecipes.length;
 
   const recipeAuthorName=(name="")=>{
     const clean=String(name||"Utente").trim();
@@ -1747,7 +1749,7 @@ function App(){
   const BottomNav=()=>(
     <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"space-around",padding:"8px 0 10px",zIndex:100,boxShadow:"0 -4px 15px rgba(0,0,0,.06)"}}>
       {[{id:"home",icon:"🏠",lbl:t.home},{id:"recipes",icon:"📖",lbl:lang==="it"?"Ricette":"Recipes"},{id:"profile",icon:"👤",lbl:t.profile}].map(tb=>(
-        <button key={tb.id} onClick={()=>{setTab(tb.id);if(tb.id==="home")go("home");else if(tb.id==="recipes")isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("recipes");else if(tb.id==="profile")isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("profile");}} style={{background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",padding:"4px 10px",color:tab===tb.id?"#1a5c3a":"#9ca3af"}}>
+        <button key={tb.id} onClick={()=>{setTab(tb.id);if(tb.id==="home")go("home");else if(tb.id==="recipes")go("recipes");else if(tb.id==="profile")isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("profile");}} style={{background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",padding:"4px 10px",color:tab===tb.id?"#1a5c3a":"#9ca3af"}}>
           <span style={{fontSize:22}}>{tb.icon}</span><span style={{fontSize:11,fontWeight:tab===tb.id?700:400}}>{tb.lbl}</span>
         </button>
       ))}
@@ -1854,7 +1856,6 @@ function App(){
   };
 
   const RecipesScreen=()=>{
-    if(!user){showP(t.popGuest,t.popGuestSub,"register");go("home");return null;}
     return(
       <div style={{background:"#fff7fb",minHeight:"100vh",paddingBottom:90}}>
         <div style={{background:"linear-gradient(135deg,#fdbdd4,#fff1f6)",padding:"18px 20px 20px",color:"#1a5c3a",borderBottom:"1px solid #f9a8c7"}}>
@@ -1867,7 +1868,7 @@ function App(){
             <p style={{margin:"0 0 7px",fontSize:12,fontWeight:900,color:"#1a5c3a"}}>⚠️ {lang==="it"?"Nota importante":"Important note"}</p>
             <p style={{margin:0,fontSize:12,color:"#6b7280",lineHeight:1.5}}>{lang==="it"?"Le ricette sono condivise dagli utenti della community. Juniper non verifica ingredienti, allergeni o contaminazioni: controlla sempre etichette e prodotti prima di prepararle.":"Recipes are shared by community users. Juniper does not verify ingredients, allergens or cross-contamination: always check labels and products before preparing them."}</p>
           </div>
-          <div style={{background:"white",borderRadius:16,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:12}}>
+          {user?<div style={{background:"white",borderRadius:16,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.07)",marginBottom:12}}>
             <p style={{margin:"0 0 10px",fontSize:14,fontWeight:900,color:"#1a5c3a"}}>✍️ {lang==="it"?"Condividi una ricetta":"Share a recipe"}</p>
             {recipeMsg&&<div style={{background:"#f0fdf4",border:"1px solid #bbf7d0",color:"#065f46",borderRadius:12,padding:10,fontSize:12,fontWeight:700,marginBottom:10}}>{recipeMsg}</div>}
             <input value={recipeForm.title} onChange={e=>setRecipeForm(f=>({...f,title:e.target.value}))} placeholder={lang==="it"?"Titolo ricetta *":"Recipe title *"} style={{...inp,marginBottom:10,fontSize:13}}/>
@@ -1883,7 +1884,11 @@ function App(){
             <textarea value={recipeForm.description} onChange={e=>setRecipeForm(f=>({...f,description:e.target.value}))} placeholder={lang==="it"?"Descrizione ricetta / procedimento *":"Recipe description / method *"} style={{...inp,minHeight:120,resize:"vertical",marginBottom:10,fontSize:13}}/>
             <p style={{margin:"0 0 10px",fontSize:11,color:"#9ca3af",lineHeight:1.4}}>{lang==="it"?`La ricetta sarà pubblicata con il nome ${recipeAuthorName(user?.name||user?.email)}. Non mostreremo email o altri dati.`:`The recipe will be published with the name ${recipeAuthorName(user?.name||user?.email)}. Email and other data will not be shown.`}</p>
             <button onClick={submitRecipe} disabled={recipeLoading} style={{width:"100%",background:recipeLoading?"#d1d5db":"#1a5c3a",color:"white",border:"none",padding:12,borderRadius:12,fontWeight:900,fontSize:14,cursor:recipeLoading?"not-allowed":"pointer"}}>{recipeLoading?(lang==="it"?"Pubblico...":"Publishing..."):(lang==="it"?"Pubblica ricetta":"Publish recipe")}</button>
-          </div>
+          </div>:<div style={{background:"white",border:"1.5px solid #fdbdd4",borderRadius:16,padding:16,boxShadow:"0 2px 12px rgba(0,0,0,.06)",marginBottom:12,textAlign:"center"}}>
+            <p style={{margin:"0 0 8px",fontSize:14,fontWeight:900,color:"#1a5c3a"}}>🌿 {lang==="it"?"Vuoi vedere più ricette o pubblicarne una?":"Want to see more recipes or publish one?"}</p>
+            <p style={{margin:"0 0 12px",fontSize:12,color:"#6b7280",lineHeight:1.5}}>{lang==="it"?"Registrati per vedere più ricette o per pubblicare la tua ricetta nella community.":"Sign up to see more recipes or publish your own in the community."}</p>
+            <button onClick={()=>{setAuthMode("register");go("auth");}} style={{background:"#1a5c3a",color:"white",border:"none",borderRadius:12,padding:"11px 16px",fontSize:13,fontWeight:900,cursor:"pointer",width:"100%"}}>{lang==="it"?"Registrati gratis":"Sign up free"}</button>
+          </div>}
           <div style={{background:"white",borderRadius:16,padding:14,boxShadow:"0 2px 12px rgba(0,0,0,.05)",marginBottom:12}}>
             <p style={{margin:"0 0 8px",fontSize:13,fontWeight:900,color:"#1a5c3a"}}>🔎 {lang==="it"?"Cerca ricette per tag":"Filter recipes"}</p>
             <div style={{display:"flex",gap:7,flexWrap:"wrap",marginBottom:8}}>
@@ -1896,10 +1901,10 @@ function App(){
             </div>
           </div>
           <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",margin:"16px 2px 10px"}}>
-            <p style={{margin:0,fontSize:14,fontWeight:900,color:"#1a5c3a"}}>🍓 {lang==="it"?"Ultime ricette":"Latest recipes"} <span style={{fontSize:11,color:"#9ca3af",fontWeight:700}}>({filteredRecipes.length})</span></p>
+            <p style={{margin:0,fontSize:14,fontWeight:900,color:"#1a5c3a"}}>🍓 {lang==="it"?"Ultime ricette":"Latest recipes"} <span style={{fontSize:11,color:"#9ca3af",fontWeight:700}}>({isGuest?visibleRecipes.length:filteredRecipes.length}{isGuest&&filteredRecipes.length>visibleRecipes.length?`/${filteredRecipes.length}`:""})</span></p>
             <button onClick={loadRecipes} style={{background:"#fff1f6",border:"1px solid #fdbdd4",color:"#1a5c3a",borderRadius:999,padding:"6px 10px",fontSize:11,fontWeight:800,cursor:"pointer"}}>↻</button>
           </div>
-          {filteredRecipes.map(r=><div key={r.id} style={{background:"white",borderRadius:16,padding:15,boxShadow:"0 2px 12px rgba(0,0,0,.06)",marginBottom:10,border:"1px solid #fde2ee"}}>
+          {visibleRecipes.map(r=><div key={r.id} style={{background:"white",borderRadius:16,padding:15,boxShadow:"0 2px 12px rgba(0,0,0,.06)",marginBottom:10,border:"1px solid #fde2ee"}}>
             <div style={{display:"flex",justifyContent:"space-between",gap:8,alignItems:"flex-start"}}><div><p style={{margin:"0 0 4px",fontSize:15,fontWeight:900,color:"#1a5c3a"}}>{r.title}</p><p style={{margin:0,fontSize:11,color:"#9ca3af"}}>👤 {r.author_display||recipeAuthorName(r.author_name)} · {recipeDate(r.created_at)}{r.course?` · ${RECIPE_COURSES[r.course]?.[lang]||r.course}`:""}</p></div>{isAdmin&&<button onClick={()=>deleteRecipe(r.id)} style={{background:"#fee2e2",color:"#dc2626",border:"none",borderRadius:10,padding:"6px 9px",fontSize:11,fontWeight:800,cursor:"pointer"}}>Elimina</button>}</div>
             <div style={{display:"flex",gap:5,flexWrap:"wrap",marginTop:9}}>{(r.tags||[]).map(k=><span key={k} style={{background:"#fff1f6",color:"#1a5c3a",border:"1px solid #fdbdd4",borderRadius:999,padding:"3px 8px",fontSize:10,fontWeight:800}}>{TAGS[k]?.icon} {TAGS[k]?.[lang]||k}</span>)}</div>
             <p style={{margin:"10px 0 4px",fontSize:12,fontWeight:900,color:"#374151"}}>{lang==="it"?"Ingredienti":"Ingredients"}</p>
@@ -1907,6 +1912,11 @@ function App(){
             <p style={{margin:"10px 0 4px",fontSize:12,fontWeight:900,color:"#374151"}}>{lang==="it"?"Procedimento":"Method"}</p>
             <p style={{margin:0,fontSize:12,color:"#4b5563",lineHeight:1.55,whiteSpace:"pre-wrap"}}>{r.description}</p>
           </div>)}
+          {recipesLockedForGuest&&<div style={{background:"#1a5c3a",color:"white",borderRadius:16,padding:16,textAlign:"center",marginBottom:10}}>
+            <p style={{margin:"0 0 6px",fontSize:14,fontWeight:900}}>🌿 {lang==="it"?"Vuoi vedere più ricette?":"Want to see more recipes?"}</p>
+            <p style={{margin:"0 0 12px",fontSize:12,opacity:.9,lineHeight:1.5}}>{lang==="it"?"Senza login puoi vedere fino a 5 ricette per tag. Registrati per vedere più ricette o per pubblicare.":"Without login you can see up to 5 recipes per tag. Sign up to see more recipes or publish."}</p>
+            <button onClick={()=>{setAuthMode("register");go("auth");}} style={{background:JUNIPER_PINK,color:JUNIPER_GREEN,border:"none",borderRadius:12,padding:"10px 14px",fontSize:13,fontWeight:900,cursor:"pointer",width:"100%"}}>{lang==="it"?"Registrati gratis":"Sign up free"}</button>
+          </div>}
           {filteredRecipes.length===0&&<div style={{textAlign:"center",padding:28,color:"#9ca3af",fontSize:13,background:"white",borderRadius:16}}>{recipes.length===0?(lang==="it"?"Ancora nessuna ricetta. Sii la prima a condividerne una!":"No recipes yet. Be the first to share one!"):(lang==="it"?"Nessuna ricetta trovata con questi filtri.":"No recipes found with these filters.")}</div>}
         </div>
         <BottomNav/><Popup/><WelcomePopup/><PwaPopup/>
@@ -2373,7 +2383,7 @@ function App(){
               <p style={{margin:"0 0 5px",fontSize:14,fontWeight:900,color:"#1a5c3a"}}>📖 {lang==="it"?"Ricette dalla community":"Community recipes"}</p>
               <p style={{margin:0,fontSize:12,color:"#6b7280",lineHeight:1.45}}>{lang==="it"?"Leggi e condividi ricette Gluten Free, Lactose Free, Glutine & Lattosio Free, Vegan e Vegetarian.":"Read and share Gluten Free, Lactose Free, Gluten & Lactose Free, Vegan and Vegetarian recipes."}</p>
             </div>
-            <button onClick={()=>isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("recipes")} style={{background:"#1a5c3a",color:"white",border:"none",borderRadius:12,padding:"10px 12px",fontSize:12,fontWeight:900,cursor:"pointer",whiteSpace:"nowrap"}}>{lang==="it"?"Apri":"Open"}</button>
+            <button onClick={()=>go("recipes")} style={{background:"#1a5c3a",color:"white",border:"none",borderRadius:12,padding:"10px 12px",fontSize:12,fontWeight:900,cursor:"pointer",whiteSpace:"nowrap"}}>{lang==="it"?"Apri":"Open"}</button>
           </div>
         </div>
         <p style={{margin:"-2px 2px 12px",fontSize:11,color:"#9ca3af",lineHeight:1.45}}>{lang==="it"?"Non trovi abbastanza risultati? Usa il Controllo alimentare per cercare anche locali non ancora presenti su Juniper.":"Not enough results? Use Food Check to search venues not yet available on Juniper."}</p>
