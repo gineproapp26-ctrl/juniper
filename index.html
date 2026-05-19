@@ -1749,7 +1749,7 @@ function App(){
   const BottomNav=()=>(
     <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:480,background:"white",borderTop:"1px solid #e5e7eb",display:"flex",justifyContent:"space-around",padding:"8px 0 10px",zIndex:100,boxShadow:"0 -4px 15px rgba(0,0,0,.06)"}}>
       {[{id:"home",icon:"🏠",lbl:t.home},{id:"recipes",icon:"📖",lbl:lang==="it"?"Ricette":"Recipes"},{id:"profile",icon:"👤",lbl:t.profile}].map(tb=>(
-        <button key={tb.id} onClick={()=>{setTab(tb.id);if(tb.id==="home")go("home");else if(tb.id==="recipes")go("recipes");else if(tb.id==="profile")isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("profile");}} style={{background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",padding:"4px 10px",color:tab===tb.id?"#1a5c3a":"#9ca3af"}}>
+        <button key={tb.id} onClick={()=>{setTab(tb.id);if(tb.id==="home")isGuest?go("welcome"):go("home");else if(tb.id==="recipes")go("recipes");else if(tb.id==="profile")isGuest?showP(t.popGuest,t.popGuestSub,"register"):go("profile");}} style={{background:"none",border:"none",display:"flex",flexDirection:"column",alignItems:"center",gap:2,cursor:"pointer",padding:"4px 10px",color:tab===tb.id?"#1a5c3a":"#9ca3af"}}>
           <span style={{fontSize:22}}>{tb.icon}</span><span style={{fontSize:11,fontWeight:tab===tb.id?700:400}}>{tb.lbl}</span>
         </button>
       ))}
