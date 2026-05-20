@@ -1141,6 +1141,14 @@ function App(){
     loadBusinessSubscriptions();
     loadRecipes();
 
+    // FIX RICETTE: ogni volta che si entra nella schermata ricette, ricarica la lista
+    // e azzera eventuali filtri rimasti attivi che potrebbero nascondere tutto.
+    if(screen==="recipes"){
+      setRecipeFilterTag("all");
+      setRecipeFilterCourse("all");
+      setTimeout(()=>loadRecipes(),0);
+    }
+
     // Carica abbonamento e crediti utente
     sb.auth.getSession().then(({data:{session}})=>{
       if(session?.user){
@@ -1924,6 +1932,14 @@ function App(){
     );
   };
 
+
+  React.useEffect(()=>{
+    if(screen==="recipes"){
+      setRecipeFilterTag("all");
+      setRecipeFilterCourse("all");
+      loadRecipes();
+    }
+  },[screen]);
 
   const FilterPanel=()=>(
     <div style={card}>
