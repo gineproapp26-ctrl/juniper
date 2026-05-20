@@ -1000,8 +1000,8 @@ function App(){
   const RECIPE_TAGS=["gluten_free","lactose_free","combo_free","vegan","vegetarian"];
   const RECIPE_COURSES={antipasto:{it:"Antipasto",en:"Starter"},primo:{it:"Primo",en:"First course"},secondo:{it:"Secondo",en:"Main course"},contorno:{it:"Contorno",en:"Side dish"},dolci:{it:"Dolci",en:"Desserts"},snack:{it:"Snack",en:"Snack"}};
   const filteredRecipes=recipes.filter(r=>(recipeFilterTag==="all"||((r.tags||[]).includes(recipeFilterTag)))&&(recipeFilterCourse==="all"||(r.course===recipeFilterCourse)));
-  const visibleRecipes=isGuest?filteredRecipes.slice(0,5):filteredRecipes;
-  const recipesLockedForGuest=isGuest&&filteredRecipes.length>visibleRecipes.length;
+  const visibleRecipes=filteredRecipes;
+  const recipesLockedForGuest=false;
 
   const recipeAuthorName=(name="")=>{
     const clean=String(name||"Utente").trim();
@@ -2052,7 +2052,7 @@ function App(){
   if(screen==="business")return <BusinessScreen lang={lang} go={go} user={user} setAuthMode={setAuthMode} preselected={businessClaim} clearPreselected={()=>setBusinessClaim(null)}/>;
   if(screen==="admin"){if(!isAdmin){go("home");return null;}return <AdminScreen user={user} lang={lang} go={go} sb={sb}/>;}
   if(screen==="policy")return <PolicyScreen lang={lang} go={go}/>;
-  if(screen==="recipes")return <RecipesScreen/>;
+  if(screen==="recipes")return RecipesScreen();
 
   if(screen==="auth")return(
     <div style={{minHeight:"100vh",background:"#f9fafb"}}>
